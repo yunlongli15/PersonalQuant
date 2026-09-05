@@ -1,0 +1,59 @@
+# STEP 2 财务提取 Demo 报告
+
+运行：`python scripts/demo_financial_extraction.py`（+ 单公司扩展验证）
+日期：2026-09-05
+
+## 流程（每份报告）
+
+metadata 查询 → 单份 CNINFO PDF 按需获取 → %PDF/SHA256 校验 →
+PyMuPDF+pdfplumber 提取 → 单位/列映射 → sanity check →
+financial_metrics（PIT）+ extraction_audit → PDF 缓存（demo 显式 cache=True
+以保留审计样本，默认关闭）。
+
+## 结果汇总
+
+| 报告 | 公告日 | 提取指标 | 关键值与披露核对 |
+| --- | --- | --- | --- |
+| 贵州茅台 FY2023 | 2024-04-03 | 14/14 | 营收 1476.94 亿、归母净利 747.34 亿、ROE 34.19%、总资产 2727.0 亿、总负债 490.4 亿、营收/净利增速 19.01%/19.16% ✓ |
+| 贵州茅台 FY2022 | 2023-03-31 | 14/14 | 营收 1241.0 亿、归母净利 627.16 亿、ROE 30.26% ✓ |
+| 中国平安 FY2023 | 2024-03-22 | 12/14 | 营收 9137.89 亿、归母净利 856.65 亿、ROE 9.70%、总负债 10.35 万亿、营收增速 -17.7%（I17 重述口径）✓；营业成本不适用（保险） |
+| 招商银行 FY2023 | 2024-03-26 | 12/14 | 营收 3391.23 亿、归母净利 1466.02 亿、ROE 16.16%、总资产 11.03 万亿、负债率 0.90 ✓；营业成本不适用（银行） |
+| 浦发银行 FY2023 | 2024-04-30 | 12/14 | 营收 1734.34 亿、总资产 9.007 万亿、总负债 8.274 万亿、ROE 5.05% ✓；营业成本不适用（银行） |
+| 中芯国际 FY2024 | 2025-03-28 | 14/14 | 营收 577.96 亿、归母净利 36.99 亿、毛利率 18.6%、总负债 1243.1 亿、营收/净利增速 +28.4%/-23.3% ✓ |
+
+覆盖面：5 家公司（大型消费/制造、保险、银行、半导体）× 3 个年度
+（2022/2023/2024），格式差异（元/百万元单位、多种单位声明写法、
+银行/保险特殊行标签、跨页资产负债表、审计报告干扰页）均已处理。
+
+## Demo 输出示例（茅台 FY2023）
+
+```
+company: 600519.SH  fiscal_year: 2023
+announcement_date: 2024-04-03
+source_url: https://static.cninfo.com.cn/finalpage/2024-04-03/1219506510.PDF
+source_sha256: 2125ff97a452ea79b0d784e2432f7d224b6aecc330b644b593477d69e22f4ed1
+metric                  value              unit    page  method          status
+revenue                 147,693,604,994.14 CNY       5    pdf_table       VALID
+net_profit               74,734,071,550.75 CNY       5    pdf_table       VALID
+total_assets            272,699,660,092.25 CNY       5    pdf_table       VALID
+total_liabilities        49,043,190,797.43 CNY      60    pdf_text_line   VALID
+roe                      0.3419           fraction   5    pdf_table       VALID
+revenue_growth           0.1901           fraction   -    derived_growth  VALID
+...
+SUCCESS: 14/14 metrics extracted for 600519.SH FY2023
+```
+
+## PIT 查询示例
+
+```python
+get_financial_metric("600519.SH", "roe", "2024-04-01")   # → FY2022 的 0.3026
+get_financial_metric("600519.SH", "roe", "2024-04-04")   # → FY2023 的 0.3419
+get_financial_metric("600519.SH", "roe", "2023-03-31")   # → NOT_AVAILABLE_AT_TIME
+```
+
+## 资源占用
+
+- 下载 6 份 PDF（每份 1-10MB，单连接、随机延迟、重试退避），非批量。
+- 缓存 6 份 PDF 于 data/raw/reports/（demo 显式开启，供离线复现/审计）。
+- financial_metrics 78 行、extraction_audit 425 行（含派生指标）。
+- 默认运行（cache=False）只保留结构化数据，PDF 即用即删。

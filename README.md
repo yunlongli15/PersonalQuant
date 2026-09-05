@@ -14,20 +14,16 @@ A股数据 → 数据清洗与本地数据库 → 因子计算与因子挖掘 �
 
 ## 当前状态
 
-**STEP 1（进行中）：建立稳定、可重复的 Qlib 量化研究环境**
+**STEP 1 ✅ / STEP 2 ✅**（详见 [ROADMAP.md](ROADMAP.md)）
 
-- ✅ 环境检查（Windows 11 + i5-14600KF / 32GB / RTX 4070 Ti）
-- ✅ 项目结构建立
-- ✅ 隔离虚拟环境（`.venv`，Python 3.12，用户级安装，不动系统 3.13）
-- ✅ Qlib（pyqlib 0.9.7）安装与 import 验证
-- ✅ 官方中国市场示例数据（`qlib_data/cn_data`）
-- ✅ 数据读取验证（`tests/test_qlib_data.py`）
-- ✅ 官方 LightGBM + Alpha158 workflow 与回测
-- ✅ 基线报告（`reports/step1_qlib_baseline.md`）
-- ✅ 自动化验证脚本（`scripts/verify_step1.py`）
-- ✅ Git 初始化与提交
-
-详细进度见 [ROADMAP.md](ROADMAP.md)。
+- STEP 1：Qlib 0.9.7 研究环境 + 官方 LightGBM/Alpha158 workflow 完整回测
+  （基线报告 `reports/step1_qlib_baseline.md`）
+- STEP 2：本地 A 股数据基础设施 —— DuckDB + Parquet canonical 层
+  （日线 17.9M 行 / 证券主表 6,148 / SSE 年报 metadata 63k+）、
+  按需 PDF 财务提取管线（PIT + 审计）、质量体系 16/16、
+  交叉验证与 bootstrap/verify 脚本
+  （`reports/step2_data_catalog.md` / `step2_data_crosscheck.md` /
+  `step2_financial_extraction_demo.md`）
 
 ## 环境要求
 
@@ -61,21 +57,23 @@ rm /tmp/qlib_bin.tar.gz
 ```bash
 source .venv/Scripts/activate   # 激活虚拟环境
 
-# 一键验证整个 STEP 1 环境
-python scripts/verify_step1.py
-
-# 数据读取测试
-python -m pytest tests/ -v
-
-# 运行官方 LightGBM + Alpha158 workflow（完整回测）
-# MLFLOW_ALLOW_FILE_STORE=true 是必需的：mlflow 3.x 默认禁用 qlib 0.9.7 使用的
-# 文件存储后端 ./mlruns（详见 reports/step1_qlib_baseline.md 警告说明）
+# --- STEP 1：Qlib 环境 ---
+python scripts/verify_step1.py              # 一键验证 STEP 1 环境
 PYTHONIOENCODING=utf-8 MPLBACKEND=Agg MLFLOW_DISABLE_AGENT_HINT=1 MLFLOW_ALLOW_FILE_STORE=true \
-    qrun config/workflow_config_lightgbm_Alpha158.yaml
+    qrun config/workflow_config_lightgbm_Alpha158.yaml   # 官方 workflow（约 2 分钟）
+
+# --- STEP 2：数据基础设施 ---
+python scripts/bootstrap_data.py --skip-bars # 一键重建（11 步，含质量检查与 catalog）
+python scripts/verify_step2.py              # 19 项验收检查（PASS/FAIL）
+python scripts/demo_financial_extraction.py # 按需年报提取 demo
+python scripts/crosscheck_qlib.py           # Qlib 交叉验证
+python -m pytest tests/ -q                  # 全部测试（42 个）
+
+# 运行模式：PQ_MODE=offline 只读缓存（历史回测必须用）；PQ_PDF_CACHE=1 开启 PDF 缓存
 ```
 
-workflow 完整运行一次在本机（20 线程 CPU）约需 2 分钟，基线结果见
-`reports/step1_qlib_baseline.md`，日志示例见 `logs/step1_qlib_workflow.log`。
+STEP 1 基线结果见 `reports/step1_qlib_baseline.md`；
+STEP 2 数据目录见 `reports/step2_data_catalog.md`。
 
 ## 目录结构
 
@@ -83,14 +81,22 @@ workflow 完整运行一次在本机（20 线程 CPU）约需 2 分钟，基线�
 PersonalQuant/
 ├── README.md            # 本文件
 ├── CLAUDE.md            # AI 协作开发规范
-├── ROADMAP.md           # 阶段路线图与进度
+├── ROADMAP.md           # 阶段路线图与进度（STEP 1/2 COMPLETED）
 ├── pyproject.toml       # 项目元信息与依赖声明
+├── personal_quant/      # 数据基础设施包（STEP 2）
+│   ├── symbols.py       #   统一股票代码 600519.SH
+│   ├── db.py            #   DuckDB + canonical schema
+│   ├── providers/       #   Qlib baseline / SSE 年报 / AkShare+腾讯
+│   ├── financial/       #   按需 PDF 提取 + PIT + 查询 API
+│   ├── ingest/          #   各数据源 → canonical 导入
+│   ├── storage/         #   Parquet + 审计 + 数据源注册
+│   └── quality/         #   16 项质量检查
 ├── config/              # workflow 等运行配置
-├── scripts/             # 验证/辅助脚本
-├── tests/               # 测试
-├── docs/                # 文档与检查报告
-├── data/                # 后续阶段的本地数据（STEP 1 不使用）
-├── qlib_data/           # Qlib 官方 cn 数据（git 忽略）
+├── scripts/             # bootstrap / verify / demo / crosscheck
+├── tests/               # 42 个测试
+├── docs/                # 数据 schema/数据源/PIT/提取/质量文档
+├── data/                # RAW + parquet + duckdb（git 忽略）
+├── qlib_data/           # Qlib 基线数据（git 忽略）
 ├── reports/             # 实验报告
 ├── logs/                # 运行日志
 └── .venv/               # 项目虚拟环境（git 忽略）

@@ -1,0 +1,104 @@
+# Canonical Data Schema（STEP 2）
+
+分层：**RAW**（data/raw/，原始 metadata/响应/按需缓存的 PDF）→ **CANONICAL**
+（data/parquet/ + DuckDB，统一结构）→ **DERIVED**（因子/指标/模型，后续阶段，
+绝不写入 canonical 层）。
+
+- 查询库：`data/duckdb/personal_quant.duckdb`
+- Canonical 存储：`data/parquet/<domain>/<name>.parquet`
+- `daily_bars` 在 DuckDB 中是**视图**（读 parquet），其余为物化表。
+- 所有大型数据文件 git 忽略。
+
+## 通用约定
+
+- **symbol**：canonical 格式 `DIGITS.EXCHANGE`，如 `600519.SH` / `000001.SZ` /
+  `430017.BJ`。数据库内部禁止混用 `600519` / `SH600519` 等写法
+  （`personal_quant.symbols.normalize_symbol()`）。
+- **日期**：DATE 类型；**金额**：DOUBLE，单位 CNY（元）；**比率**：小数
+  （如 0.3419 表示 34.19%），`unit` 列标注 `CNY` / `fraction`。
+- 未知值一律 NULL；**禁止伪造**（如 `first_seen_year ≠ list_date`，
+  list_date 无可靠来源时保持 NULL）。
+
+## 表结构
+
+### securities（证券主表）
+| 列 | 类型 | 说明 |
+| --- | --- | --- |
+| symbol | VARCHAR PK | canonical 代码 |
+| exchange | VARCHAR | SH/SZ/BJ |
+| name | VARCHAR | 当前简称（含 ST 标记） |
+| list_date | DATE | 上市日期；无可靠来源时为 NULL |
+| delist_date | DATE | 退市日期（SSE 官方）；NULL=未退市 |
+| is_active | BOOLEAN | 是否在最新快照中且未退市 |
+| is_st | BOOLEAN | 名称含 ST |
+| first_seen_year / last_seen_year | INTEGER | **数据可见窗口**（qlib baseline），不是上市/退市年份 |
+| source | VARCHAR | sse_szse_bse_official / qlib_chenditc |
+
+### trading_calendar（交易日历）
+exchange / trade_date / is_open（PK: exchange+trade_date）
+来源：qlib baseline day.txt；与新浪对照 100% 一致（见交叉验证报告）。
+
+### daily_bars（日线，视图 over parquet，按年分区）
+| 列 | 说明 |
+| --- | --- |
+| symbol, trade_date | PK |
+| open / high / low / close | **原始价格**（= 源数据值 ÷ factor，见数据源文档） |
+| volume / amount | 源数据原样（Yahoo 单位，见数据源文档的 caveat） |
+| vwap | 原始 vwap（= 源值 ÷ factor） |
+| factor | 调整因子（源数据 `$factor`），可用于复权 |
+| source | qlib_chenditc |
+
+### daily_valuation（估值快照）
+symbol / trade_date / pe / pb / ps / total_market_cap / float_market_cap /
+turnover / source
+来源：腾讯行情排行（snapshot，trade_date=采集日）；`ps` 该源无此字段→NULL。
+
+### company_lifecycle（生命周期观测）
+symbol / effective_date / end_date / status / reason / source
+来源：sse-reports-archive 的 SSE 公司发现窗口（观测到的上市年份区间，
+end_date=NULL 表示最近仍观测到）。
+
+### industry_membership（行业）
+symbol / industry_code / industry_name / classification / effective_date /
+end_date / source
+来源：CSRC 行业分类（SSE/SZSE 官方）；classification='csrc'。
+
+### corporate_actions（公司行为）
+symbol / action_date / ex_date / action_type / dividend / split_ratio /
+rights_ratio / source
+来源：东财数据中心分红送配（report_year 2023/2024）。
+
+### report_documents（报告文档，SSE 年报 metadata）
+| 列 | 说明 |
+| --- | --- |
+| document_id | `sse-{code}-{fiscal_year}-{role}` |
+| symbol / exchange / fiscal_year / report_type / document_role | annual_report / annual_summary / correction … |
+| title / announcement_date | 公告日（来源：sse_api / cninfo_url / sse_url / derived_invalid） |
+| announcement_date_source | 公告日来源 |
+| availability_date | = announcement_date（+1 天后可用，见 PIT 文档） |
+| availability_date_unknown | 公告日不可靠时为 true（strict PIT 排除） |
+| source / source_url | cninfo（可获取 PDF）/ sse（WAF 保护，仅元数据） |
+| local_path / status / sha256 / file_size | PDF 字节元数据（LEVEL 3 缓存，默认关闭） |
+| first_seen / last_seen / extraction_status | 追踪 |
+
+### financial_metrics（PIT 财务指标，LEVEL 2 缓存）
+symbol / fiscal_period / fiscal_year / report_type / announcement_date /
+availability_date / availability_date_unknown / metric_name / metric_value /
+unit / source_document_id / source_url / source_sha256 / extraction_method /
+extraction_version / extracted_at / raw_value / validation_status
+PK: (symbol, fiscal_period, report_type, metric_name, extraction_method)
+
+### extraction_audit（提取审计）
+每次提取一行：extracted_at / symbol / fiscal_year / metric_name /
+source_document_id / source_url / source_sha256 / page / section / raw_value /
+normalized_value / unit / extraction_method / extraction_version /
+validation_status / validation_note
+
+### source_registry（数据源注册）
+source_name / data_type / url / retrieval_time / version / file / sha256 /
+parser_version
+
+## 运行模式
+
+`PQ_MODE=offline|online`（默认 online）。OFFLINE：禁止网络，只读缓存/本地；
+历史回测必须用 OFFLINE。`PQ_PDF_CACHE=1` 打开 LEVEL 3 PDF 缓存（默认关）。

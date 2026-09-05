@@ -10,6 +10,11 @@ dependencies = [
     "matplotlib",
     "mlflow",
     "fire",
+    # STEP 2 data infrastructure
+    "duckdb",
+    "pymupdf",
+    "pdfplumber",
+    "akshare",
 ]
 
 [project.optional-dependencies]

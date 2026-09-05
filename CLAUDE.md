@@ -67,3 +67,25 @@ PYTHONIOENCODING=utf-8 MPLBACKEND=Agg MLFLOW_ALLOW_FILE_STORE=true \
 以下内容属于后续阶段，**STEP 1 内不得开发**：实盘/券商 API/自动下单、新闻系统、
 LLM 新闻分析、自定义复杂因子、Transformer、强化学习、GUI、Tushare、AkShare、
 自动因子挖掘。
+
+## STEP 2 数据层要点（2026-09-05 起）
+
+- 分层：RAW（data/raw/）/ CANONICAL（data/parquet/ + DuckDB）/ DERIVED；
+  研究数据与原始数据不混放。全部大文件 git 忽略。
+- 股票代码唯一写法：`600519.SH`（personal_quant.symbols.normalize_symbol）。
+- **价格口径**：canonical daily_bars 是**原始价格**（源 Yahoo 调整价 ÷ factor，
+  factor 列保留）；任何复权需求用 factor 现场计算。
+- **禁止全量下载年报 PDF**（sse-reports-archive 的 phase3b 永不运行）；
+  只按需取单份 PDF（LEVEL 3 缓存默认关），提取结果永久入 financial_metrics。
+- **PIT 铁律**：财务数据可用 ⟺ as_of_date > announcement_date；
+  availability_date_unknown=true 的数据 strict 模式禁用。URL 派生公告日
+  越界自动降级 unknown，不猜。
+- 离线/在线：`PQ_MODE=offline` 禁网；历史回测必须 OFFLINE。
+  在线抓取：单连接、随机 1-3s 延迟、指数退避、raw 缓存，禁止高并发/WAF 绕过。
+- 东财 push2/push2his 会被 WAF 间歇封禁：估值快照用腾讯行情，日线对照用
+  腾讯 K 线（provider 已内置回退）；系统代理 7890 不可靠，默认直连。
+- 数据源/口径/决策全部记录于 docs/data_sources.md；每步导入登记 source_registry。
+- 质量门禁：bootstrap 自动跑 quality.checks（16 项），verify_step2.py 19 项
+  验收，改动数据管线后必须全绿再提交。
+- 本阶段不修改 Qlib provider；STEP 3 再决定 Custom Provider 还是
+  Dataset 层直读 DuckDB。
