@@ -1,0 +1,24 @@
+[project]
+name = "personal-quant"
+version = "0.1.0"
+description = "Personal A-Share quantitative investment research & decision system (STEP 1: Qlib research environment)"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "pyqlib==0.9.7",
+    "pandas==2.2.3",   # qlib 0.9.7 与 pandas 3.x 存在兼容风险，必须固定 2.2.x
+    "lightgbm",
+    "matplotlib",
+    "mlflow",
+    "fire",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff] # 预留：后续阶段启用 lint
+line-length = 100

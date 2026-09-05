@@ -1,0 +1,41 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# --- 虚拟环境 ---
+.venv/
+venv/
+env/
+
+# --- Qlib 数据（大型二进制数据，不提交） ---
+qlib_data/
+data/
+mlruns/
+
+# --- 日志与临时文件 ---
+logs/
+*.log
+tmp/
+temp/
+*.tmp
+*.zip
+*.tar.gz
+
+# --- 报告产物（可再生成；如需保留请显式 add -f） ---
+# reports/ 保留 README 类说明文件，实验产物按需提交
+
+# --- IDE / 编辑器 ---
+.vscode/
+.idea/
+*.swp
+
+# --- 系统文件 ---
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# --- Claude 本地配置 ---
+.claude/settings.local.json
