@@ -154,6 +154,33 @@ def check_source_registry() -> CheckResult:
     return ("source_registry populated", n >= 4, f"{n} sources registered")
 
 
+def check_no_nan_prices() -> CheckResult:
+    n = _scalar(
+        "SELECT COUNT(*) FROM daily_bars WHERE close IS NULL OR open IS NULL "
+        "OR high IS NULL OR low IS NULL OR factor IS NULL"
+    )
+    return ("no NaN prices (suspension placeholders removed)", n == 0, f"{n} rows")
+
+
+def check_factor_continuity() -> CheckResult:
+    """Adjustment factors must not jump >2x without a matching raw-price move
+    (Yahoo bad-corporate-action artifacts; repaired in scripts/repair_factors.py)."""
+    n = _scalar(
+        """
+        WITH px AS (
+          SELECT symbol, close, factor,
+                 LAG(close) OVER (PARTITION BY symbol ORDER BY trade_date) prev_close,
+                 LAG(factor) OVER (PARTITION BY symbol ORDER BY trade_date) prev_factor
+          FROM daily_bars WHERE trade_date >= '2000-01-01'
+        )
+        SELECT COUNT(*) FROM px
+        WHERE prev_factor > 0 AND factor/prev_factor > 2.0
+          AND prev_close > 0 AND abs(close/prev_close - 1) < 0.15
+        """
+    )
+    return ("factor continuity (no spurious adjustment jumps)", n == 0, f"{n} jumps")
+
+
 def run_all_checks() -> pd.DataFrame:
     checks = [
         check_duplicate_symbol_date,
@@ -172,6 +199,8 @@ def run_all_checks() -> pd.DataFrame:
         check_roe_range,
         check_calendar_completeness,
         check_source_registry,
+        check_factor_continuity,
+        check_no_nan_prices,
     ]
     rows = []
     for fn in checks:

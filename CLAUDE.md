@@ -1,5 +1,60 @@
 # CLAUDE.md — 本项目 AI 协作开发规范
 
+Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+
+Tradeoff: These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+
+1. Think Before Coding
+Don't assume. Don't hide confusion. Surface tradeoffs.
+
+Before implementing:
+
+State your assumptions explicitly. If uncertain, ask.
+If multiple interpretations exist, present them - don't pick silently.
+If a simpler approach exists, say so. Push back when warranted.
+If something is unclear, stop. Name what's confusing. Ask.
+2. Simplicity First
+Minimum code that solves the problem. Nothing speculative.
+
+No features beyond what was asked.
+No abstractions for single-use code.
+No "flexibility" or "configurability" that wasn't requested.
+No error handling for impossible scenarios.
+If you write 200 lines and it could be 50, rewrite it.
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+3. Surgical Changes
+Touch only what you must. Clean up only your own mess.
+
+When editing existing code:
+
+Don't "improve" adjacent code, comments, or formatting.
+Don't refactor things that aren't broken.
+Match existing style, even if you'd do it differently.
+If you notice unrelated dead code, mention it - don't delete it.
+When your changes create orphans:
+
+Remove imports/variables/functions that YOUR changes made unused.
+Don't remove pre-existing dead code unless asked.
+The test: Every changed line should trace directly to the user's request.
+
+4. Goal-Driven Execution
+Define success criteria. Loop until verified.
+
+Transform tasks into verifiable goals:
+
+"Add validation" → "Write tests for invalid inputs, then make them pass"
+"Fix the bug" → "Write a test that reproduces it, then make it pass"
+"Refactor X" → "Ensure tests pass before and after"
+For multi-step tasks, state a brief plan:
+
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+
+These guidelines are working if: fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+
 本文件给后续在此项目中工作的 Claude 提供开发规范。
 
 ## 项目定位
@@ -89,3 +144,21 @@ LLM 新闻分析、自定义复杂因子、Transformer、强化学习、GUI、Tu
   验收，改动数据管线后必须全绿再提交。
 - 本阶段不修改 Qlib provider；STEP 3 再决定 Custom Provider 还是
   Dataset 层直读 DuckDB。
+
+## STEP 3 策略要点（2026-09-08 起）
+
+- 策略代码：personal_quant/strategy/；配置唯一来源 config/strategy_v1.yaml
+  （参数改动必须新开 run 并记录，严禁为收益调参）。
+- qlib 集成：只替换 FeatureProvider（qlib.init kwargs 注入），
+  qlib 官方 expression/Alpha158 原样运行；qlib 语义中 Ref($close,-N) 是
+  **未来 N 日**数据（官方 label 即为此设计）——任何 label 列严禁进入特征。
+- 特征/标签缓存：data/derived/features（按月）、labels（按**日**键，勿改回月键）。
+- 多进程铁律：qlib 的 joblib pool 在 Windows 上第二个 dataset() 调用会死锁；
+  特征计算必须走每季度独立子进程（features.py 已实现，勿改回进程内循环）。
+- DuckDB 单进程独占：实验运行期间不要并发跑其它 DB 任务。
+- 执行模型：T+1 开盘、涨跌停/停牌 NO_TRADE、100 股手数、成本可配置
+  （docs/step3_execution_model.md）。
+- 泄漏审计与 sanity check：scripts/audit_point_in_time.py、
+  scripts/sanity_check_strategy.py；改动策略后必须重跑。
+- canonical 层修复（factor 跳变/NaN 占位行）已注册 source_registry；
+  质量检查现为 18 项，bootstrap 自动执行。

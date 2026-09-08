@@ -1,0 +1,160 @@
+{
+  "run_id": "run_001",
+  "strategy": {
+    "label": "strategy_v1",
+    "cumulative_return": 0.5548888977289936,
+    "annualized_return": 0.24751823625277303,
+    "annualized_volatility": 0.257341787143243,
+    "sharpe": 0.9429317671295891,
+    "max_drawdown": -0.19952912431047565,
+    "calmar": 1.2405118155464077,
+    "win_rate_monthly": 0.6086956521739131,
+    "n_days": 485,
+    "information_ratio": 0.4255131187829963,
+    "alpha_annualized": 0.11673948885859334,
+    "beta": 0.6668527412525738,
+    "avg": 0.4088668820376384,
+    "total": 9.403938286865683,
+    "n": 23,
+    "n_trades": 804
+  },
+  "momentum_baseline": {
+    "label": "momentum_60d",
+    "cumulative_return": -0.4055106084127139,
+    "annualized_return": -0.22938103544406052,
+    "annualized_volatility": 0.3889023366898969,
+    "sharpe": -0.5547622209918933,
+    "max_drawdown": -0.5469185110580423,
+    "calmar": -0.4194062384180615,
+    "win_rate_monthly": 0.34782608695652173,
+    "n_days": 485,
+    "information_ratio": -1.15073853657172,
+    "alpha_annualized": -0.4061335813277759,
+    "beta": 0.9480972565523196,
+    "avg": 0.3051650690848465,
+    "total": 7.018796588951469,
+    "n": 23,
+    "n_trades": 681
+  },
+  "benchmarks": {
+    "000300.SH": {
+      "label": "000300.SH",
+      "cumulative_return": 0.36723506450653076,
+      "annualized_return": "0.16966462",
+      "annualized_volatility": 0.18546476233390813,
+      "sharpe": 0.8628158196698166,
+      "max_drawdown": -0.15663552284240723,
+      "calmar": "1.083181",
+      "win_rate_monthly": 0.5652173913043478,
+      "n_days": 485
+    },
+    "000905.SH": {
+      "label": "000905.SH",
+      "cumulative_return": 0.3800971508026123,
+      "annualized_return": "0.17516482",
+      "annualized_volatility": 0.2497235297228068,
+      "sharpe": 0.7158227022021251,
+      "max_drawdown": -0.1990026831626892,
+      "calmar": "0.8802134",
+      "win_rate_monthly": 0.4782608695652174,
+      "n_days": 485
+    },
+    "000852.SH": {
+      "label": "000852.SH",
+      "cumulative_return": 0.2972860336303711,
+      "annualized_return": "0.13928974",
+      "annualized_volatility": 0.2852823432836042,
+      "sharpe": 0.5485223961445264,
+      "max_drawdown": -0.266737163066864,
+      "calmar": "0.52219844",
+      "win_rate_monthly": 0.5652173913043478,
+      "n_days": 484
+    },
+    "000985.SH": {
+      "label": "000985.SH",
+      "cumulative_return": 0.34806227684020996,
+      "annualized_return": "0.16141772",
+      "annualized_volatility": 0.25389816899459494,
+      "sharpe": 0.9532978926561005,
+      "max_drawdown": -0.16156244277954102,
+      "calmar": "0.99910426",
+      "win_rate_monthly": 0.4782608695652174,
+      "n_days": 329
+    },
+    "equal_weight_market": {
+      "label": "equal_weight_market",
+      "cumulative_return": 0.4193626855289976,
+      "annualized_return": 0.204001846373002,
+      "annualized_volatility": 0.2927696074574777,
+      "sharpe": 0.7027851542087293,
+      "max_drawdown": -0.2873730298094541,
+      "calmar": 0.7098851500026557,
+      "win_rate_monthly": 0.5217391304347826,
+      "n_days": 484
+    }
+  },
+  "ic": {
+    "valid": {
+      "period": "valid",
+      "n_months": 24,
+      "ic_mean": 0.041504552982515056,
+      "ic_std": 0.06541433936424201,
+      "icir": 0.6344870770827205,
+      "ic_positive_ratio": 0.7916666666666666,
+      "rank_ic_mean": 0.03692889018870168,
+      "rank_icir": 0.35736275097643855,
+      "rank_ic_positive_ratio": 0.6666666666666666
+    },
+    "test": {
+      "period": "test",
+      "n_months": 23,
+      "ic_mean": 0.035784783646319436,
+      "ic_std": 0.06186830172697425,
+      "icir": 0.5784025526389625,
+      "ic_positive_ratio": 0.7391304347826086,
+      "rank_ic_mean": 0.04631855896922168,
+      "rank_icir": 0.6749873746636503,
+      "rank_ic_positive_ratio": 0.6956521739130435
+    }
+  },
+  "quantile_summary": [
+    {
+      "quantile": 1,
+      "mean_return": 0.0110959304209323,
+      "n": 45285
+    },
+    {
+      "quantile": 2,
+      "mean_return": 0.01741133412306613,
+      "n": 45229
+    },
+    {
+      "quantile": 3,
+      "mean_return": 0.017429486365414203,
+      "n": 45393
+    },
+    {
+      "quantile": 4,
+      "mean_return": 0.018777511969327608,
+      "n": 45064
+    },
+    {
+      "quantile": 5,
+      "mean_return": 0.01962182301445245,
+      "n": 45230
+    }
+  ],
+  "top_bottom_spread": {
+    "spread_mean": 0.008525892593520148,
+    "spread_positive_ratio": 0.723404255319149,
+    "n_months": 47
+  },
+  "fit": {
+    "best_iteration": 17,
+    "train_rmse": 0.14914895586730778,
+    "valid_rmse": 0.1330120969075679
+  },
+  "yearly_returns": {
+    "2025-12-31 00:00:00": 0.4108459371333515
+  }
+}

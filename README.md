@@ -14,10 +14,13 @@ A股数据 → 数据清洗与本地数据库 → 因子计算与因子挖掘 �
 
 ## 当前状态
 
-**STEP 1 ✅ / STEP 2 ✅**（详见 [ROADMAP.md](ROADMAP.md)）
+**STEP 1 ✅ / STEP 2 ✅ / STEP 3 ✅**（详见 [ROADMAP.md](ROADMAP.md)）
 
 - STEP 1：Qlib 0.9.7 研究环境 + 官方 LightGBM/Alpha158 workflow 完整回测
   （基线报告 `reports/step1_qlib_baseline.md`）
+- STEP 3：第一个低频 Alpha 策略 strategy_v1 —— 月度调仓、Alpha158+LightGBM、
+  Top-20 等权、T+1 执行、严格 PIT（测试期年化 24.8%、IC 0.036、
+  显著胜动量基线；报告 reports/step3_strategy_v1.md）
 - STEP 2：本地 A 股数据基础设施 —— DuckDB + Parquet canonical 层
   （日线 17.9M 行 / 证券主表 6,148 / SSE 年报 metadata 63k+）、
   按需 PDF 财务提取管线（PIT + 审计）、质量体系 16/16、
@@ -61,6 +64,11 @@ source .venv/Scripts/activate   # 激活虚拟环境
 python scripts/verify_step1.py              # 一键验证 STEP 1 环境
 PYTHONIOENCODING=utf-8 MPLBACKEND=Agg MLFLOW_DISABLE_AGENT_HINT=1 MLFLOW_ALLOW_FILE_STORE=true \
     qrun config/workflow_config_lightgbm_Alpha158.yaml   # 官方 workflow（约 2 分钟）
+
+# --- STEP 3：策略 ---
+python scripts/backtest_strategy.py --strategy strategy_v1 --start 2024-01-01 --end 2025-12-31 --run-id run_001
+python scripts/generate_recommendation.py --date 2026-09-04 --capital 500000   # paper live（仅研究）
+python scripts/verify_step3.py              # 19 项验收
 
 # --- STEP 2：数据基础设施 ---
 python scripts/bootstrap_data.py --skip-bars # 一键重建（11 步，含质量检查与 catalog）

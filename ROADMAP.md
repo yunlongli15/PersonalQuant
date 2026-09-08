@@ -141,9 +141,85 @@ python -m pytest tests/ -q                      # 42 测试
 
 ### 下一步
 
-**STEP 3: Build first real low-frequency alpha strategy**（未开始，暂定）
+已进入并完成 **STEP 3: Build first real low-frequency alpha strategy**（见下节）。
 
-- 以 STEP 2 数据层为基础，构建第一个真实的低频 Alpha 策略（如中低频
-  量价+基本面因子、LightGBM/线性模型、严格 PIT 训练/验证/测试分割）
-- 决定 Qlib 集成方式：Custom Qlib Provider 或 Dataset 层直接从 DuckDB 构建
-- STEP 2 已明确"本阶段不修改 Qlib Provider"——该决策留到 STEP 3 落地
+---
+
+## STEP 3: Build first real low-frequency alpha strategy
+
+> 目标：第一个真正属于本项目自己的 A 股低频量化策略——月度调仓、
+> 全 A 股动态股票池、Alpha158 特征、LightGBM 预测未来 20 日收益、
+> Top-20 等权组合、T+1 开盘执行、严格 PIT 与可复现实验体系。
+
+状态：**COMPLETED**（2026-09-08）
+
+### 做了什么
+
+- **Qlib 集成（方案 A，轻量 Custom FeatureProvider）**：只替换 FeatureProvider
+  一层，从 canonical parquet 直读数据（pyarrow，多进程安全），qlib 官方
+  expression/Alpha158 机制原样运行；单一事实来源，零数据复制。决策记录于
+  docs/step3_qlib_integration.md。
+- **策略引擎**：月度调仓（每月最后交易日收盘信号 → T+1 开盘执行）、
+  动态股票池（上市 180 日/停牌/流动性过滤，历史回测不用今天的列表）、
+  Top-20 等权 + 5% 现金缓冲、100 股手数、保守成本模型、涨跌停/停牌
+  NO_TRADE（docs/step3_execution_model.md）。
+- **三个基线**：CSI300/500/1000 买入持有、全市场等权、60 日动量（同引擎
+  同成本）。
+- **训练/验证/测试**：2015–2021 / 2022–2023 / 2024–2025；2026 完全
+  out-of-sample（paper live）。Walk-forward：季度重训 + 月调仓。
+- **模型评估**：月度 IC/RankIC 序列、Q1–Q5 分位收益、IC 稳定性、
+  与动量基线对比（reports/step3_model_evaluation.md）。
+- **防泄漏体系**：10 项 PIT 审计（10/10 PASS）、sanity check（10 个历史
+  调仓日人工核对）、temporal split / no-future-leakage / survivorship /
+  执行时点 / 持仓不变量等 11 个策略测试文件（全部通过）。
+- **Paper live**：generate_recommendation.py 输出 BUY/HOLD 与手数（仅研究，
+  不连接券商）；reports/paper_live/latest_recommendation.csv。
+- **可复现**：manifest（git commit/data snapshot/版本/参数）、固定 seed、
+  特征与标签 DERIVED 层缓存、experiments/strategy_v1/run_001 与 run_001_wf。
+
+### 结果（诚实记录，不美化）
+
+| 指标 | strategy_v1 | 动量基线 | 等权市场 | CSI300 |
+| --- | --- | --- | --- | --- |
+| 年化收益 | 24.8% | -22.9% | 20.4% | 17.0% |
+| Sharpe | 0.94 | -0.55 | 0.70 | 0.86 |
+| 最大回撤 | -20.0% | -54.7% | -28.7% | -15.7% |
+| 月胜率 | 60.9% | 34.8% | — | — |
+
+- IC（test）：0.036，ICIR 0.58，正比率 74%；RankIC 0.046。
+- Q1→Q5 未来 20 日收益单调：1.11% → 1.96%（排序能力真实但温和）。
+- Walk-forward：IC 0.070，回测 +50.2%（与固定 split 一致）。
+- 结论：LightGBM+Alpha158 存在真实的弱横截面 alpha，显著超过简单动量基线；
+  相对等权市场的超额为 +4.4pp/年（模型选择有正贡献）。
+- 注意：测试期（2024–2025）为小盘风格强势市场，策略的绝对收益含风格
+  成分；alpha/beta 与 IR 分解已给出（IR 0.43，alpha 11.7%/年）。
+
+### 数据质量修复（本阶段发现的 canonical 层问题，已修复并注册）
+
+1. Yahoo 源 factor 错乱（48 只股票复权因子跳变 → 假 ±100-400% 调整收益）：
+   scripts/repair_factors.py 修复 22,906 行，新增因子连续性质量检查。
+2. 停牌占位行（57.7 万行 NaN close）污染 NAV 标记与执行：剔除并新增
+   NaN 价格质量检查。
+3. 上述修复仅影响北交所等非股票池标的时，已在报告中注明。
+
+### 如何重新运行
+
+```bash
+source .venv/Scripts/activate
+python scripts/backtest_strategy.py --strategy strategy_v1 --start 2024-01-01 --end 2025-12-31 --run-id run_001
+python scripts/backtest_strategy.py --strategy strategy_v1 --walk-forward --run-id run_001_wf
+python scripts/generate_recommendation.py --date 2026-09-04 --capital 500000
+python scripts/verify_step3.py                 # 19 项验收
+python scripts/make_figures.py                 # 10 张图
+python scripts/write_reports.py                # 2 份报告
+python -m pytest tests/ -q                     # 86 测试
+```
+
+### 下一步
+
+**STEP 4: Factor Research and Alpha Mining**（未开始，暂定）
+
+- 以 STEP 3 的防泄漏实验体系为基础扩展因子库（量价/财务 PIT 因子）
+- 干净的成交量/成交额数据源（修复 Yahoo 源 volume/amount 缩放问题）
+- 因子评估框架（IC 衰减、换手、分组收益、与现有因子的相关性）
+
