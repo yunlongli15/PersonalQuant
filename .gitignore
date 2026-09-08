@@ -39,3 +39,8 @@ Desktop.ini
 
 # --- Claude 本地配置 ---
 .claude/settings.local.json
+
+# --- STEP 3: large regenerable experiment artifacts ---
+experiments/**/predictions.parquet
+experiments/**/walkforward_predictions.parquet
+experiments/**/walkforward/model_q*.txt
