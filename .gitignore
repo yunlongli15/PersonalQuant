@@ -44,3 +44,8 @@ Desktop.ini
 experiments/**/predictions.parquet
 experiments/**/walkforward_predictions.parquet
 experiments/**/walkforward/model_q*.txt
+
+# --- STEP 4: large regenerable artifacts ---
+experiments/factors/**/model.txt
+experiments/factors/**/factor_dashboard_data.parquet
+experiments/factors/**/beam.json

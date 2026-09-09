@@ -24,9 +24,11 @@ def test_moutai_roe_pit():
     assert r["unit"] == "fraction"
     assert r["source_document_id"] == "sse-600519-2023-annual_report"
     assert r["source_sha256"]  # audit trail present
-    # before the first available report: no usable value exists
+    # before the first available report: no usable value exists (the lazy
+    # pipeline now covers FY2017+, the earliest of which announced
+    # 2018-03-28 — 2018-01-15 is before every available report)
     with pytest.raises(NotAvailableAtTimeError):
-        get_financial_metric("600519.SH", "roe", "2023-03-31", online=False)
+        get_financial_metric("600519.SH", "roe", "2018-01-15", online=False)
 
 
 def test_moutai_revenue():

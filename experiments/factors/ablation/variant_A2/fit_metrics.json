@@ -1,0 +1,15 @@
+{
+  "best_iteration": 18,
+  "train_rmse": 0.14842554210421097,
+  "valid_rmse": 0.13292502828516428,
+  "variant": "A2",
+  "custom_features": [
+    "amount_20",
+    "momentum_60",
+    "price_vs_ma20",
+    "reversal_20",
+    "volatility_20",
+    "volume_ratio_20_60",
+    "volume_ratio_5_20"
+  ]
+}

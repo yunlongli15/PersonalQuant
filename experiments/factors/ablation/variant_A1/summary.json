@@ -1,0 +1,83 @@
+{
+  "variant": "A1",
+  "custom_features": [
+    "pe",
+    "earnings_yield"
+  ],
+  "strategy": {
+    "label": "ablation_A1",
+    "cumulative_return": 0.277146500915632,
+    "annualized_return": 0.1303935221557384,
+    "annualized_volatility": 0.2599294237412469,
+    "sharpe": 0.542062711459396,
+    "max_drawdown": -0.2743880086431758,
+    "calmar": 0.47521581865228996,
+    "win_rate_monthly": 0.4782608695652174,
+    "n_days": 485,
+    "avg": 0.4121803486996146,
+    "total": 9.480148020091136,
+    "n": 23,
+    "n_trades": 808
+  },
+  "ic": {
+    "valid": {
+      "period": "valid",
+      "n_months": 24,
+      "ic_mean": 0.03753368593613497,
+      "ic_std": 0.061928253017011214,
+      "icir": 0.6060833966335972,
+      "ic_positive_ratio": 0.7916666666666666,
+      "rank_ic_mean": 0.03590241338213659,
+      "rank_icir": 0.3577759841642886,
+      "rank_ic_positive_ratio": 0.625
+    },
+    "test": {
+      "period": "test",
+      "n_months": 23,
+      "ic_mean": 0.029103295845134106,
+      "ic_std": 0.06229104709087321,
+      "icir": 0.46721474761335774,
+      "ic_positive_ratio": 0.7391304347826086,
+      "rank_ic_mean": 0.03688928159050232,
+      "rank_icir": 0.5463468734234583,
+      "rank_ic_positive_ratio": 0.7391304347826086
+    }
+  },
+  "quantile_summary": [
+    {
+      "quantile": 1,
+      "mean_return": 0.011903719065037179,
+      "n": 45361
+    },
+    {
+      "quantile": 2,
+      "mean_return": 0.017373215248610113,
+      "n": 45401
+    },
+    {
+      "quantile": 3,
+      "mean_return": 0.017490706448641386,
+      "n": 45250
+    },
+    {
+      "quantile": 4,
+      "mean_return": 0.01872166086909698,
+      "n": 45155
+    },
+    {
+      "quantile": 5,
+      "mean_return": 0.018834331532645514,
+      "n": 45034
+    }
+  ],
+  "top_bottom_spread": {
+    "spread_mean": 0.006930612467608335,
+    "spread_positive_ratio": 0.6808510638297872,
+    "n_months": 47
+  },
+  "fit": {
+    "best_iteration": 14,
+    "train_rmse": 0.15008661596293538,
+    "valid_rmse": 0.13303413150792961
+  }
+}

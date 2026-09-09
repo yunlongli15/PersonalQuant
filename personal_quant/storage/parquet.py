@@ -81,11 +81,30 @@ def upsert_financial_metric(record: dict) -> None:
 
 
 def insert_audit_row(record: dict) -> int:
-    """Append one extraction-audit row; returns its id."""
+    """Append one extraction-audit row; returns its id.
+
+    The sequence can fall behind the table's max id (e.g. after a killed
+    run) — on a duplicate-key collision the id falls back to MAX(id)+1 and
+    the sequence is re-aligned.
+    """
     conn = db.connect()
     row_id = conn.execute(
         "SELECT nextval('seq_extraction_audit')"
     ).fetchone()[0]
+    taken = conn.execute(
+        "SELECT COUNT(*) FROM extraction_audit WHERE id=?", [row_id]
+    ).fetchone()[0]
+    if taken:
+        row_id = conn.execute(
+            "SELECT COALESCE(MAX(id), 0) + 1 FROM extraction_audit"
+        ).fetchone()[0]
+    try:
+        conn.execute(
+            "SELECT setval('seq_extraction_audit', "
+            "(SELECT COALESCE(MAX(id), 0) FROM extraction_audit))"
+        )
+    except Exception:
+        pass  # sequence re-alignment is best-effort; the fallback covers it
     conn.execute(
         "INSERT INTO extraction_audit VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
         "?, ?, ?, ?, ?, ?, ?)",

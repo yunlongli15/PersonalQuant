@@ -1,0 +1,100 @@
+{
+  "variant": "C_full",
+  "custom_features": [
+    "amount_20",
+    "momentum_60",
+    "price_vs_ma20",
+    "reversal_20",
+    "volatility_20",
+    "volume_ratio_20_60",
+    "volume_ratio_5_20",
+    "pe",
+    "earnings_yield",
+    "revenue_growth",
+    "net_profit_growth",
+    "roe",
+    "roa",
+    "gross_margin",
+    "net_margin",
+    "debt_to_asset",
+    "operating_cash_flow",
+    "ocf_to_assets",
+    "ocf_to_net_profit"
+  ],
+  "strategy": {
+    "label": "ablation_C_full",
+    "cumulative_return": 0.555600410613361,
+    "annualized_return": 0.2478042213701972,
+    "annualized_volatility": 0.23298490394332072,
+    "sharpe": 1.017171215021184,
+    "max_drawdown": -0.2142895888190368,
+    "calmar": 1.1563987907012263,
+    "win_rate_monthly": 0.6521739130434783,
+    "n_days": 485,
+    "avg": 0.40859953778690467,
+    "total": 9.397789369098808,
+    "n": 23,
+    "n_trades": 802
+  },
+  "ic": {
+    "valid": {
+      "period": "valid",
+      "n_months": 24,
+      "ic_mean": 0.055218864854965834,
+      "ic_std": 0.08760089886606294,
+      "icir": 0.6303458705303071,
+      "ic_positive_ratio": 0.7083333333333334,
+      "rank_ic_mean": 0.0631177149420374,
+      "rank_icir": 0.5239770600736887,
+      "rank_ic_positive_ratio": 0.7083333333333334
+    },
+    "test": {
+      "period": "test",
+      "n_months": 23,
+      "ic_mean": 0.044031576839796256,
+      "ic_std": 0.07232302261542978,
+      "icir": 0.608818260734616,
+      "ic_positive_ratio": 0.782608695652174,
+      "rank_ic_mean": 0.07002230265012954,
+      "rank_icir": 0.8227887202907133,
+      "rank_ic_positive_ratio": 0.8260869565217391
+    }
+  },
+  "quantile_summary": [
+    {
+      "quantile": 1,
+      "mean_return": 0.007829952017810355,
+      "n": 45268
+    },
+    {
+      "quantile": 2,
+      "mean_return": 0.017753041965021265,
+      "n": 45235
+    },
+    {
+      "quantile": 3,
+      "mean_return": 0.019387376684190192,
+      "n": 45236
+    },
+    {
+      "quantile": 4,
+      "mean_return": 0.019211994417190077,
+      "n": 45256
+    },
+    {
+      "quantile": 5,
+      "mean_return": 0.020176567040641417,
+      "n": 45206
+    }
+  ],
+  "top_bottom_spread": {
+    "spread_mean": 0.012346615022831062,
+    "spread_positive_ratio": 0.723404255319149,
+    "n_months": 47
+  },
+  "fit": {
+    "best_iteration": 31,
+    "train_rmse": 0.14367870776823546,
+    "valid_rmse": 0.13222923023701724
+  }
+}

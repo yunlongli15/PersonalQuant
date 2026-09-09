@@ -42,6 +42,7 @@ METRIC_NAMES = {
     "revenue", "net_profit", "total_assets", "total_liabilities", "net_assets",
     "operating_cash_flow", "roe", "roa", "gross_margin", "net_margin",
     "revenue_growth", "net_profit_growth", "debt_to_asset",
+    "eps", "bps",
 }
 
 
@@ -237,6 +238,15 @@ def extract_and_store(
         if status == "EXTRACTION_FAILED":
             stored[name] = {"value": None, "status": status, "note": note or
                             "metric not extractable"}
+            # purge any stale previously-stored value for this report+metric
+            # (e.g. a wrong-scale value stored by an older extractor version
+            # before a guard was added) — a failed extraction must never
+            # leave a wrong value behind
+            db.connect().execute(
+                "DELETE FROM financial_metrics WHERE symbol=? AND "
+                "fiscal_period=? AND report_type=? AND metric_name=?",
+                [symbol, fiscal_period, "annual", name],
+            )
             continue
         record = {
             "symbol": symbol,
@@ -248,10 +258,12 @@ def extract_and_store(
             "availability_date_unknown": availability_unknown,
             "metric_name": name,
             "metric_value": value,
-            "unit": "CNY" if name not in {"roe", "roa", "gross_margin",
-                                          "net_margin", "revenue_growth",
-                                          "net_profit_growth", "debt_to_asset"}
-                    else "fraction",
+            "unit": ("CNY_per_share" if name in {"eps", "bps"}
+                     else "CNY" if name not in {"roe", "roa", "gross_margin",
+                                                "net_margin", "revenue_growth",
+                                                "net_profit_growth",
+                                                "debt_to_asset"}
+                     else "fraction"),
             "source_document_id": meta["document_id"],
             "source_url": meta["source_url"],
             "source_sha256": pdf.sha256,

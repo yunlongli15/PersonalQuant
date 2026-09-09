@@ -39,16 +39,24 @@ def parse_unit(text: str) -> tuple[Optional[float], Optional[str]]:
     """
     patterns = [
         r"单位[:：为]\s*(?:人民币)?\s*(千元|万元|百万元|亿元|元)",
+        r"單位[:：為]\s*(?:人民幣)?\s*(千元|萬元|百萬元|億元|元)",
         r"以人民币\s*(千元|万元|百万元|亿元|元)\s*(?:列示|计|计量|计算)",
+        r"以人民幣\s*(千元|萬元|百萬元|億元|元)\s*(?:列示|計|計量|計算)",
         r"[（(]\s*人民币\s*(千元|万元|百万元|亿元|元)\s*[，,）)]",
+        r"[（(]\s*人民幣\s*(千元|萬元|百萬元|億元|元)\s*[，,）)]",
         r"[（(]\s*(千元|万元|百万元|亿元|元)\s*[，,）)]",
+        r"[（(]\s*(千元|萬元|百萬元|億元|元)\s*[，,）)]",
         r"[（(]\s*除特别注明外[，,]?\s*金额单位为人民币\s*(千元|万元|百万元|亿元|元)",
+        r"[（(]\s*除特別註明外[，,]?\s*金額單位為人民幣\s*(千元|萬元|百萬元|億元|元)",
     ]
+    UNIT_MULTIPLIERS_TC = {"元": 1.0, "千元": 1e3, "萬元": 1e4, "百萬元": 1e6,
+                           "億元": 1e8}
     for pat in patterns:
         m = re.search(pat, text or "")
         if m:
             label = m.group(1)
-            return UNIT_MULTIPLIERS[label], label
+            return (UNIT_MULTIPLIERS.get(label)
+                    or UNIT_MULTIPLIERS_TC.get(label)), label
     return None, None
 
 
@@ -81,7 +89,9 @@ class MetricDef:
 
         '负债合计' matches '负债合计' and '负债合计(万元)' but NOT
         '流动负债合计' or '非流动负债合计'; '营业收入' does not match
-        '营业收入增长率'.
+        '营业收入增长率'. A trailing parenthesized unit annotation
+        (e.g. '基本每股收益（元/股）') is treated as part of the label —
+        per-share metrics carry CJK unit suffixes by design.
         """
         label = label.strip()
         for ex in self.exclude:
@@ -92,46 +102,80 @@ class MetricDef:
                 return True
             if label.startswith(lab):
                 rest = label[len(lab):]
+                # strip one trailing parenthesized unit annotation
+                rest = re.sub(r"^[（(].{0,12}[)）]$", "", rest)
                 if not re.search(r"[一-鿿]", rest):
                     return True
         return False
 
 
 METRICS: dict[str, MetricDef] = {
-    "revenue": MetricDef("revenue", ("营业收入",), "amount"),
+    "revenue": MetricDef("revenue", ("营业收入", "營業收入"), "amount"),
     "cost_of_revenue": MetricDef(
-        "cost_of_revenue", ("营业成本", "其中：营业成本", "其中:营业成本"), "amount",
-        exclude=("营业成本率",),
+        "cost_of_revenue", ("营业成本", "其中：营业成本", "其中:营业成本",
+                            "營業成本"), "amount",
+        exclude=("营业成本率", "營業成本率"),
     ),
     "net_profit": MetricDef(
         "net_profit",
         ("归属于上市公司股东的净利润", "归属于母公司股东的净利润", "归母净利润",
-         "归属于本行股东的净利润", "归属于本行普通股股东的净利润"),
+         "归属于本行股东的净利润", "归属于本行普通股股东的净利润",
+         "歸屬於上市公司股東的淨利潤", "歸屬於母公司股東的淨利潤",
+         "歸屬於本行股東的淨利潤"),
         "amount",
-        exclude=("扣除非经常性损益", "其他", "少数股东"),
+        exclude=("扣除非经常性损益", "其他", "少数股东", "扣除非經常性損益",
+                 "少數股東"),
     ),
     "total_assets": MetricDef(
-        "total_assets", ("资产总计", "总资产", "资产合计", "负债及股东权益合计"),
+        "total_assets", ("资产总计", "总资产", "资产合计", "负债及股东权益合计",
+                         "資產總計", "總資產", "資產合計",
+                         "負債及股東權益合計", "資產總額"),
         "amount",
-        exclude=("总资产报酬率", "总资产周转率"),
+        exclude=("总资产报酬率", "总资产周转率", "總資產報酬率",
+                 "總資產週轉率"),
     ),
     "total_liabilities": MetricDef(
-        "total_liabilities", ("负债合计", "负债总计", "总负债", "负债总额"), "amount"
+        "total_liabilities", ("负债合计", "负债总计", "总负债", "负债总额",
+                              "負債合計", "負債總計", "總負債", "負債總額"),
+        "amount"
     ),
     "net_assets": MetricDef(
         "net_assets",
         ("归属于上市公司股东的净资产", "归属于母公司股东的净资产",
          "归属于母公司股东权益", "归属于母公司所有者权益",
          "归属于本行股东的净资产", "归属于本行普通股股东的净资产",
-         "归属于本行股东权益"),
+         "归属于本行股东权益",
+         "歸屬於上市公司股東的淨資產", "歸屬於母公司股東的淨資產",
+         "歸屬於母公司股東權益", "歸屬於本行股東的淨資產",
+         "歸屬於本行股東權益"),
         "amount",
-        exclude=("增减",),
+        exclude=("增减", "增減"),
     ),
     "operating_cash_flow": MetricDef(
-        "operating_cash_flow", ("经营活动产生的现金流量净额", "经营活动现金流量净额"), "amount"
+        "operating_cash_flow", ("经营活动产生的现金流量净额",
+                                "经营活动现金流量净额",
+                                "經營活動產生的現金流量淨額",
+                                "經營活動現金流量淨額"), "amount"
     ),
-    "roe": MetricDef("roe", ("加权平均净资产收益率",), "percent",
-                     exclude=("扣除非经常性损益",)),
+    "roe": MetricDef("roe", ("加权平均净资产收益率", "加權平均淨資產收益率",
+                             "净资产收益率", "淨資產收益率"),
+                     "percent",
+                     exclude=("扣除非经常性损益", "扣除非經常性損益", "平均",
+                              "攤薄", "摊薄")),
+    # per-share metrics (STEP 4 valuation factors). kind="per_share": the
+    # table unit multiplier (万元 etc.) does NOT apply — these are reported
+    # in 元/股 directly.
+    "eps": MetricDef("eps", ("基本每股收益",), "per_share",
+                     exclude=("稀释",)),
+    "bps": MetricDef(
+        "bps",
+        ("归属于上市公司股东的每股净资产", "归属于母公司股东的每股净资产",
+         "归属于本行股东的每股净资产", "每股净资产",
+         "歸屬於上市公司股東的每股淨資產", "歸屬於本行股東的每股淨資產",
+         "每股淨資產"),
+        "per_share",
+        exclude=("收益率", "回报率", "回報率"),
+    ),
 }
 
 
@@ -185,6 +229,12 @@ def sanity_checks(metric: str, value: Optional[float], context: dict) -> tuple[s
                     f"reported roe {value:.4f} vs net_profit/net_assets "
                     f"{calc:.4f} differ by >2pp"
                 )
+    if metric == "eps":
+        if not (-200.0 <= value <= 200.0):
+            return "VALIDATION_WARNING", f"eps out of plausible range: {value:.4f}"
+    if metric == "bps":
+        if not (0.0 < value <= 1000.0):
+            return "VALIDATION_WARNING", f"bps out of plausible range: {value:.4f}"
     if metric == "net_margin":
         if not (-0.5 <= value <= 0.8):
             return "VALIDATION_WARNING", f"net_margin out of plausible range: {value:.4f}"

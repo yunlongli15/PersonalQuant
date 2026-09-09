@@ -24,6 +24,7 @@ PARQUET_SUBDIRS = {
     "industry": PARQUET_DIR / "industry",
     "corporate_actions": PARQUET_DIR / "corporate_actions",
     "calendar": PARQUET_DIR / "calendar",
+    "market": PARQUET_DIR / "market",
 }
 
 # --------------------------------------------------------------------------

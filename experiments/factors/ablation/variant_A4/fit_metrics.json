@@ -1,0 +1,17 @@
+{
+  "best_iteration": 12,
+  "train_rmse": 0.15054447838335716,
+  "valid_rmse": 0.13297951063288166,
+  "variant": "A4",
+  "custom_features": [
+    "amount_20",
+    "momentum_60",
+    "price_vs_ma20",
+    "reversal_20",
+    "volatility_20",
+    "volume_ratio_20_60",
+    "volume_ratio_5_20",
+    "pe",
+    "earnings_yield"
+  ]
+}

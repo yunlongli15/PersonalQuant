@@ -14,19 +14,23 @@ A股数据 → 数据清洗与本地数据库 → 因子计算与因子挖掘 �
 
 ## 当前状态
 
-**STEP 1 ✅ / STEP 2 ✅ / STEP 3 ✅**（详见 [ROADMAP.md](ROADMAP.md)）
+**STEP 1 ✅ / STEP 2 ✅ / STEP 3 ✅ / STEP 4 ✅**（详见 [ROADMAP.md](ROADMAP.md)）
 
 - STEP 1：Qlib 0.9.7 研究环境 + 官方 LightGBM/Alpha158 workflow 完整回测
   （基线报告 `reports/step1_qlib_baseline.md`）
-- STEP 3：第一个低频 Alpha 策略 strategy_v1 —— 月度调仓、Alpha158+LightGBM、
-  Top-20 等权、T+1 执行、严格 PIT（测试期年化 24.8%、IC 0.036、
-  显著胜动量基线；报告 reports/step3_strategy_v1.md）
 - STEP 2：本地 A 股数据基础设施 —— DuckDB + Parquet canonical 层
   （日线 17.9M 行 / 证券主表 6,148 / SSE 年报 metadata 63k+）、
   按需 PDF 财务提取管线（PIT + 审计）、质量体系 16/16、
   交叉验证与 bootstrap/verify 脚本
-  （`reports/step2_data_catalog.md` / `step2_data_crosscheck.md` /
-  `step2_financial_extraction_demo.md`）
+- STEP 3：第一个低频 Alpha 策略 strategy_v1 —— 月度调仓、Alpha158+LightGBM、
+  Top-20 等权、T+1 执行、严格 PIT（测试期年化 24.8%、IC 0.036、
+  显著胜动量基线；报告 reports/step3_strategy_v1.md）
+- STEP 4：因子研究与 Alpha Mining 平台 —— 市场数据缩放审计与逐股校准、
+  31 因子研究（IC/衰减/分位/稳定性/相关性）、PIT 财务因子管线
+  （lazy 年报提取 + 覆盖率报告）、factor_pack_v1、浅层表达式挖掘
+  （snooping 记录）、Model A/B/C/D 消融。诚实结论：自定义技术因子与
+  财务因子第一轮未能稳定超越 Alpha158 基线（报告
+  reports/step4_factor_research.md / step4_model_ablation.md）
 
 ## 环境要求
 
@@ -75,7 +79,14 @@ python scripts/bootstrap_data.py --skip-bars # 一键重建（11 步，含质量
 python scripts/verify_step2.py              # 19 项验收检查（PASS/FAIL）
 python scripts/demo_financial_extraction.py # 按需年报提取 demo
 python scripts/crosscheck_qlib.py           # Qlib 交叉验证
-python -m pytest tests/ -q                  # 全部测试（42 个）
+
+# --- STEP 4：因子研究 ---
+python scripts/research_factor.py --factor roe   # 单因子研究
+python scripts/research_all_factors.py           # 全因子研究 -> factor_pack_v1
+python scripts/run_alpha_mining.py               # 浅层 Alpha Mining（research candidate）
+python scripts/backtest_ablation.py              # Model A/B/C/D 消融
+python scripts/verify_step4.py                   # 21 项验收
+python -m pytest tests/ -q                       # 全部测试（186 个）
 
 # 运行模式：PQ_MODE=offline 只读缓存（历史回测必须用）；PQ_PDF_CACHE=1 开启 PDF 缓存
 ```
@@ -98,7 +109,10 @@ PersonalQuant/
 │   ├── financial/       #   按需 PDF 提取 + PIT + 查询 API
 │   ├── ingest/          #   各数据源 → canonical 导入
 │   ├── storage/         #   Parquet + 审计 + 数据源注册
+│   ├── repair/          #   canonical 修复管线（STEP 4 市场缩放校准）
+│   ├── strategy/        #   strategy_v1（STEP 3，冻结基线）
 │   └── quality/         #   16 项质量检查
+├── factors/             # 因子研究平台（STEP 4：注册/评估/选择/挖掘/报告）
 ├── config/              # workflow 等运行配置
 ├── scripts/             # bootstrap / verify / demo / crosscheck
 ├── tests/               # 42 个测试

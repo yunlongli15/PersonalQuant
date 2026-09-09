@@ -217,9 +217,111 @@ python -m pytest tests/ -q                     # 86 测试
 
 ### 下一步
 
-**STEP 4: Factor Research and Alpha Mining**（未开始，暂定）
+已进入并完成 **STEP 4: Factor Research and Alpha Mining**（见下节）。
 
-- 以 STEP 3 的防泄漏实验体系为基础扩展因子库（量价/财务 PIT 因子）
-- 干净的成交量/成交额数据源（修复 Yahoo 源 volume/amount 缩放问题）
-- 因子评估框架（IC 衰减、换手、分组收益、与现有因子的相关性）
+---
+
+## STEP 4: Factor Research and Alpha Mining
+
+> 目标：建立严谨、可复现、严格 PIT 的因子研究平台；回答哪些因子有效/
+> 稳定/衰减、是否与 Alpha158 重复、财务因子是否提供新 alpha、浅层
+> Alpha Mining 的 out-of-sample 表现。
+
+状态：**COMPLETED**（2026-09-09）
+
+### 做了什么
+
+- **市场数据质量审计与修复**（docs/step4_market_data_quality.md）：
+  确认 volume/amount 存在每股常数缩放（Yahoo 伪影，组内 CV≈0.11、
+  跨股差 ~230×）→ 逐股校准（腾讯 K 线 ground truth，5,460/5,557 股，
+  99.7% 常数模型成立）→ data/parquet/market/market_scale.parquet
+  （repair_version 记录）；canonical 原列永不修改（strategy_v1 位级不变）。
+  因子引擎使用校准列 amount_cny / volume_shares。
+- **因子研究平台**（factors/ 包，31 个候选因子）：统一接口 + 注册表
+  （方向/公式/来源/PIT 要求）、技术因子（动量/反转/波动/量价位置/量能/
+  流动性）、PIT 财务因子（估值/质量/成长/现金流，严格
+  signal_date > availability_date）、横截面归一化（rank/winsorized_zscore）、
+  缺失值策略（sector_median/drop，记录在案）、IC/RankIC/ICIR/衰减
+  （1/5/10/20/40/60 日）/分位/多空/稳定性/相关性聚类评估器。
+- **PIT 财务管线**（docs/step4_financial_factor_pit.md）：提取器 v1.1
+  （eps/bps 每股指标、繁体（H 股）报告支持 + H 股安全护栏——B/C 表
+  锚点会命中年报管理层讨论的交叉引用，识别后诚实 EXTRACTION_FAILED）、
+  lazy 增量抓取（分块运行、断点续跑，~1,600 份年报提取，111 只大市值股）、
+  覆盖率报告（按年×因子+缺失归因，绝不猜值）。
+- **factor_pack_v1 选择**：research 2018-2021 + valid 2022-2023 选择，
+  test 2024-2025 只做一次最终评估；覆盖率/ICIR/方向一致性/相关性聚类
+  四道门，每步丢弃原因记录在案。
+- **浅层 Alpha Mining**（非遗传编程）：表达式解析（深度≤3、算子白名单
+  + - * / rank zscore log abs）、beam search（每代≤1,000 候选、1,168 个
+  测试）、综合评分（ICIR+稳定性+换手+相关性+覆盖率）、validation 排序、
+  snooping diagnostics（候选数/各期最优分）、自动 gate → factor_pack_v2
+  候选（research candidate，非生产策略）。
+- **Model A/B/C/D ablation**：同引擎/同参数/同成本/同 Top-20/同 T+1，
+  只改特征集；A 完全复现 strategy_v1 run_001。
+- 验收：verify_step4.py 21/21 PASS；全量测试 186 个；
+  verify_step1/2/3 无回归。
+
+### 结果（诚实记录，不美化）
+
+| 因子研究（2018-2023 选择 → 2024-2025 单次检验） | 结论 |
+| --- | --- |
+| reversal_20 | research ICIR +0.52 → test +0.60，最稳定 |
+| volatility_20/60 | 低波动溢价，test 延续 |
+| volume_ratio_5_20/20_60、amount_20 | 量能/流动性（负向），test 延续 |
+| momentum_20/60/120、price_vs_ma* | 实证方向为负（A 股短期反转主导），test 延续 |
+| 财务因子（roe ICIR 0.47 等） | research 期看似有效，**test 期全部反转或消失**（roe test ICIR -0.12） |
+| factor_pack_v1 | 7 个技术因子（财务因子未通过稳定性门，如实丢弃） |
+
+| Ablation（test 2024-2025） | 年化 | Sharpe | MDD | IC |
+| --- | --- | --- | --- | --- |
+| A = Alpha158（复现 run_001 ✓） | 0.2475 | 0.943 | -0.200 | 0.0358 |
+| A1 = +估值 | 0.1304 | 0.542 | -0.274 | 0.0291 |
+| A2 = +pack 技术因子 | 0.1962 | 0.748 | -0.279 | 0.0351 |
+| A3 = +财务因子 | 0.2511 | 0.923 | -0.251 | 0.0321 |
+| C_full = 全部 | 0.2478 | 1.017 | -0.214 | 0.0440 |
+| C_res = 全部（受限大市值池，不可与 A 直接比） | 0.2740 | 1.318 | -0.121 | 0.0344 |
+| D = +mined（research candidate） | 0.3970 | 1.392 | -0.212 | 0.0414 |
+
+**总回答（如实）**：第一轮因子研究中，**财务因子与自定义技术因子都未能
+稳定超越 Alpha158 基线**（A2 < A 说明 Alpha158 已捕获技术信息；
+财务因子单独 ≈ 基线、IC 更低；受限股票池 C_res 的优势来自大市值股票池
+本身，非纯特征差异）。D 的 mined 因子 test 表现好，但这是 1,168 候选
+snooping 背景下的单次检验，仅作 research candidate，不进入生产策略。
+
+### 数据质量修复（本阶段发现并修复）
+
+1. volume/amount 每股常数缩放（Yahoo 伪影）→ market_scale 校准表
+   （详见上）。
+2. **指数伪标的入池**（qlib 源含 000300/000852/000905/000906/000985.SH、
+   399300.SZ 六个指数，与股票共用代码段）：run_001 从未选中它们、影响
+   为零；strategy_v1 代码保持冻结；STEP 4 因子股票池已显式排除
+   （config index_exclude）。
+3. 提取器 v1.1：每股指标（基本每股收益）标签含"（元/股）"后缀曾被
+   边界规则拒绝 → 修复；双挂牌银行的 CNINFO 年报为繁体（H 股）版本 →
+   繁体标签 + 财务摘要定位 + B/C 表护栏（防止把管理层讨论的交叉引用
+   当报表值）；extraction_audit 主键序列错位 → 冲突回退修复；
+   失败提取会清除旧的错误值（绝不残留）。
+
+### 如何重新运行
+
+```bash
+source .venv/Scripts/activate
+python scripts/audit_market_data.py                    # 离线审计
+python scripts/calibrate_market_scale.py --limit 60    # 校准（全量约 3h，断点续跑）
+python scripts/factor_prepare.py                       # DERIVED 缓存（日历/标签/股票池/财务快照）
+python scripts/fetch_financial_universe.py --max-reports N   # lazy 财务抓取（分块）
+python scripts/research_factor.py --factor roe         # 单因子研究
+python scripts/research_all_factors.py                 # 全因子研究 -> factor_pack_v1
+python scripts/run_alpha_mining.py                     # 浅层挖掘 -> factor_pack_v2 候选
+python scripts/backtest_ablation.py                    # Model A/B/C/D 消融
+python scripts/financial_coverage.py                   # 财务覆盖率报告
+python scripts/make_figures_step4.py                   # 10 张图
+python scripts/write_step4_reports.py                  # 因子研究/消融报告
+python scripts/verify_step4.py                         # 21 项验收
+python -m pytest tests/ -q                             # 186 测试
+```
+
+### 下一步
+
+**STEP 5: Build news and alternative-data factors**（未开始，暂定）
 

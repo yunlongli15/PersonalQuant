@@ -1,0 +1,91 @@
+# factor_research configuration (STEP 4)
+# 本文件是因子研究平台的唯一参数来源；参数改动必须记录。
+# 铁律：因子选择只能使用 research + valid（2018-2023）；test（2024-2025）
+# 是 FROZEN TEST SET，只能做最后一次统一评估，严禁参与任何选择。
+# 2026 是 paper live / out-of-sample，严禁使用。
+
+factor_research:
+  version: "1.0"
+  time_split:
+    research: [2018-01-01, 2021-12-31]   # factor search / selection
+    valid: [2022-01-01, 2023-12-31]      # factor validation / beam filtering
+    test: [2024-01-01, 2025-12-31]       # FROZEN TEST SET: single final eval only
+    paper_live_start: 2026-01-01         # never used in research
+
+  signal:
+    frequency: monthly
+    rule: last_trading_day
+
+  universe:
+    # 与 strategy_v1 同规则，仅流动性过滤改用校准后成交额（amount_cny）——
+    # 源单位 amount 跨股票不可比（见 docs/step4_market_data_quality.md）。
+    # strategy_v1 本身保持冻结不变。
+    exchanges: [SH, SZ]
+    min_listing_days: 180
+    suspension:
+      max_absent_days: 10
+    liquidity:
+      enabled: true
+      window_days: 20
+      min_amount_cny: 5000000            # 20 日平均成交额 >= 500 万 CNY
+    st_filter:
+      enabled: false                     # 无历史 ST 序列（与 strategy_v1 同一 PIT 理由）
+    index_exclude:
+      # qlib 数据源中的指数伪标的（与股票共用代码段）；strategy_v1 的股票池
+      # 也含它们（run_001 中从未被选中，影响为零，代码保持冻结）——
+      # STEP 4 因子股票池显式排除（发现于 2026-09-08，记录于 ROADMAP）
+      - 000300.SH
+      - 000852.SH
+      - 000905.SH
+      - 000906.SH
+      - 000985.SH
+      - 399300.SZ
+    financial_universe:
+      top_n_by_current_market_cap: 300   # 财务因子受限股票池（大市值样本，报告注明偏倚）
+
+  labels:
+    horizons: [1, 5, 10, 20, 40, 60]
+    definition: adjusted_return          # (close[t+h]*factor[t+h])/(close[t]*factor[t])-1
+    primary_horizon: 20
+
+  normalization:
+    methods: [rank, winsorized_zscore]   # 研究采用两种；raw 仅作对照输出
+    winsor_sigma: 3.0
+
+  missing:
+    method: sector_median                # drop | cross_median | sector_median
+    # 行业来自 CSRC 行业分类（当前快照；行业变更罕见，已记录限制）
+
+  evaluation:
+    min_stocks_per_date: 30
+
+  correlation:
+    method: spearman
+    cluster_threshold: 0.8
+
+  selection:
+    min_coverage: 0.6                    # 覆盖 >= 60% 股票池-日期
+    min_coverage_restricted: 0.2         # 财务因子在受限股票池上的覆盖率门槛
+                                         # （财务股票池覆盖率上限受数据可得性约束，
+                                         # 如 0.2 ≈ 60-90 只/日，IC 样本充足）
+    min_icir: 0.3                        # research ICIR（20d）门槛
+    min_positive_ic_ratio: 0.5
+    require_sign_consistency: true       # research 与 valid IC 同号
+
+  mining:
+    depth_max: 3
+    ops: ["+", "-", "*", "/"]
+    unary: ["rank", "zscore", "log", "abs"]
+    max_candidates_per_generation: 1000
+    beam_size: 100
+    top_candidates: 10
+    score:                               # 综合评分（research 期），不直接优化策略收益
+      icir_weight: 1.0
+      stability_weight: 0.5
+      turnover_weight: 0.1
+      correlation_weight: 0.2
+      coverage_weight: 0.3
+    gate:                                # 自动门（research candidate，非生产策略）
+      min_research_icir: 0.5
+      min_valid_icir: 0.3
+      max_corr_with_pack: 0.7

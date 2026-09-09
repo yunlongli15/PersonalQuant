@@ -1,0 +1,10 @@
+{
+  "best_iteration": 14,
+  "train_rmse": 0.15008661596293538,
+  "valid_rmse": 0.13303413150792961,
+  "variant": "A1",
+  "custom_features": [
+    "pe",
+    "earnings_yield"
+  ]
+}

@@ -1,0 +1,139 @@
+{
+  "selected": [
+    "amount_20",
+    "momentum_60",
+    "price_vs_ma20",
+    "reversal_20",
+    "volatility_20",
+    "volume_ratio_20_60",
+    "volume_ratio_5_20"
+  ],
+  "discarded": [
+    {
+      "factor": "debt_to_asset",
+      "reason": "|research rank-ICIR| 0.151 < 0.3"
+    },
+    {
+      "factor": "earnings_yield",
+      "reason": "|research rank-ICIR| 0.089 < 0.3"
+    },
+    {
+      "factor": "gross_margin",
+      "reason": "research IC +0.0726 vs valid IC -0.0100: sign flips"
+    },
+    {
+      "factor": "momentum_120",
+      "reason": "|research rank-ICIR| 0.217 < 0.3"
+    },
+    {
+      "factor": "net_margin",
+      "reason": "research IC +0.0509 vs valid IC -0.0123: sign flips"
+    },
+    {
+      "factor": "net_profit_growth",
+      "reason": "|research rank-ICIR| 0.061 < 0.3"
+    },
+    {
+      "factor": "ocf_to_assets",
+      "reason": "|research rank-ICIR| 0.228 < 0.3"
+    },
+    {
+      "factor": "ocf_to_net_profit",
+      "reason": "|research rank-ICIR| 0.211 < 0.3"
+    },
+    {
+      "factor": "operating_cash_flow",
+      "reason": "|research rank-ICIR| 0.078 < 0.3"
+    },
+    {
+      "factor": "pb",
+      "reason": "coverage 0.04 < 0.2"
+    },
+    {
+      "factor": "pe",
+      "reason": "|research rank-ICIR| 0.156 < 0.3"
+    },
+    {
+      "factor": "ps",
+      "reason": "coverage 0.02 < 0.2"
+    },
+    {
+      "factor": "revenue_growth",
+      "reason": "|research rank-ICIR| 0.190 < 0.3"
+    },
+    {
+      "factor": "reversal_5",
+      "reason": "|research rank-ICIR| 0.195 < 0.3"
+    },
+    {
+      "factor": "roa",
+      "reason": "|research rank-ICIR| 0.273 < 0.3"
+    },
+    {
+      "factor": "roe",
+      "reason": "research IC +0.0853 vs valid IC -0.0525: sign flips"
+    },
+    {
+      "factor": "turnover_20",
+      "reason": "coverage 0.02 < 0.2"
+    },
+    {
+      "factor": "turnover_60",
+      "reason": "coverage 0.02 < 0.2"
+    },
+    {
+      "factor": "downside_volatility_60",
+      "reason": "|corr| >= 0.8 with volatility_20 (cluster: downside_volatility_60, volatility_20, volatility_60)"
+    },
+    {
+      "factor": "volatility_60",
+      "reason": "|corr| >= 0.8 with volatility_20 (cluster: downside_volatility_60, volatility_20, volatility_60)"
+    },
+    {
+      "factor": "price_vs_ma120",
+      "reason": "|corr| >= 0.8 with momentum_60 (cluster: momentum_60, price_vs_ma120, price_vs_ma60)"
+    },
+    {
+      "factor": "price_vs_ma60",
+      "reason": "|corr| >= 0.8 with momentum_60 (cluster: momentum_60, price_vs_ma120, price_vs_ma60)"
+    },
+    {
+      "factor": "amount_60",
+      "reason": "|corr| >= 0.8 with amount_20 (cluster: amount_20, amount_60)"
+    },
+    {
+      "factor": "momentum_20",
+      "reason": "|corr| >= 0.8 with reversal_20 (cluster: momentum_20, reversal_20)"
+    }
+  ],
+  "clusters": [
+    [
+      "downside_volatility_60",
+      "volatility_20",
+      "volatility_60"
+    ],
+    [
+      "momentum_60",
+      "price_vs_ma120",
+      "price_vs_ma60"
+    ],
+    [
+      "amount_20",
+      "amount_60"
+    ],
+    [
+      "momentum_20",
+      "reversal_20"
+    ],
+    [
+      "price_vs_ma20"
+    ],
+    [
+      "volume_ratio_20_60"
+    ],
+    [
+      "volume_ratio_5_20"
+    ]
+  ],
+  "n_candidates": 31
+}

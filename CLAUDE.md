@@ -162,3 +162,38 @@ LLM 新闻分析、自定义复杂因子、Transformer、强化学习、GUI、Tu
   scripts/sanity_check_strategy.py；改动策略后必须重跑。
 - canonical 层修复（factor 跳变/NaN 占位行）已注册 source_registry；
   质量检查现为 18 项，bootstrap 自动执行。
+
+## STEP 4 因子研究要点（2026-09-08 起）
+
+- **冻结纪律**：strategy_v1 完全冻结；2024-2025 是 FROZEN TEST SET；
+  2026 是 paper live；**因子选择只能用 2018-2023（research+valid）**，
+  test 只做一次最终评估，严禁先看 test 再选因子。发现真实 bug 才修
+  strategy_v1（单独修复并记录）；STEP 4 发现的指数伪标的入池问题
+  （run_001 从未选中它们，影响为零）已记录，strategy_v1 代码未动。
+- 因子平台：`factors/` 包（base/registry/technical/valuation/quality/
+  growth/fundamental/normalization/evaluator/selection/mining/reports）；
+  配置唯一来源 config/factor_research.yaml（参数改动必须新开 run）。
+  因子代码不依赖 qlib、不调用策略模块。
+- DERIVED 缓存：data/derived/factors/（calendar/labels/universes/
+  financial_metrics 快照/industries）由 scripts/factor_prepare.py 生成；
+  改数据管线后必须重跑 prep。研究脚本只读缓存（DB-free），
+  可与 fetcher 并行；**任何 DuckDB 任务必须等 fetcher chunk 结束**。
+- 市场数据修复：volume/amount 存在**每股常数缩放**（Yahoo 伪影，
+  跨股差 ~230×）→ 校准表 data/parquet/market/market_scale.parquet
+  （scripts/calibrate_market_scale.py，腾讯 K 线 ground truth，
+  repair_version 记录）；**canonical 原列永不修改**；因子引擎使用
+  校准列 amount_cny/volume_shares（fallback scale=1 并记录）。
+  指数伪标的（000300/000852/000905/000906/000985.SH、399300.SZ）
+  在因子股票池显式排除（config index_exclude）。
+- 财务因子 PIT：可用 ⟺ signal_date > availability_date（=公告日，
+  次一交易日可用），全系统唯一口径；availability_date_unknown 一律
+  禁用。提取器 v1.1 新增 eps/bps（per_share 类不受报表单位乘数影响）。
+  银行/保险无营业成本 → gross_margin 诚实 MISSING；负 PE 保留不删。
+- 财务数据获取：lazy 增量（scripts/fetch_financial_universe.py，
+  chunked 运行、断点续跑）；**严禁全量下载年报 PDF**；覆盖率如实报告
+  （reports/step4_financial_factor_coverage.md），绝不猜值提覆盖率。
+- Alpha Mining：shallow beam search（深度≤3、算子白名单
+  + - * / rank zscore log abs、每代≤1000 候选）；search 只用 research、
+  validation 排序、test 单次；**snooping diagnostics（候选数/各期最优分）
+  必须记录**；mined 因子是 research candidate（factor_pack_v2 池），
+  不是生产策略。

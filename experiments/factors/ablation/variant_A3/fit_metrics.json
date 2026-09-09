@@ -1,0 +1,18 @@
+{
+  "best_iteration": 9,
+  "train_rmse": 0.15177437145858622,
+  "valid_rmse": 0.13302348778516318,
+  "variant": "A3",
+  "custom_features": [
+    "revenue_growth",
+    "net_profit_growth",
+    "roe",
+    "roa",
+    "gross_margin",
+    "net_margin",
+    "debt_to_asset",
+    "operating_cash_flow",
+    "ocf_to_assets",
+    "ocf_to_net_profit"
+  ]
+}

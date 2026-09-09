@@ -1,0 +1,27 @@
+{
+  "best_iteration": 12,
+  "train_rmse": 0.15050999077944735,
+  "valid_rmse": 0.13291058060074756,
+  "variant": "C_res",
+  "custom_features": [
+    "amount_20",
+    "momentum_60",
+    "price_vs_ma20",
+    "reversal_20",
+    "volatility_20",
+    "volume_ratio_20_60",
+    "volume_ratio_5_20",
+    "pe",
+    "earnings_yield",
+    "revenue_growth",
+    "net_profit_growth",
+    "roe",
+    "roa",
+    "gross_margin",
+    "net_margin",
+    "debt_to_asset",
+    "operating_cash_flow",
+    "ocf_to_assets",
+    "ocf_to_net_profit"
+  ]
+}

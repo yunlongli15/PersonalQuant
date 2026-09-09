@@ -22,7 +22,7 @@ from typing import List, Optional
 
 from .metrics import METRICS, MetricDef, parse_number, parse_unit
 
-EXTRACTION_VERSION = "1.0"
+EXTRACTION_VERSION = "1.1"  # 1.1: adds per-share metrics (eps, bps)
 
 _YEAR_RE = re.compile(r"20\d{2}")
 
@@ -121,10 +121,23 @@ class FinancialDocumentExtractor:
         "net_assets": ["A", "B"],
         "operating_cash_flow": ["A"],
         "roe": ["A"],
+        "eps": ["A"],
+        "bps": ["A"],
     }
+
+    def _is_htc_version(self) -> bool:
+        """H-share (Traditional Chinese) version of a dual-listed issuer:
+        its statement sections use different titles/units and the keyword
+        hits land on MD&A cross-references — only the financial-summary
+        section (A) is reliably parseable, so B/C results are dropped."""
+        head = "\n".join(self._page_text(p) for p in
+                         range(min(8, len(self.doc))))
+        return ("合併財務狀況表" in head or "股份代號" in head
+                or "財務摘要" in head)
 
     def extract_all(self, fiscal_year: int) -> dict[str, ExtractionResult]:
         results: dict[str, ExtractionResult] = {}
+        htc = self._is_htc_version()
         sections = self._locate_sections()
         spans = {"A": 4, "B": 6, "C": 3}
         # candidate windows per section: every anchor page yields a window;
@@ -155,6 +168,28 @@ class FinancialDocumentExtractor:
                 METRICS[mdef_name], fiscal_year, tables, ["A"],
                 units, windows, use_previous=True,
             )
+
+        if htc:
+            # H-share version guard: B/C anchors match MD&A cross-references
+            # (wrong scale/unit) — keep only summary-section values with a
+            # detected unit; everything else is honestly EXTRACTION_FAILED
+            for name, r in results.items():
+                if name not in METRICS:  # revenue_prev / net_profit_prev
+                    continue
+                mdef = METRICS[name]
+                bad = (r.status == "VALID" and
+                       (r.section != "A" or
+                        (mdef.kind == "amount"
+                         and "unit_assumed" in (r.note or ""))))
+                if bad:
+                    results[name] = ExtractionResult(
+                        metric=name, method="htc_guarded",
+                        status="EXTRACTION_FAILED",
+                        note="H-share (Traditional Chinese) version: "
+                             "statement sections skipped (unit/label "
+                             "mismatch risk); only the financial summary "
+                             "is used",
+                    )
         return results
 
     def _locate_sections(self) -> dict[str, Optional[List[int]]]:
@@ -164,17 +199,29 @@ class FinancialDocumentExtractor:
         key accounting data section is in the first ~15 pages. Candidates
         include cross-reference hits (audit reports, notes) — the metric
         search evaluates each window and stops at the first real match.
+        Simplified- and Traditional-Chinese variants are both searched
+        (some dual-listed issuers publish the H-share (繁体) version on
+        their CNINFO URL).
         """
-        def _hits(keyword: str, start: int, max_pages: int) -> List[int]:
-            return [
-                p for p in range(start, min(start + max_pages, len(self.doc)))
-                if keyword in self._page_text(p)
-            ]
+        def _hits(keywords: tuple, start: int, max_pages: int) -> List[int]:
+            for keyword in keywords:
+                found = [
+                    p for p in range(start,
+                                      min(start + max_pages, len(self.doc)))
+                    if keyword in self._page_text(p)
+                ]
+                if found:
+                    return found
+            return []
 
         return {
-            "A": _hits("主要会计数据", 0, 15) or _hits("主要会计数据和财务指标", 0, 15),
-            "B": _hits("合并资产负债表", 10, 200),
-            "C": _hits("合并利润表", 10, 200),
+            "A": (_hits(("主要会计数据和财务指标", "主要會計數據和財務指標"), 0, 15)
+                  or _hits(("主要会计数据", "主要會計數據"), 0, 15)
+                  or _hits(("财务摘要", "財務摘要"), 0, 15)),
+            "B": _hits(("合并资产负债表", "合併資產負債表",
+                        "合并财务状况表", "合併財務狀況表"), 10, 200),
+            "C": _hits(("合并利润表", "合并损益表", "合併利潤表", "合併損益表"),
+                       10, 200),
         }
 
     def _detect_unit(self, anchor: Optional[int]) -> tuple[Optional[float], Optional[str]]:
@@ -254,8 +301,18 @@ class FinancialDocumentExtractor:
             if raw is None:
                 continue
             mult = unit_mult or 1.0
-            value = raw * mult if mdef.kind == "amount" else raw / 100.0
-            unit = unit_label if mdef.kind == "amount" else "fraction"
+            if mdef.kind == "amount":
+                value = raw * mult
+                unit = unit_label
+            elif mdef.kind == "percent":
+                value = raw / 100.0
+                unit = "fraction"
+            else:  # per_share: reported in 元/股, unit multiplier does not apply
+                value = raw
+                unit = "CNY_per_share"
+            notes = [n for n in ("column_order_assumed" if assumed else None,
+                                 "unit_assumed" if unit_mult is None
+                                 and mdef.kind == "amount" else None) if n]
             return ExtractionResult(
                 metric=mdef.name,
                 raw_value=str(raw_cell).strip(),
@@ -265,7 +322,7 @@ class FinancialDocumentExtractor:
                 section=section,
                 method="pdf_table",
                 status="VALID",
-                note="column_order_assumed" if assumed else None,
+                note=";".join(notes) if notes else None,
             )
         return None
 
@@ -342,8 +399,18 @@ class FinancialDocumentExtractor:
                     continue
                 raw = numbers[1] if use_previous else numbers[0]
                 mult = unit_mult or 1.0
-                value = raw * mult if mdef.kind == "amount" else raw / 100.0
-                unit = unit_label if mdef.kind == "amount" else "fraction"
+                if mdef.kind == "amount":
+                    value = raw * mult
+                    unit = unit_label
+                elif mdef.kind == "percent":
+                    value = raw / 100.0
+                    unit = "fraction"
+                else:  # per_share: 元/股, unit multiplier does not apply
+                    value = raw
+                    unit = "CNY_per_share"
+                notes = ["line_fallback_first_number"]
+                if unit_mult is None and mdef.kind == "amount":
+                    notes.append("unit_assumed")
                 return ExtractionResult(
                     metric=mdef.name,
                     raw_value=str(raw),
@@ -353,6 +420,6 @@ class FinancialDocumentExtractor:
                     section=section,
                     method="pdf_text_line",
                     status="VALID",
-                    note="line_fallback_first_number",
+                    note=";".join(notes),
                 )
         return None
