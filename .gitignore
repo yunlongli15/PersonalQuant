@@ -12,7 +12,7 @@ env/
 
 # --- Qlib 数据（大型二进制数据，不提交） ---
 qlib_data/
-/data/                 # 根锚定：只忽略项目根下的 data/（tests/data 是测试代码）
+data/
 mlruns/
 
 # --- 日志与临时文件 ---
