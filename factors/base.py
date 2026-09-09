@@ -132,6 +132,8 @@ class FactorData:
     financial: pd.DataFrame                 # PIT metrics long table
     industries: pd.Series                   # symbol -> industry
     turnover: Optional[pd.DataFrame] = None # EM turnover (wide; may be absent)
+    news: Optional[pd.DataFrame] = None     # STEP 5 events long table
+    news_cov: Optional[pd.DataFrame] = None # symbol -> start_date coverage
     start: Optional[pd.Timestamp] = None
     end: Optional[pd.Timestamp] = None
     scale_available: bool = True
@@ -146,6 +148,7 @@ class FactorData:
         return FactorData(
             calendar=cal, bars=self.bars, financial=self.financial,
             industries=self.industries, scale=self.scale,
+            news=self.news, news_cov=self.news_cov,
             start=start, end=end, scale_available=self.scale_available, **w,
         )
 
@@ -237,6 +240,17 @@ def load_factor_data(
             data.turnover = turn.pivot_table(
                 index="trade_date", columns="symbol", values="turnover_pct"
             ).reindex(cal)
+        # STEP 5 news events (snapshot written by scripts/news/build_events.py)
+        news_snap = PROJECT_ROOT / "data" / "derived" / "news" / \
+            "news_events.parquet"
+        news_cov_snap = PROJECT_ROOT / "data" / "derived" / "news" / \
+            "news_coverage.parquet"
+        if news_snap.exists():
+            data.news = pd.read_parquet(news_snap)
+        if news_cov_snap.exists():
+            cov = pd.read_parquet(news_cov_snap)
+            cov["start_date"] = pd.to_datetime(cov["start_date"])
+            data.news_cov = cov
         data = data.slice(start, end)
         _data_cache[key] = data
         return data

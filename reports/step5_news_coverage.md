@@ -1,0 +1,30 @@
+# STEP 5 news coverage
+
+generated: 2026-09-10T01:15:51
+
+| year | source | documents | symbols | time_known_ratio |
+| --- | --- | --- | --- | --- |
+| 2018 | sse | 6,803 | 1,396 | 1.000 |
+| 2018 | szse | 8,063 | 57 | 0.129 |
+| 2019 | sse | 7,214 | 1,494 | 1.000 |
+| 2019 | szse | 8,624 | 58 | 0.141 |
+| 2020 | sse | 10,603 | 1,715 | 1.000 |
+| 2020 | szse | 9,727 | 60 | 0.142 |
+| 2021 | sse | 10,868 | 1,944 | 1.000 |
+| 2021 | szse | 10,286 | 60 | 0.174 |
+| 2022 | sse | 11,031 | 2,061 | 1.000 |
+| 2022 | szse | 10,385 | 65 | 0.152 |
+| 2023 | sse | 9,650 | 2,166 | 1.000 |
+| 2023 | szse | 9,496 | 66 | 0.169 |
+| 2024 | sse | 9,860 | 2,215 | 1.000 |
+| 2024 | szse | 9,400 | 66 | 0.164 |
+| 2025 | sse | 10,352 | 2,245 | 1.000 |
+| 2025 | szse | 11,296 | 67 | 0.155 |
+| 2026 | sse | 10,049 | 2,313 | 1.000 |
+| 2026 | szse | 7,960 | 70 | 0.192 |
+
+## notes
+
+- SSE source depth starts ~2015 (2014 near-empty — official index); the factor research window (2018+) is fully covered for SH names by the SSE backfill.
+- SZ coverage comes from the per-stock SZSE backfill (cap-ranked); coverage is reported per year, never fabricated for missing years.
+- time_known=False rows follow the conservative next-trading-day availability rule.

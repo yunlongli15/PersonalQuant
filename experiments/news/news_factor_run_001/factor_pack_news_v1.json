@@ -1,0 +1,122 @@
+{
+  "selected": [
+    "announcement_count_20d",
+    "news_risk_20d",
+    "shareholder_change_count_20d"
+  ],
+  "discarded": [
+    {
+      "factor": "announcement_attention_5d",
+      "reason": "|research rank-ICIR| 0.005 < 0.3"
+    },
+    {
+      "factor": "announcement_count_5d",
+      "reason": "|research rank-ICIR| 0.148 < 0.3"
+    },
+    {
+      "factor": "buyback_event_count_20d",
+      "reason": "|research rank-ICIR| 0.246 < 0.3"
+    },
+    {
+      "factor": "earnings_event_count_60d",
+      "reason": "|research rank-ICIR| 0.015 < 0.3"
+    },
+    {
+      "factor": "event_sentiment_shock",
+      "reason": "|research rank-ICIR| 0.280 < 0.3"
+    },
+    {
+      "factor": "event_shock",
+      "reason": "coverage 0.01 < 0.2"
+    },
+    {
+      "factor": "llm_confidence_20d",
+      "reason": "coverage 0.00 < 0.2"
+    },
+    {
+      "factor": "major_event_count_20d",
+      "reason": "research IC +0.0175 vs valid IC -0.0042: sign flips"
+    },
+    {
+      "factor": "negative_news_count_5d",
+      "reason": "|research rank-ICIR| 0.268 < 0.3"
+    },
+    {
+      "factor": "news_attention_1d",
+      "reason": "|research rank-ICIR| 0.152 < 0.3"
+    },
+    {
+      "factor": "news_attention_20d",
+      "reason": "|research rank-ICIR| 0.038 < 0.3"
+    },
+    {
+      "factor": "news_attention_5d",
+      "reason": "|research rank-ICIR| 0.005 < 0.3"
+    },
+    {
+      "factor": "news_count_1d",
+      "reason": "|research rank-ICIR| 0.043 < 0.3"
+    },
+    {
+      "factor": "news_count_5d",
+      "reason": "|research rank-ICIR| 0.148 < 0.3"
+    },
+    {
+      "factor": "news_importance_5d",
+      "reason": "|research rank-ICIR| 0.192 < 0.3"
+    },
+    {
+      "factor": "news_novelty_5d",
+      "reason": "|research rank-ICIR| 0.160 < 0.3"
+    },
+    {
+      "factor": "news_positive_negative_ratio",
+      "reason": "|research rank-ICIR| 0.041 < 0.3"
+    },
+    {
+      "factor": "news_sentiment_1d",
+      "reason": "|research rank-ICIR| 0.133 < 0.3"
+    },
+    {
+      "factor": "news_sentiment_20d",
+      "reason": "|research rank-ICIR| 0.036 < 0.3"
+    },
+    {
+      "factor": "news_sentiment_5d",
+      "reason": "|research rank-ICIR| 0.118 < 0.3"
+    },
+    {
+      "factor": "news_sentiment_weighted",
+      "reason": "|research rank-ICIR| 0.019 < 0.3"
+    },
+    {
+      "factor": "novel_news_count_5d",
+      "reason": "|research rank-ICIR| 0.103 < 0.3"
+    },
+    {
+      "factor": "positive_news_count_5d",
+      "reason": "|research rank-ICIR| 0.161 < 0.3"
+    },
+    {
+      "factor": "regulatory_event_count_20d",
+      "reason": "|research rank-ICIR| 0.020 < 0.3"
+    },
+    {
+      "factor": "news_count_20d",
+      "reason": "|corr| >= 0.8 with announcement_count_20d (cluster: announcement_count_20d, news_count_20d)"
+    }
+  ],
+  "clusters": [
+    [
+      "announcement_count_20d",
+      "news_count_20d"
+    ],
+    [
+      "news_risk_20d"
+    ],
+    [
+      "shareholder_change_count_20d"
+    ]
+  ],
+  "n_candidates": 28
+}

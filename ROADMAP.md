@@ -323,5 +323,102 @@ python -m pytest tests/ -q                             # 186 测试
 
 ### 下一步
 
-**STEP 5: Build news and alternative-data factors**（未开始，暂定）
+已进入并完成 **STEP 5: Build news and alternative-data factor system**
+（见下节）。
+
+---
+
+## STEP 5: Build news and alternative-data factor system
+
+> 目标：严格 PIT、可追溯、可缓存、可复现、低成本的 A 股新闻/公告因子
+> 系统；回答"新闻/公告信息是否给 Alpha158 + 现有策略带来真正的增量
+> alpha"。
+
+状态：**COMPLETED**（2026-09-10）
+
+### 做了什么
+
+- **Provider 抽象层**（news/providers/）：BaseNewsProvider + SSE 官方
+  公告（按日全量，分页陷阱已修复：pageHelp.pageNo 被忽略，需用
+  beginPage/endPage，pageSize=1000 一天一请求）、SZSE 官方 API（按股）、
+  CNINFO（巨潮，按股/关键词，orgId 可推导）、AkShare 包装。业务层零
+  direct HTTP；低并发、礼貌延迟、重试退避、raw 缓存、SOURCE_BLOCKED
+  记录。
+- **canonical news_documents**（DuckDB，171,667 条 2018-2026，2,478 只
+  股票；document_id 去重 + source_count）→ **derived news_events**
+  （规则分类 25 类事件 + novelty + PIT availability）→ **derived
+  news_factors**（27 个因子进 FACTOR_REGISTRY，复用 STEP 4 评估引擎）。
+- **严格 PIT**（docs/step5_news_pit.md）：发布日 ≤15:00 当日可用；
+  盘后/周末/节假日/仅日期 → 下一交易日 09:30；发布时间未知 strict
+  禁用；event_time/updated_at 与 publication_time 严格分离。
+- **规则事件抽取**（无 LLM 先跑通）：25 类关键词分类 + 方向候选 +
+  重要性分层；事件聚合（正/负/重大/风险分，同日冲突保留双侧）。
+- **LLM 层**（DeepSeek）：结构化 JSON（区间校验、解析失败 =
+  EXTRACTION_FAILED）、prompt 版本化、cache（doc_hash+prompt+model）、
+  每日预算（超限 RULE_BASED_ONLY）、tier-1 文档过滤。**当前无
+  DEEPSEEK_API_KEY → 全链路 rule-based 运行（系统自动检测，不因 API
+  缺失失败）。**
+- **新闻因子研究**：27 因子在 research/valid/test 上评估；衰减半衰期
+  研究（1/3/5/10/20d 全为 ~0 —— 数据决定，不预设）；factor_pack_news_v1
+  （3 因子：announcement_count_20d / news_risk_20d /
+  shareholder_change_count_20d）。
+- **新闻消融**（A/B/C/D/E + 8 个分组消融）：A/B 与 STEP 4 冻结锚点
+  完全一致（drift 0.0000）；strategy_v1_news（不覆盖 strategy_v1）+
+  paper-live 推荐。
+- 验收：verify_step5.py **22/22 PASS**；全量测试 **302 个**；
+  verify_step1/2/3/4 无回归；8 份报告 + 10 张图。
+
+### 结果（诚实记录）
+
+| 新闻因子 | research ICIR | test ICIR |
+| --- | --- | --- |
+| announcement_count_20d | +0.39 | +0.36（最稳定） |
+| news_risk_20d | +0.35 | — |
+| shareholder_change_count_20d | +0.36 | — |
+| 其余 24 个因子 | < 0.3 未过门 | — |
+| 衰减研究（5 个半衰期） | rank-IC ≈ 0 | 衰减权重无增量 |
+
+| 消融（frozen test） | 年化 | Sharpe | MDD |
+| --- | --- | --- | --- |
+| A = Alpha158（锚点 ✓ drift 0.0000） | 0.2475 | 0.943 | -0.200 |
+| C = Alpha158 + 新闻因子单独 | 0.1094 | 0.456 | -0.226 |
+| N_risk = Alpha158 + news_risk_20d | 0.2639 | 0.968 | -0.212 |
+| **E = Alpha158 + pack_v1 + 新闻** | **0.2812** | **1.022** | -0.235 |
+| D = +LLM 新闻 | ≡ A（LLM 未启用，如实记录） | | |
+
+**总回答（如实）**：规则公告信息单独使用没有排序能力（C < A），但
+"公告强度 + 风险事件"维度与 factor_pack_v1 组合时提供了超越 Alpha158
+的边际增量（E 0.2812 > A 0.2475，IC 0.0372 vs 0.0358；MDD 略深）。
+LLM vs rule 的对比留待 DEEPSEEK API 可用（系统自动检测启用）。
+
+### 数据与覆盖（如实）
+
+- SSE（官方）：2018-2026-09 全量（分页修复 + 截断日 repair）；
+  SZSE（官方）：按股回填 top-60 大市值（增量模式可续跑剩余股票）；
+  总覆盖 2,478 只（新闻因子覆盖率 ~0.40，选择门槛 0.2 并记录原因）。
+- 指数来源滞后 ~5 天：增量模式只推进已 settle 的日期。
+
+### 如何重新运行
+
+```bash
+source .venv/Scripts/activate
+python scripts/news/update_news.py --dry-run          # provider 检查
+python scripts/news/update_news.py                    # 增量更新
+python scripts/news/update_news.py --backfill-sse --start 2018-01-01
+python scripts/news/update_news.py --backfill-szse --max-stocks 800
+python scripts/news/build_events.py                   # 文档 -> 事件（+LLM 层可选）
+python scripts/news/build_news_factors.py             # 评估 -> factor_pack_news_v1
+python scripts/news/analyze_news_factor.py --factor news_count_5d
+python scripts/news/run_news_ablation.py              # A/B/C/D/E 消融
+python scripts/news/run_news_strategy.py              # strategy_v1_news
+python scripts/news/generate_news_recommendation.py --date 2026-09-04
+python scripts/news/write_news_reports.py             # 8 份报告
+python scripts/news/make_figures_step5.py             # 10 张图
+python scripts/verify_step5.py                        # 22 项验收
+```
+
+### 下一步
+
+**STEP 6: Portfolio Optimization and Advanced Strategy Research**
+（未开始，暂定）
 

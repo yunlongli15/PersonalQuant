@@ -12,7 +12,7 @@ from factors.registry import FACTOR_REGISTRY, FACTORS, categories, registry_df
 
 ALLOWED_CATEGORIES = {"momentum", "reversal", "volatility", "liquidity",
                       "price_position", "volume", "valuation", "quality",
-                      "growth", "cash_flow"}
+                      "growth", "cash_flow", "news"}
 REQUIRED = {"factor_name", "category", "formula", "source",
             "required_fields", "pit", "direction", "description",
             "version", "status"}

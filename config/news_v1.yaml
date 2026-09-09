@@ -1,0 +1,55 @@
+# news_v1 configuration (STEP 5)
+# 新闻/公告因子系统唯一配置源；参数改动必须新开 run 并记录。
+# 铁律：新闻因子选择只能用 research + valid（2018-2023）；
+# test（2024-2025）是 FROZEN TEST SET；2026 是 paper-live。
+
+news:
+  version: "1.0"
+  time_split:                            # 与 strategy_v1 一致
+    research: [2018-01-01, 2021-12-31]
+    valid: [2022-01-01, 2023-12-31]
+    test: [2024-01-01, 2025-12-31]
+    paper_live_start: 2026-01-01
+
+  sources:
+    order: [sse, szse, cninfo, akshare]  # 官方交易所优先
+    backfill_start: 2018-01-01           # 历史回填起点（报告覆盖不足年份）
+    sh_source: sse                       # 上交所公告主源
+    sz_source: szse                      # 深交所公告主源
+    fallback: cninfo
+
+  pit:
+    market_tz: Asia/Shanghai
+    close_time: "15:00"                  # 收盘前发布的当日可用，否则次日
+    date_only_rule: next_trading_day     # 只有日期 → 保守：次日可用
+
+  events:
+    rules_version: "1.0"
+    sentiment_map: {positive: 0.5, negative: -0.5, neutral: 0.0}  # 规则层情感
+
+  llm:
+    auto_enable: true                    # 依据 DEEPSEEK_API_KEY 自动启用
+    model: deepseek-chat
+    temperature: 0.0
+    max_tokens: 400
+    prompt_version: "1.0"
+    daily_budget_calls: 2000             # 超出 → RULE_BASED_ONLY
+    daily_budget_tokens: 400000
+
+  factors:
+    windows: [1, 5, 20, 60, 120]
+    decay_half_lives: [1, 3, 5, 10, 20]  # 时间衰减半衰期候选（数据决定，不预设）
+    attention_baseline_days: 60
+    shock_baseline_days: 120
+    major_importance_threshold: 0.6
+    novel_threshold: 0.8
+
+  selection:
+    min_coverage: 0.2                    # 新闻因子覆盖率门槛：覆盖上限由
+                                         # 公告数据可得性决定（SH 全量 +
+                                         # SZ 前 ~60 大市值 ≈ 0.4），
+                                         # 0.2 为诚实下限；ICIR/稳定性
+                                         # 门是主要筛选
+    min_icir: 0.3
+    min_positive_ic_ratio: 0.5
+    require_sign_consistency: true

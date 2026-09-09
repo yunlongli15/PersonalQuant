@@ -1,0 +1,84 @@
+{
+  "variant": "C",
+  "custom_features": [
+    "announcement_count_20d",
+    "news_risk_20d",
+    "shareholder_change_count_20d"
+  ],
+  "strategy": {
+    "label": "news_C",
+    "cumulative_return": 0.2302556261305273,
+    "annualized_return": 0.10940538021377377,
+    "annualized_volatility": 0.2750996489680492,
+    "sharpe": 0.4563240007688317,
+    "max_drawdown": -0.22643455299845783,
+    "calmar": 0.483165571530591,
+    "win_rate_monthly": 0.6086956521739131,
+    "n_days": 485,
+    "avg": 0.4022669212919713,
+    "total": 9.25213918971534,
+    "n": 23,
+    "n_trades": 789
+  },
+  "ic": {
+    "valid": {
+      "period": "valid",
+      "n_months": 24,
+      "ic_mean": 0.036189273189933764,
+      "ic_std": 0.058529121309838686,
+      "icir": 0.6183122585824705,
+      "ic_positive_ratio": 0.8333333333333334,
+      "rank_ic_mean": 0.030704203917245713,
+      "rank_icir": 0.30932116078895383,
+      "rank_ic_positive_ratio": 0.5833333333333334
+    },
+    "test": {
+      "period": "test",
+      "n_months": 23,
+      "ic_mean": 0.031188621664819904,
+      "ic_std": 0.05702256115824697,
+      "icir": 0.5469523120553347,
+      "ic_positive_ratio": 0.782608695652174,
+      "rank_ic_mean": 0.043925740957239424,
+      "rank_icir": 0.6796181390653709,
+      "rank_ic_positive_ratio": 0.8260869565217391
+    }
+  },
+  "quantile_summary": [
+    {
+      "quantile": 1,
+      "mean_return": 0.011335654942160274,
+      "n": 45383
+    },
+    {
+      "quantile": 2,
+      "mean_return": 0.01724627701704331,
+      "n": 45594
+    },
+    {
+      "quantile": 3,
+      "mean_return": 0.018646606941400294,
+      "n": 45044
+    },
+    {
+      "quantile": 4,
+      "mean_return": 0.01892404471452229,
+      "n": 45131
+    },
+    {
+      "quantile": 5,
+      "mean_return": 0.018366489399650552,
+      "n": 45049
+    }
+  ],
+  "top_bottom_spread": {
+    "spread_mean": 0.007030834457490276,
+    "spread_positive_ratio": 0.7021276595744681,
+    "n_months": 47
+  },
+  "fit": {
+    "best_iteration": 12,
+    "train_rmse": 0.15057745209025625,
+    "valid_rmse": 0.13300005831819953
+  }
+}

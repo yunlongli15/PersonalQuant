@@ -14,7 +14,8 @@ A股数据 → 数据清洗与本地数据库 → 因子计算与因子挖掘 �
 
 ## 当前状态
 
-**STEP 1 ✅ / STEP 2 ✅ / STEP 3 ✅ / STEP 4 ✅**（详见 [ROADMAP.md](ROADMAP.md)）
+**STEP 1 ✅ / STEP 2 ✅ / STEP 3 ✅ / STEP 4 ✅ / STEP 5 ✅**
+（详见 [ROADMAP.md](ROADMAP.md)）
 
 - STEP 1：Qlib 0.9.7 研究环境 + 官方 LightGBM/Alpha158 workflow 完整回测
   （基线报告 `reports/step1_qlib_baseline.md`）
@@ -31,6 +32,15 @@ A股数据 → 数据清洗与本地数据库 → 因子计算与因子挖掘 �
   （snooping 记录）、Model A/B/C/D 消融。诚实结论：自定义技术因子与
   财务因子第一轮未能稳定超越 Alpha158 基线（报告
   reports/step4_factor_research.md / step4_model_ablation.md）
+- STEP 5：新闻/公告因子系统 —— 官方交易所优先的 Provider 抽象层
+  （SSE 按日全量 / SZSE 按股 / CNINFO / AkShare）、canonical 公告库
+  （171k 条 2018-2026）、严格 PIT（盘后→次日）、规则事件分类（25 类）
+  + LLM 层（DeepSeek 自动检测、cache、预算）、27 个新闻因子评估、
+  factor_pack_news_v1、A/B/C/D/E 消融（锚点 drift 0.0000）、
+  strategy_v1_news（E：0.2812/1.022 vs A：0.2475/0.943）。
+  诚实结论：公告强度+风险事件与 pack_v1 组合提供边际增量；
+  LLM 对比留待 API（报告 reports/step5_news_factor_evaluation.md /
+  step5_news_ablation.md）
 
 ## 环境要求
 
@@ -86,7 +96,16 @@ python scripts/research_all_factors.py           # 全因子研究 -> factor_pac
 python scripts/run_alpha_mining.py               # 浅层 Alpha Mining（research candidate）
 python scripts/backtest_ablation.py              # Model A/B/C/D 消融
 python scripts/verify_step4.py                   # 21 项验收
-python -m pytest tests/ -q                       # 全部测试（186 个）
+
+# --- STEP 5：新闻因子 ---
+python scripts/news/update_news.py --dry-run     # provider 检查
+python scripts/news/update_news.py               # 公告增量更新
+python scripts/news/build_events.py              # 文档 -> 规则事件（--llm 可选）
+python scripts/news/build_news_factors.py        # 评估 -> factor_pack_news_v1
+python scripts/news/run_news_ablation.py         # A/B/C/D/E 消融
+python scripts/news/run_news_strategy.py         # strategy_v1_news
+python scripts/verify_step5.py                   # 22 项验收
+python -m pytest tests/ -q                       # 全部测试（302 个）
 
 # 运行模式：PQ_MODE=offline 只读缓存（历史回测必须用）；PQ_PDF_CACHE=1 开启 PDF 缓存
 ```
@@ -112,7 +131,8 @@ PersonalQuant/
 │   ├── repair/          #   canonical 修复管线（STEP 4 市场缩放校准）
 │   ├── strategy/        #   strategy_v1（STEP 3，冻结基线）
 │   └── quality/         #   16 项质量检查
-├── factors/             # 因子研究平台（STEP 4：注册/评估/选择/挖掘/报告）
+├── factors/             # 因子研究平台（STEP 4/5：注册/评估/选择/挖掘/报告）
+├── news/                # 新闻系统（STEP 5：providers/事件/PIT/LLM/聚合）
 ├── config/              # workflow 等运行配置
 ├── scripts/             # bootstrap / verify / demo / crosscheck
 ├── tests/               # 42 个测试

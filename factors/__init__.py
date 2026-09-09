@@ -17,4 +17,4 @@ Layers:
 """
 
 from . import base, fundamental, growth, normalization, quality, registry
-from . import technical, valuation  # noqa: F401  (registers factors on import)
+from . import news_factors, technical, valuation  # noqa: F401  (registration)

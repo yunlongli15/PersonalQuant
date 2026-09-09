@@ -1,0 +1,21 @@
+{
+  "created": "2026-09-10T00:49:32",
+  "n_news_factors": 28,
+  "n_selected": 3,
+  "news_events_rows": 171667,
+  "news_coverage_symbols": 2478,
+  "periods": {
+    "research": [
+      "2018-01-01",
+      "2021-12-31"
+    ],
+    "valid": [
+      "2022-01-01",
+      "2023-12-31"
+    ],
+    "test": [
+      "2024-01-01",
+      "2025-12-31"
+    ]
+  }
+}

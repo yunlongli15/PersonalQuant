@@ -1,0 +1,14 @@
+# STEP 5 news cost report
+
+generated: 2026-09-10T01:15:52
+
+| item | value |
+| --- | --- |
+| documents processed | 171667 |
+| LLM enabled | no (RULE_BASED_ONLY) |
+| LLM cache entries | 1 |
+| budget calls used | 0 |
+| budget tokens used | 0 |
+| budget limits | 0 calls / 0 tokens/day |
+
+API cost 估计：LLM 层未启用时为 0；启用后按实际 usage 记录（每文档 ~400 tokens 上限）。

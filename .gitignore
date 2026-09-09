@@ -49,3 +49,6 @@ experiments/**/walkforward/model_q*.txt
 experiments/factors/**/model.txt
 experiments/factors/**/factor_dashboard_data.parquet
 experiments/factors/**/beam.json
+
+# --- STEP 5: large regenerable artifacts (news) ---
+experiments/news/**/model.txt

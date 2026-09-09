@@ -1,0 +1,74 @@
+# STEP 5 news factor evaluation
+
+generated: 2026-09-10T01:15:51
+
+Selection: research 2018-2021 + valid 2022-2023 ONLY; test 2024-2025 evaluated exactly once (frozen).
+
+| factor | ICIR(research) | ICIR(test) | coverage |
+| --- | --- | --- | --- |
+| announcement_attention_5d | -0.005 | 0.096 | 0.20 |
+| announcement_count_20d | 0.388 | 0.363 | 0.40 |
+| announcement_count_5d | 0.148 | 0.609 | 0.40 |
+| buyback_event_count_20d | 0.246 | 0.097 | 0.40 |
+| earnings_event_count_60d | -0.015 | 0.234 | 0.40 |
+| event_sentiment_shock | -0.280 | -0.153 | 0.40 |
+| event_shock | -0.160 | 0.221 | 0.01 |
+| llm_confidence_20d | nan | nan | 0.00 |
+| major_event_count_20d | 0.319 | 0.230 | 0.40 |
+| negative_news_count_5d | 0.268 | 0.208 | 0.40 |
+| news_attention_1d | 0.152 | -0.220 | 0.20 |
+| news_attention_20d | 0.038 | -0.046 | 0.20 |
+| news_attention_5d | -0.005 | 0.096 | 0.20 |
+| news_count_1d | 0.043 | 0.180 | 0.40 |
+| news_count_20d | 0.388 | 0.363 | 0.40 |
+| news_count_5d | 0.148 | 0.609 | 0.40 |
+| news_importance_5d | 0.192 | 0.627 | 0.40 |
+| news_novelty_5d | 0.160 | 0.627 | 0.40 |
+| news_positive_negative_ratio | 0.041 | -0.027 | 0.40 |
+| news_risk_20d | 0.346 | 0.281 | 0.40 |
+| news_sentiment_1d | 0.133 | -0.115 | 0.40 |
+| news_sentiment_20d | 0.036 | -0.028 | 0.40 |
+| news_sentiment_5d | -0.118 | 0.014 | 0.40 |
+| news_sentiment_weighted | 0.019 | -0.047 | 0.40 |
+| novel_news_count_5d | -0.103 | 0.531 | 0.40 |
+| positive_news_count_5d | 0.161 | 0.135 | 0.40 |
+| regulatory_event_count_20d | 0.020 | 0.132 | 0.40 |
+| shareholder_change_count_20d | 0.358 | 0.228 | 0.40 |
+
+factor_pack_news_v1: selected 3/28: announcement_count_20d, news_risk_20d, shareholder_change_count_20d
+
+### discarded
+
+- `announcement_attention_5d`: |research rank-ICIR| 0.005 < 0.3
+- `announcement_count_5d`: |research rank-ICIR| 0.148 < 0.3
+- `buyback_event_count_20d`: |research rank-ICIR| 0.246 < 0.3
+- `earnings_event_count_60d`: |research rank-ICIR| 0.015 < 0.3
+- `event_sentiment_shock`: |research rank-ICIR| 0.280 < 0.3
+- `event_shock`: coverage 0.01 < 0.2
+- `llm_confidence_20d`: coverage 0.00 < 0.2
+- `major_event_count_20d`: research IC +0.0175 vs valid IC -0.0042: sign flips
+- `negative_news_count_5d`: |research rank-ICIR| 0.268 < 0.3
+- `news_attention_1d`: |research rank-ICIR| 0.152 < 0.3
+- `news_attention_20d`: |research rank-ICIR| 0.038 < 0.3
+- `news_attention_5d`: |research rank-ICIR| 0.005 < 0.3
+- `news_count_1d`: |research rank-ICIR| 0.043 < 0.3
+- `news_count_5d`: |research rank-ICIR| 0.148 < 0.3
+- `news_importance_5d`: |research rank-ICIR| 0.192 < 0.3
+- `news_novelty_5d`: |research rank-ICIR| 0.160 < 0.3
+- `news_positive_negative_ratio`: |research rank-ICIR| 0.041 < 0.3
+- `news_sentiment_1d`: |research rank-ICIR| 0.133 < 0.3
+- `news_sentiment_20d`: |research rank-ICIR| 0.036 < 0.3
+- `news_sentiment_5d`: |research rank-ICIR| 0.118 < 0.3
+- `news_sentiment_weighted`: |research rank-ICIR| 0.019 < 0.3
+- `novel_news_count_5d`: |research rank-ICIR| 0.103 < 0.3
+- `positive_news_count_5d`: |research rank-ICIR| 0.161 < 0.3
+- `regulatory_event_count_20d`: |research rank-ICIR| 0.020 < 0.3
+- `news_count_20d`: |corr| >= 0.8 with announcement_count_20d (cluster: announcement_count_20d, news_count_20d)
+
+### honest conclusions（2018-2023 选择 → 2024-2025 单次）
+
+1. **announcement_count_20d** 是最稳定的新闻因子：research ICIR +0.39 → valid +0.18 → test +0.36（公告强度高 → 未来收益略高）。
+2. **news_risk_20d**（research +0.35）与 **shareholder_change_count_20d**（+0.36）通过全部门。
+3. 大多数事件类因子（buyback/regulatory/earnings/sentiment/attention）research 期 ICIR < 0.3，未过门 —— 第一轮中规则新闻信息大部分被价格信息覆盖，只有'公告强度'与'风险事件'提供边际增量。
+4. **时间衰减研究**（半衰期 1/3/5/10/20d）：所有半衰期的 research rank-IC ≈ 0（-0.02~-0.008），衰减权重没有提供额外结构 —— 如实记录，不预设 20 日最优。
+5. LLM 层未启用（无 DEEPSEEK_API_KEY）→ rule-based 基线为主结果；LLM 对比留待 API 可用（系统自动检测）。

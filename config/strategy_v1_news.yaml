@@ -1,0 +1,21 @@
+# strategy_v1_news configuration (STEP 5)
+# strategy_v1 同引擎（月度调仓 / T+1 开盘 / Top20 等权 / 5% 现金 /
+# 相同成本），唯一变化：特征 = Alpha158 + factor_pack_v1 + 新闻因子。
+# 不覆盖 strategy_v1；参数继承自 config/strategy_v1.yaml。
+
+strategy:
+  name: strategy_v1_news
+  version: "1.0"
+  base_config: config/strategy_v1.yaml   # 引擎/成本/股票池/时间切分继承
+  news_features:
+    - news_count_5d
+    - news_count_20d
+    - negative_news_count_5d
+    - positive_news_count_5d
+    - major_event_count_20d
+    - regulatory_event_count_20d
+    - news_attention_5d
+    - news_sentiment_5d
+    - news_sentiment_20d
+    - news_positive_negative_ratio
+    - event_shock

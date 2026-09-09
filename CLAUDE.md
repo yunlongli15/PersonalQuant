@@ -197,3 +197,31 @@ LLM 新闻分析、自定义复杂因子、Transformer、强化学习、GUI、Tu
   validation 排序、test 单次；**snooping diagnostics（候选数/各期最优分）
   必须记录**；mined 因子是 research candidate（factor_pack_v2 池），
   不是生产策略。
+
+## STEP 5 新闻因子要点（2026-09-09 起）
+
+- **Provider 抽象**：news/providers/（BaseNewsProvider + SSE/SZSE/CNINFO/
+  AkShare）；业务层禁止直接 requests；官方交易所优先；被封禁记录
+  SOURCE_BLOCKED 换合法源；低并发、随机 1-3s 延迟、重试退避、raw 缓存。
+- **SSE 公告 API 分页陷阱**：pageHelp.pageNo 被忽略——分页必须用
+  pageHelp.beginPage/endPage；pageSize=1000 一天一请求。旧分页代码会把
+  >100 条的交易日截断（已用 --repair-truncated 修复，勿回退）。
+- **PIT 铁律**（docs/step5_news_pit.md）：发布日≤15:00 → 当日可用；
+  盘后/周末/节假日/仅日期 → 下一交易日 09:30；发布日未知 → strict
+  禁用。event_time 与 publication_time 分开，因子只用 availability；
+  updated_at 绝不代替 published_at。全链路 Asia/Shanghai tz-aware。
+- **事件层**：规则分类（25 类，news/events.py，方向为 candidate）→
+  NewsEvent；LLM 层（DeepSeek，结构化 JSON、prompt 版本、cache、
+  budget）仅在 DEEPSEEK_API_KEY 存在时启用，无 key 时 RULE_BASED_ONLY
+  （系统不因此失败）。LLM 输出绝不直接交易。
+- **因子语义**：窗口按自然日（daily 日历 rolling）；计数因子 0=无事件
+  （真实信息）；sentiment/importance/novelty/risk 无事件 = 0（中性，
+  建模选择）；attention/shock 为比值语义，零基线 = NaN（未定义）。
+  覆盖率：未抓取股票 NaN，绝不把缺失年填 0。
+- **数据层**：canonical news_documents（DuckDB，document_id 去重 +
+  source_count）；derived news_events/news_factors（parquet 快照，
+  因子引擎直读）。backfill：SSE 按日全量（官方）；SZSE 按股（cap 排序，
+  增量续跑）；incremental 模式只推进已 settle 的日期（官方索引滞后
+  ~5 天）。
+- 新闻因子进 FACTOR_REGISTRY（category=news），复用 STEP 4 评估引擎；
+  选择只用 2018-2023；strategy_v1_news 不覆盖 strategy_v1。
