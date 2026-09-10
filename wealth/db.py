@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS products (
     market       TEXT,
     unit         TEXT NOT NULL DEFAULT 'CNY',
     status       TEXT NOT NULL DEFAULT 'active',
+    note         TEXT,
     created_at   TEXT NOT NULL DEFAULT (datetime('now')),
     UNIQUE (account_id, name)
 );
@@ -155,6 +156,50 @@ CREATE TABLE IF NOT EXISTS wealth_categories (
     sort_order  INTEGER NOT NULL DEFAULT 0,
     applies_to  TEXT
 );
+
+-- recommendation / decision / execution trail (spec §33/§34/§36):
+-- the model recommends, the user decides, reality records what happened.
+CREATE TABLE IF NOT EXISTS recommendations (
+    recommendation_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    as_of        TEXT NOT NULL,
+    symbol       TEXT NOT NULL,
+    name         TEXT,
+    action       TEXT NOT NULL,
+    rec_price    REAL,
+    entry_low    REAL,
+    entry_high   REAL,
+    shares       INTEGER NOT NULL DEFAULT 0,
+    target_price REAL,
+    stop_loss    REAL,
+    expected_return REAL,
+    signal_rank  INTEGER,
+    source       TEXT NOT NULL DEFAULT 'trade_plan',
+    created_at   TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (as_of, symbol, source)
+);
+
+CREATE TABLE IF NOT EXISTS decisions (
+    decision_id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    recommendation_id INTEGER NOT NULL
+        REFERENCES recommendations(recommendation_id),
+    decision          TEXT NOT NULL,     -- accept | modify | reject
+    decided_at        TEXT NOT NULL DEFAULT (datetime('now')),
+    modified_price    REAL,
+    modified_shares   INTEGER,
+    note              TEXT
+);
+
+CREATE TABLE IF NOT EXISTS executions (
+    execution_id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    recommendation_id INTEGER REFERENCES recommendations(recommendation_id),
+    executed_at       TEXT NOT NULL,
+    price             REAL NOT NULL,
+    shares            INTEGER NOT NULL,
+    fees              REAL NOT NULL DEFAULT 0,
+    note              TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_rec_asof ON recommendations(as_of);
+CREATE INDEX IF NOT EXISTS idx_exec_rec ON executions(recommendation_id);
 
 CREATE TABLE IF NOT EXISTS audit_log (
     audit_id    INTEGER PRIMARY KEY AUTOINCREMENT,

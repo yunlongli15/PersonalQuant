@@ -14,8 +14,8 @@ A股数据 → 数据清洗与本地数据库 → 因子计算与因子挖掘 �
 
 ## 当前状态
 
-**STEP 1 ✅ / STEP 2 ✅ / STEP 3 ✅ / STEP 4 ✅ / STEP 5 ✅ / STEP 6 ✅**
-（详见 [ROADMAP.md](ROADMAP.md)）
+**STEP 1 ✅ / STEP 2 ✅ / STEP 3 ✅ / STEP 4 ✅ / STEP 5 ✅ / STEP 6 ✅ /
+STEP 7 ✅**（详见 [ROADMAP.md](ROADMAP.md)）
 
 - STEP 1：Qlib 0.9.7 研究环境 + 官方 LightGBM/Alpha158 workflow 完整回测
   （基线报告 `reports/step1_qlib_baseline.md`）
@@ -51,6 +51,12 @@ A股数据 → 数据清洗与本地数据库 → 因子计算与因子挖掘 �
   strategy_v2 因 2 项 gate 未通过保持研究候选状态
   （报告 reports/step6_portfolio_optimization.md /
   step6_final_candidate.md）
+- STEP 7：个人财富管理 + 本地 GUI —— 财富库（SQLite，与研究会话严格
+  分离）、收益引擎（P&L 剔除外部资金流、万份收益、TWR/XIRR、净资产
+  变动分解）、数据刷新管线（job store + 新鲜度面板，离线记 SKIPPED）、
+  预测引擎（1D/5D/20D 条件分布，PIT）、交易计划（入场区间/目标/止损/
+  手数/费用/卖出原因）、本地 Web GUI（127.0.0.1、零外部资源）、
+  决策链（推荐→接受/修改/拒绝→实际成交滑点）、闭环脚本（9/9 步）
 
 ## 环境要求
 
@@ -123,7 +129,14 @@ python scripts/portfolio/run_stress_test.py                     # 压力测试
 python scripts/portfolio/run_strategy_v2.py                     # strategy_v2 + gates
 python scripts/portfolio/generate_v2_recommendation.py --capital 500000
 python scripts/verify_step6.py                   # 25 项验收
-python -m pytest tests/ -q                       # 全部测试（400 个）
+
+# --- STEP 7：个人财富管理 + GUI ---
+python scripts/wealth/init_wealth_db.py          # 初始化财富库（SQLite）
+python scripts/quant/refresh_all.py --status     # 数据新鲜度面板
+python scripts/quant/run_full_loop.py --demo-wealth   # 闭环端到端
+python scripts/webapp/serve.py                   # GUI -> http://127.0.0.1:8765
+python scripts/verify_step7.py                   # 29 项验收
+python -m pytest tests/ -q                       # 全部测试（566 个）
 
 # 运行模式：PQ_MODE=offline 只读缓存（历史回测必须用）；PQ_PDF_CACHE=1 开启 PDF 缓存
 ```

@@ -136,14 +136,14 @@ def list_accounts(conn, platform_id: Optional[int] = None) -> List[dict]:
 def create_product(conn, account_id: int, name: str, product_type: str,
                    ticker: Optional[str] = None, currency: str = "CNY",
                    market: Optional[str] = None,
-                   unit: str = "CNY") -> int:
+                   unit: str = "CNY", note: Optional[str] = None) -> int:
     _check_enum(product_type, PRODUCT_TYPES, "product_type")
     _require(conn, "accounts", "account_id", account_id)
     return _insert(conn, "products",
                    ["account_id", "name", "product_type", "ticker",
-                    "currency", "market", "unit"],
+                    "currency", "market", "unit", "note"],
                    [account_id, name, product_type, ticker, currency,
-                    market, unit], "create")
+                    market, unit, note], "create")
 
 
 def update_product(conn, product_id: int, reason: Optional[str] = None,

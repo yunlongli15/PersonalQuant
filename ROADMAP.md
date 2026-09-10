@@ -528,6 +528,97 @@ python -m pytest tests/ -q                               # 400 测试
 
 ### 下一步
 
-**STEP 7: Build Personal Portfolio / Wealth Management and GUI**
-（未开始，暂定）
+已进入并完成 **STEP 7: Build Personal Portfolio / Wealth Management and
+GUI**（见下节）。
+
+---
+
+## STEP 7: Personal Portfolio / Wealth Management / GUI
+
+> 目标：把 PersonalQuant 从"量化研究仓库"变成"个人投资终端" ——
+> 研究系统（Research/Signal/Forecast/Allocation/Trade Plan）与个人
+> 财富系统（真实资产记录与绩效）严格分离、又能联动闭环。
+
+状态：**COMPLETED**（2026-09-10）
+
+### 做了什么（7A-7G）
+
+- **7A 财富数据库**：`data/wealth/wealth.db`（SQLite，本地单用户，
+  git 忽略）——platforms/accounts/products/transactions/
+  daily_snapshots/positions/income_records/benchmark_records/
+  wealth_categories/audit_log + 视图 cash_flows/fees/dividends/
+  v_latest_values（单一台账：外部与内部资金流是数据库级不变量）；
+  recommendation/decision/execution 三张表；CRUD 全部写审计；
+  交易修改/删除必须给理由；CSV/JSON 导出 + 一键 SQLite 备份。
+- **7B 收益引擎**：`Investment P&L = Ending − Beginning − 外部净流入`
+  （spec §7）；**万份收益**（spec §8）用"当日有效份额"处理日内转入，
+  存入转出不会造成虚假的收益率下跌（spec §8.3 场景有测试），
+  计算口径标记 exact/estimated；持仓成本（含买入费用）、已实现/
+  未实现盈亏、分红、费用；TWR（资金流调整）与 XIRR（多笔不规则
+  现金流，无解时返回 None 而非编造）；净资产变动分解（§27）带
+  恒等式校验；Daily Update 只需输入"今日金额"。
+- **7C 数据刷新**：pipeline/（freshness/jobs/refresh/signals）——
+  8 个按依赖排序的刷新任务包装既有 STEP 2-6 入口；job store 记录
+  每次运行（SQLite）；**离线模式记 SKIPPED，绝不记为成功**；
+  数据新鲜度面板（OK/STALE/MISSING/UNKNOWN）含"日历本身滞后"盲区
+  规则；`scripts/quant/refresh_all.py` 一键更新。
+- **7D 预测引擎**：1D/5D/20D 预测 = **冻结 S3 分数**下的已实现收益
+  条件分布（20 个分位桶 + 桶心插值，Top-20 内部也有区分度），
+  输出期望收益/中位数/5-95% 区间/P(up)/趋势/样本数/版本；
+  **PIT**：只用预测日之前已结束窗口的样本（embargo），未来数据
+  投毒不变性有测试；不堆模型（spec §43）。
+- **7E 交易计划**：trade_plan/ —— 冻结信号 → STEP 6 分配（方法读
+  研究选择，不重调参）→ 手数化订单；**入场区间**来自个股 20 日
+  波动（profile 乘数、上限 3%）+ 计划价 + 理由（绝不用"现价买入"）；
+  目标价/止损/时间止损；**卖出必须给出原因**（多因）；成本复用共享
+  TransactionCostModel；输出 trade_plan_<date>.csv/.json。
+- **7F 本地 GUI**：FastAPI，仅绑定 127.0.0.1（启动器拒绝外部绑定）；
+  **离线优先**：CSS/SVG 全部本地生成，零 CDN（每页有测试断言）；
+  pages.py 只做格式化（AST 测试禁止其 import 任何引擎），所有数字来自
+  webapp/services.py；页面覆盖 Dashboard / Wealth（含 Daily Update）/
+  Quant（信号、预测、个股、交易计划、paper live、Research Lab）/
+  Data Status / Settings。
+- **7G 集成**：决策链（recommendation → accept/modify/reject →
+  实际成交对比滑点，spec §33/§34）、模型 vs 实际持仓缺口
+  （Underweight/Overweight，§36）、调度器（manual + daily 已实现，
+  weekly/monthly 已声明）、闭环脚本
+  `scripts/quant/run_full_loop.py`（**9/9 步通过**）、
+  `scripts/verify_step7.py`（**29/29 PASS**，含 STEP 1-6 回归）。
+
+### 结果（如实记录）
+
+| 项目 | 结果 |
+| --- | --- |
+| 闭环 | data → factor → signal → forecast → allocation → trade plan → wealth → performance 全部打通（9/9） |
+| 实时产物 | 3,027 只股票信号（2026-09-04）· 200 只 × 3 跨度预测 · 18 只持仓交易计划（占用 75.3%，费用 286 元，预期净收益 1.38%） |
+| 数据新鲜度 | Market/Valuation ⚠ STALE（canonical 数据止于 2026-09-04，面板如实显示） |
+| 测试 | STEP 7 新增 166 个（wealth 72 / pipeline 39 / trade_plan 17 / webapp 38）；全量 **566 passed**（400 → 566） |
+| 回归 | verify_step1-6 全部 PASS（21/19/19/21/22/25） |
+
+### 已知限制（如实）
+
+1. Market/Valuation 增量刷新依赖既有在线 provider，离线模式下记为
+   SKIPPED；本机数据止于 2026-09-04，GUI 会持续显示 STALE。
+2. 预测为"分数分桶条件分布"，不是独立训练的 1D/5D 模型；桶边界
+   随市场变化需要重新校准（每次刷新自动用最新可得样本）。
+3. GUI 为桌面优先、单用户、无鉴权（本地回环绑定）；移动端未做。
+4. 调度器不常驻：由 GUI 按钮/CLI/系统计划任务触发，重复调用幂等。
+5. paper live / demo 财富数据均带标记，可一键清除（--clean-demo）。
+
+### 如何重新运行
+
+```bash
+source .venv/Scripts/activate
+python scripts/wealth/init_wealth_db.py            # 初始化财富库
+python scripts/quant/refresh_all.py --status       # 数据新鲜度面板
+python scripts/quant/refresh_all.py                # 一键更新（离线记 SKIPPED）
+python scripts/quant/run_full_loop.py --demo-wealth  # 闭环端到端
+python scripts/webapp/serve.py                     # GUI -> 127.0.0.1:8765
+python scripts/verify_step7.py                     # 29 项验收
+python -m pytest tests/ -q                         # 全部测试
+```
+
+### 下一步
+
+**STEP 8**（未定义，等待用户指令）。
 

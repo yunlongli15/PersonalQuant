@@ -254,3 +254,33 @@ LLM 新闻分析、自定义复杂因子、Transformer、强化学习、GUI、Tu
   strategy_v1 的 TransactionCostModel（公平比较，勿另写一套）。
 - 审计与可解释性每次调仓全部落盘（experiments/portfolio/ 每个 run 的
   weights/audit/trades/metrics）。
+
+## STEP 7 个人财富与 GUI 要点（2026-09-10 起）
+
+- **Research DB（DuckDB/Parquet）与 Wealth DB（SQLite
+  data/wealth/wealth.db）严格分离**：wealth/ 绝不 import duckdb、绝不
+  引用研究回测产物；真实财富记录绝不进入 backtest。
+- **P&L 铁律**：`Investment P&L = Ending − Beginning − 外部净流入`；
+  只有 deposit/withdrawal/transfer_in/out 是外部流（DB 层强制），
+  buy/sell/申购/赎回是内部流（cash_flow 必须为 0）。任何"今日资产 −
+  昨日资产 = 收益"的写法都是 bug。
+- **万份收益**：货币型产品用"当日有效份额"计算（日内转入按时间加权，
+  时间未知按 0.5 并标 estimated），绝不用期末份额（会造出虚假的
+  收益率下跌）；口径 exact/estimated 必须落库。
+- 财富库所有写入走 wealth/repository.py（自动写 audit_log）；
+  交易修改/删除必须给 reason；产品/账户改名等都要留痕。
+- **数据新鲜度**：GUI 必须显示 Data Status；STALE 数据不得静默使用；
+  刷新失败要 raise（job store 记录 FAILED），离线任务记 SKIPPED，
+  **绝不把跳过记成成功**；交易日历本身滞后时市场域一律 STALE。
+- **预测**：1D/5D/20D 为冻结分数的条件分布（20 分位桶 + 桶心插值），
+  PIT embargo（只用预测日之前已结束窗口的样本）；不新增未过验收门
+  的模型（spec §43）。
+- **交易计划**：入场区间来自个股波动（上限 3%）+ 计划价；目标价/
+  止损是模型估计不是承诺；卖出必须带原因；手数 100 股整数倍；
+  成本复用 strategy_v1 的 TransactionCostModel（禁止第二套费率）；
+  系统只输出建议，**永不自动下单**。
+- **GUI 铁律**：只绑定 127.0.0.1（启动器拒绝外部绑定）；零外部资源
+  （无 CDN/无外链，有测试断言）；pages.py 只做格式化（AST 测试禁止
+  其 import 任何引擎）；金融计算只在 services.py/引擎层。
+- LLM 只能是研究辅助（摘要/分类/解释），绝不影响信号与回测可复现性。
+- DuckDB 单进程：**不要并发跑 verify/测试与 fetcher**（会锁冲突）。
