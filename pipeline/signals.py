@@ -45,6 +45,22 @@ def _feature_names() -> list:
     return step4["selected"] + news["selected"]
 
 
+def _symbol_names() -> pd.Series:
+    """symbol -> name from the canonical securities parquet (read-only,
+    DB-free; the frozen universe query does not select names)."""
+    import pyarrow.parquet as pq
+
+    p = PROJECT_ROOT / "data" / "parquet" / "securities"
+    if not p.exists():
+        return pd.Series(dtype=object)
+    try:
+        df = pq.read_table(str(p), columns=["symbol", "name"]).to_pandas()
+        return df.dropna(subset=["name"]).drop_duplicates("symbol") \
+            .set_index("symbol")["name"]
+    except Exception:
+        return pd.Series(dtype=object)
+
+
 def compute_signals(signal_date: str, top_k: int = 20,
                     universe_config: Optional[dict] = None) -> pd.DataFrame:
     """Frozen S3 predictions for every universe symbol at `signal_date`.
@@ -102,7 +118,7 @@ def compute_signals(signal_date: str, top_k: int = 20,
     out["signal_date"] = d
     out["raw_rank"] = range(1, len(out) + 1)
     names = universe.set_index("symbol")["name"] \
-        if "name" in universe.columns else pd.Series(dtype=object)
+        if "name" in universe.columns else _symbol_names()
     out["name"] = out["symbol"].map(names)
     out["is_top"] = out["raw_rank"] <= top_k
     return out
@@ -176,9 +192,10 @@ def refresh_portfolio_state(capital: float = 500_000.0,
                             top_k: int = 20,
                             **kwargs) -> dict:
     """Job entry point: build the trade plan and stamp the state file."""
-    from pipeline.trade_plan import build_trade_plan
+    from trade_plan.plan import build_trade_plan, save_plan
 
     plan = build_trade_plan(capital=capital, top_k=top_k, **kwargs)
+    save_plan(plan)
     save_portfolio_state(plan["as_of"], plan)
     return {"as_of": plan["as_of"], "n_positions": len(plan["rows"]),
             "invested": plan["total_buy_value"]}
