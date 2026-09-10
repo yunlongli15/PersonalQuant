@@ -225,3 +225,32 @@ LLM 新闻分析、自定义复杂因子、Transformer、强化学习、GUI、Tu
   ~5 天）。
 - 新闻因子进 FACTOR_REGISTRY（category=news），复用 STEP 4 评估引擎；
   选择只用 2018-2023；strategy_v1_news 不覆盖 strategy_v1。
+
+## STEP 6 组合优化要点（2026-09-10 起）
+
+- **SIGNAL != ALLOCATION**：alpha 信号冻结 = S3（Alpha158 + factor_pack_v1
+  + news，STEP 5 增量检查 D>B 确认）；portfolio/ 只做 allocation，绝不
+  重训 alpha、绝不静默改 alpha 排名（raw_rank 全程保存）。
+- 引擎锚点：**P0 等权必须逐位复现 strategy_v1_news（drift 0.0000）**；
+  改动执行/成本/股票池语义后必须重跑 `research_portfolio.py --method
+  equal_weight --period test --check-anchor`。
+- 候选不足（< top_k）时按冻结的"每股 invest_target/top_k"等比缩放目标，
+  其余留现金（effective_target；锚点一致性的前提，勿改成集中持仓）。
+- **P0 等权是冻结基线分配，不施行业上限**（否则锚点不可复现）；
+  P1-P6 强制 max_weight 10% / sector_cap 20% / 无做空 / 无杠杆 /
+  cash_buffer；优化器失败走回退链（方法→inverse_vol→equal_weight）并
+  记录 optimizer_status/fallback_reason。
+- 协方差 PIT 铁律：每次调仓只用 <= signal_date 的收益；sanity gate
+  （对称/PSD/对角/条件数/NaN）不过关则修复链 sample→Ledoit-Wolf→对角，
+  绝不静默提交不稳定矩阵；历史 <20 有效收益的股票被剔除时按等比缩放
+  目标（_cov_aligned），勿直接丢弃。
+- 选择协议**先于结果写死**（scripts/portfolio/run_portfolio_study.py
+  docstring）：只用 research 2018-2021 + valid 2022-2023；test 单次评估。
+  修改协议 = 新开实验并记录，禁止看结果改规则。
+- strategy_v2（config/strategy_v2.yaml）= S3 + 选定分配；9 项 candidate
+  gates 即使 FAIL 也如实记录，不重写门槛；未通过全部 gate 就保持研究
+  候选、不晋升生产。
+- 换手统一定义 T = 0.5·Σ|w_new − w_old|（含被清出持仓）；成本复用
+  strategy_v1 的 TransactionCostModel（公平比较，勿另写一套）。
+- 审计与可解释性每次调仓全部落盘（experiments/portfolio/ 每个 run 的
+  weights/audit/trades/metrics）。

@@ -1,0 +1,124 @@
+{
+  "index": "000300.SH",
+  "benchmark_definitions": {
+    "csi300_buy_hold": "index close (canonical raw) buy-and-hold, no costs, no rebalancing",
+    "equal_weight_market": "all investable symbols, equal weight, daily rebalanced, no costs",
+    "relative": "strategy daily return - CSI300 daily return -> annualized IR (personal_quant.strategy.metrics)"
+  },
+  "periods": {
+    "research": {
+      "strategy": {
+        "label": "equal_weight",
+        "cumulative_return": 0.27794706266046765,
+        "annualized_return": 0.06332180061476134,
+        "annualized_volatility": 0.282078601429326,
+        "sharpe": 0.2961076090437076,
+        "max_drawdown": -0.4507203283750949,
+        "calmar": 0.14049022559742227,
+        "win_rate_monthly": 0.5106382978723404,
+        "n_days": 973
+      },
+      "csi300_buy_hold": {
+        "label": "csi300",
+        "cumulative_return": 0.2086833140255986,
+        "annualized_return": 0.048591517527839745,
+        "annualized_volatility": 0.20744597438482432,
+        "sharpe": 0.24441796939904933,
+        "max_drawdown": -0.3246197702771575,
+        "calmar": 0.14968748664430614,
+        "win_rate_monthly": 0.5531914893617021,
+        "n_days": 973
+      },
+      "relative_ir_vs_csi300": 0.15829800163213797,
+      "alpha_annualized": 0.05753318036457375,
+      "beta": 0.8483852349809561,
+      "equal_weight_market": {
+        "label": "eq_market",
+        "cumulative_return": 0.15535331595673907,
+        "annualized_return": 0.03681243241779053,
+        "annualized_volatility": 0.22886839285350516,
+        "sharpe": 0.19153180218711718,
+        "max_drawdown": -0.4059851229787016,
+        "calmar": 0.09067433837895028,
+        "win_rate_monthly": 0.48936170212765956,
+        "n_days": 973
+      }
+    },
+    "valid": {
+      "strategy": {
+        "label": "equal_weight",
+        "cumulative_return": -0.23947736648201545,
+        "annualized_return": -0.1289915064230437,
+        "annualized_volatility": 0.22698797713066726,
+        "sharpe": -0.6036550761965764,
+        "max_drawdown": -0.324594016304642,
+        "calmar": -0.39739335891509775,
+        "win_rate_monthly": 0.391304347826087,
+        "n_days": 484
+      },
+      "csi300_buy_hold": {
+        "label": "csi300",
+        "cumulative_return": -0.30230297461680056,
+        "annualized_return": -0.1660660318788847,
+        "annualized_volatility": 0.173028093392394,
+        "sharpe": -1.114219372592668,
+        "max_drawdown": -0.32947139491378863,
+        "calmar": -0.5040377842887953,
+        "win_rate_monthly": 0.34782608695652173,
+        "n_days": 484
+      },
+      "relative_ir_vs_csi300": 0.3051766498087411,
+      "alpha_annualized": -0.027740391210829295,
+      "beta": 0.6953093937919178,
+      "equal_weight_market": {
+        "label": "eq_market",
+        "cumulative_return": -0.09824331465410063,
+        "annualized_return": -0.05083200944188693,
+        "annualized_volatility": 0.19615459819799694,
+        "sharpe": -0.27833055051394306,
+        "max_drawdown": -0.28668610740814016,
+        "calmar": -0.17730893869063571,
+        "win_rate_monthly": 0.5217391304347826,
+        "n_days": 484
+      }
+    },
+    "test": {
+      "strategy": {
+        "label": "equal_weight",
+        "cumulative_return": 0.6399313940089404,
+        "annualized_return": 0.28124992802866333,
+        "annualized_volatility": 0.26734883347502686,
+        "sharpe": 1.0216526429614279,
+        "max_drawdown": -0.23510774581686744,
+        "calmar": 1.1962597278599976,
+        "win_rate_monthly": 0.6086956521739131,
+        "n_days": 485
+      },
+      "csi300_buy_hold": {
+        "label": "csi300",
+        "cumulative_return": 0.3672350216095326,
+        "annualized_return": 0.16966459283956392,
+        "annualized_volatility": 0.18546473189207463,
+        "sharpe": 0.8628169124184155,
+        "max_drawdown": -0.15663550158119932,
+        "calmar": 1.0831809591493557,
+        "win_rate_monthly": 0.5652173913043478,
+        "n_days": 485
+      },
+      "relative_ir_vs_csi300": 0.5316846979214622,
+      "alpha_annualized": 0.13544055674282565,
+      "beta": 0.733471080928859,
+      "equal_weight_market": {
+        "label": "eq_market",
+        "cumulative_return": 0.3746812425405279,
+        "annualized_return": 0.1728519291378614,
+        "annualized_volatility": 0.29366199675962973,
+        "sharpe": 0.6439023909655863,
+        "max_drawdown": -0.2987423817754763,
+        "calmar": 0.5785986176804686,
+        "win_rate_monthly": 0.6521739130434783,
+        "n_days": 485
+      }
+    }
+  }
+}

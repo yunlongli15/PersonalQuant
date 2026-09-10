@@ -1,0 +1,60 @@
+{
+  "enable_liquidity_frac": false,
+  "liquidity_frac": null,
+  "rule": "research sharpe >= no-cap - 0.02 AND turnover not increased AND cap binds at least once",
+  "checks": {
+    "sharpe_ok": true,
+    "turnover_ok": true,
+    "binds": false
+  },
+  "numbers": [
+    {
+      "liquidity_frac": NaN,
+      "period": "research",
+      "sharpe": 0.2961076090437076,
+      "ann": 0.06332180061476134,
+      "mdd": -0.4507203283750949,
+      "turnover": 0.43552933669108035,
+      "max_top_weight": 0.08792678520756268,
+      "eff_n": 23.358590093139167,
+      "cap_binds_obs": 0
+    },
+    {
+      "liquidity_frac": NaN,
+      "period": "valid",
+      "sharpe": -0.6036550761965764,
+      "ann": -0.1289915064230437,
+      "mdd": -0.324594016304642,
+      "turnover": 0.41741436691464523,
+      "max_top_weight": 0.09963959582346864,
+      "eff_n": 23.856919025475598,
+      "cap_binds_obs": 0
+    },
+    {
+      "liquidity_frac": 0.05,
+      "period": "research",
+      "sharpe": 0.2961076090437076,
+      "ann": 0.06332180061476134,
+      "mdd": -0.4507203283750949,
+      "turnover": 0.43552933669108035,
+      "max_top_weight": 0.08792678520756268,
+      "eff_n": 23.358590093139167,
+      "cap_binds_obs": 0
+    },
+    {
+      "liquidity_frac": 0.05,
+      "period": "valid",
+      "sharpe": -0.6036550761965764,
+      "ann": -0.1289915064230437,
+      "mdd": -0.324594016304642,
+      "turnover": 0.41741436691464523,
+      "max_top_weight": 0.09963959582346864,
+      "eff_n": 23.856919025475598,
+      "cap_binds_obs": 0
+    }
+  ],
+  "measured": {
+    "max_target_weight_over_cap": 0.47499999999999987,
+    "note": "at 1,000,000 initial capital and Top-20 equal weight (4.75% per name) the cap (5% of 20d average amount) never binds; it is a guard for much larger capital or concentrated allocations, kept in the code/config as an available constraint, disabled for the final candidate so v2 == the selected configuration exactly."
+  }
+}

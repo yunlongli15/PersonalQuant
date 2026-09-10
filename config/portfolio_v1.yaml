@@ -1,0 +1,54 @@
+# portfolio research configuration (STEP 6)
+# 参数改动必须新开 run 并记录；所有选择只用 research 2018-2021 +
+# valid 2022-2023，frozen test 2024-2025 只做一次最终评估，2026 paper live。
+# 禁止为"收益更好"反复调参（lambda/top_k/cash/sector cap/max weight）。
+
+portfolio:
+  signal: s3                        # 冻结 alpha 信号（STEP 5 增量检查结论）
+                                     # s1=Alpha158 / s2=+pack_v1 / s3=+pack_v1+news
+  rebalance:
+    frequency: monthly               # 研究只比较 monthly vs quarterly（spec §50）
+    rule: last_trading_day
+  top_k: 20                          # spec §18：研究 10/20/30/50
+  constraints:
+    cash_buffer: 0.05                # invest_target = 0.95（spec §20：研究 5/10/15%）
+    max_weight: 0.10                 # spec §17 默认 10%
+    min_weight: 0.0
+    sector_cap: 0.20                 # spec §16 行业硬上限
+    liquidity_frac: null             # 第一轮关闭；strategy_v2 启用（spec §47）
+    lot_size: 100
+  risk:
+    window: 60                       # 协方差回看（交易日）；研究 60 vs 120
+    covariance: sample               # sample | ewma
+    ewma_halflife: 30
+  methods:                           # spec §29 注册表默认参数
+    equal_weight: {}
+    score_weight:
+      variant: rank                  # rank | raw_positive | softmax
+    inverse_vol: {}
+    gmv: {}
+    mvo:
+      lambda_tier: medium            # small 0.5 / medium 2.0 / large 8.0
+                                     # （归一化效用，见 portfolio/allocator.py）
+    risk_parity: {}
+    turnover_aware:                  # λ 固定默认值，不做网格搜索（spec §65）
+      lambda_risk: 2.0
+      lambda_turn: 0.5
+      lambda_cost: 1.0
+  studies:
+    top_k_candidates: [10, 20, 30, 50]
+    cash_buffers: [0.05, 0.10, 0.15]
+    score_variants: [rank, raw_positive, softmax]
+    mvo_lambda_tiers: [small, medium, large]
+    frequencies: [monthly, quarterly]
+
+time_split:                          # 与 strategy_v1 一致；research 期预测为
+  research: [2018-01-01, 2021-12-31] # 独立 OOS 模型（train 2015-2016 /
+  valid: [2022-01-01, 2023-12-31]    # valid 2017）生成，见
+  test: [2024-01-01, 2025-12-31]     # scripts/portfolio/build_alpha_predictions.py
+  paper_live_start: 2026-01-01
+
+experiment:
+  dir: experiments/portfolio
+  initial_capital: 1000000           # 回测口径与 strategy_v1 一致；paper live
+                                     # 单独用 500000（spec §48）

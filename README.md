@@ -14,7 +14,7 @@ A股数据 → 数据清洗与本地数据库 → 因子计算与因子挖掘 �
 
 ## 当前状态
 
-**STEP 1 ✅ / STEP 2 ✅ / STEP 3 ✅ / STEP 4 ✅ / STEP 5 ✅**
+**STEP 1 ✅ / STEP 2 ✅ / STEP 3 ✅ / STEP 4 ✅ / STEP 5 ✅ / STEP 6 ✅**
 （详见 [ROADMAP.md](ROADMAP.md)）
 
 - STEP 1：Qlib 0.9.7 研究环境 + 官方 LightGBM/Alpha158 workflow 完整回测
@@ -41,6 +41,16 @@ A股数据 → 数据清洗与本地数据库 → 因子计算与因子挖掘 �
   诚实结论：公告强度+风险事件与 pack_v1 组合提供边际增量；
   LLM 对比留待 API（报告 reports/step5_news_factor_evaluation.md /
   step5_news_ablation.md）
+- STEP 6：组合优化与高级策略研究 —— portfolio/ 引擎（P0-P6 分配方法、
+  PIT 协方差 + sanity gate、约束/回退链、T+1 执行、风险贡献、
+  allocation audit）、STEP 5 增量检查（D vs B 确认新闻增量）、
+  research 期 OOS walk-forward 预测、6 阶段研究（选择协议先于结果写死）、
+  frozen test 单次评估、压力测试、strategy_v2 + 9 项 candidate gates +
+  paper live（500k）。诚实结论：**组合优化没有带来增量，最终候选退回
+  P0 等权**（research 期无任何优化器超过等权；引擎锚点 drift 0.0000）；
+  strategy_v2 因 2 项 gate 未通过保持研究候选状态
+  （报告 reports/step6_portfolio_optimization.md /
+  step6_final_candidate.md）
 
 ## 环境要求
 
@@ -105,7 +115,15 @@ python scripts/news/build_news_factors.py        # 评估 -> factor_pack_news_v1
 python scripts/news/run_news_ablation.py         # A/B/C/D/E 消融
 python scripts/news/run_news_strategy.py         # strategy_v1_news
 python scripts/verify_step5.py                   # 22 项验收
-python -m pytest tests/ -q                       # 全部测试（302 个）
+
+# --- STEP 6：组合优化 ---
+python scripts/research_portfolio.py --method gmv --period test --check-anchor
+python scripts/portfolio/run_portfolio_study.py --stage all     # 6 阶段研究
+python scripts/portfolio/run_stress_test.py                     # 压力测试
+python scripts/portfolio/run_strategy_v2.py                     # strategy_v2 + gates
+python scripts/portfolio/generate_v2_recommendation.py --capital 500000
+python scripts/verify_step6.py                   # 25 项验收
+python -m pytest tests/ -q                       # 全部测试（400 个）
 
 # 运行模式：PQ_MODE=offline 只读缓存（历史回测必须用）；PQ_PDF_CACHE=1 开启 PDF 缓存
 ```
@@ -133,9 +151,10 @@ PersonalQuant/
 │   └── quality/         #   16 项质量检查
 ├── factors/             # 因子研究平台（STEP 4/5：注册/评估/选择/挖掘/报告）
 ├── news/                # 新闻系统（STEP 5：providers/事件/PIT/LLM/聚合）
+├── portfolio/           # 组合优化（STEP 6：分配/协方差/约束/风险/回测引擎）
 ├── config/              # workflow 等运行配置
 ├── scripts/             # bootstrap / verify / demo / crosscheck
-├── tests/               # 42 个测试
+├── tests/               # 400 个测试
 ├── docs/                # 数据 schema/数据源/PIT/提取/质量文档
 ├── data/                # RAW + parquet + duckdb（git 忽略）
 ├── qlib_data/           # Qlib 基线数据（git 忽略）

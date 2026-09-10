@@ -1,0 +1,69 @@
+# strategy_v2 configuration (STEP 6) — frozen alpha + selected allocation.
+# strategy_v1 与 factor_pack_v1 均未修改；本文件是 v2 的唯一参数来源。
+# 所有参数来自 research 2018-2021 + valid 2022-2023 的选择
+# （协议预先写死于 scripts/portfolio/run_portfolio_study.py docstring），
+# frozen test 2024-2025 只评估一次；2026 为 paper live。
+# 禁止为了收益改这里（改参数 = 新 run 并记录）。
+
+strategy:
+  name: strategy_v2
+  version: "1.0"                      # 参数选定后由 run_strategy_v2.py 校验
+
+data:
+  source: canonical
+  min_history_days: 120
+
+alpha:
+  signal: s3                          # STEP 5 冻结：Alpha158 + factor_pack_v1
+                                      # + news（增量检查 D > B）
+  model: experiments/news/strategy/model.txt   # 生产模型（2015-2021 训练），未动
+  feature_packs:
+    - experiments/factors/factor_run_001/factor_pack_v1.json
+    - experiments/news/news_factor_run_001/factor_pack_news_v1.json
+  label_horizon_days: 20
+
+portfolio:
+  signal: s3
+  allocation_method: equal_weight     # ← 由研究选择（stage 3）填入
+  method_params: {}                   # ← 随方法填入（如 mvo.lambda_tier）
+  top_k: 20                           # ← stage 1
+  rebalance:
+    frequency: monthly                # ← stage 4（仅 monthly/quarterly 两档）
+    rule: last_trading_day
+  constraints:
+    cash_buffer: 0.05                 # ← stage 2
+    invest_target: 0.95
+    max_weight: 0.10
+    min_weight: 0.0
+    sector_cap: 0.20
+    liquidity_frac: null              # 补充研究结论：1M 资本 + Top20 等权下该
+                                      # 约束从不触发（实测最大 w/上限 = 0.475），
+                                      # 保留为可用约束但不启用（见
+                                      # experiments/portfolio/liquidity_decision.json）
+    lot_size: 100
+  risk:
+    window: 60
+    covariance: sample
+  turnover_limit: 1.0                 # 研究期门槛（选择用）
+  execution_model: T1_open            # 与 strategy_v1 一致（docs/step3_execution_model.md）
+
+transaction_costs:                    # 与 strategy_v1 同一模型（公平比较）
+  commission_rate: 0.00025
+  min_commission: 5.0
+  stamp_duty: 0.0005
+  transfer_fee: 0.00001
+  slippage: 0.0005
+
+time_split:
+  research: [2018-01-01, 2021-12-31]
+  valid: [2022-01-01, 2023-12-31]
+  test: [2024-01-01, 2025-12-31]
+  paper_live_start: 2026-01-01
+
+paper_live:
+  capital: 500000                     # spec §48
+  st_filter: true                     # paper live 用当前 ST 快照
+  output_dir: reports/paper_live
+
+experiment:
+  dir: experiments/portfolio/strategy_v2

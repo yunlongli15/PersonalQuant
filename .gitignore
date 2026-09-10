@@ -52,3 +52,8 @@ experiments/factors/**/beam.json
 
 # --- STEP 5: large regenerable artifacts (news) ---
 experiments/news/**/model.txt
+
+# --- STEP 6: large regenerable artifacts (portfolio) ---
+experiments/portfolio/**/*.parquet
+experiments/news/strategy/research_model_*.txt
+experiments/news/strategy/research_predictions_*.parquet

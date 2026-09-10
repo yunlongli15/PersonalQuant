@@ -419,6 +419,115 @@ python scripts/verify_step5.py                        # 22 项验收
 
 ### 下一步
 
-**STEP 6: Portfolio Optimization and Advanced Strategy Research**
+已进入并完成 **STEP 6: Portfolio Optimization and Advanced Strategy
+Research**（见下节）。
+
+---
+
+## STEP 6: Portfolio Optimization and Advanced Strategy Research
+
+> 目标：在已有的预测信号（SIGNAL）基础上研究怎样构建风险更低、回撤更
+> 小、换手合理、更适合个人长期持有的股票组合（PORTFOLIO），并把
+> signal 与 allocation 严格分离。
+
+状态：**COMPLETED**（2026-09-10）
+
+### 做了什么
+
+- **STEP 5 完整性预检查**（reports/step5_incremental_alpha_check.md）：
+  补齐 D vs B 比较 —— S3（Alpha158+pack_v1+news）0.2812/1.022 显著优于
+  B（Alpha158+pack_v1）0.1962/0.748（Δ年化 +8.5pp、ΔSharpe +0.273）
+  → **新闻在非新闻因子之上提供增量 alpha**，据此冻结 STEP 6 的 alpha
+  信号（生产模型未动，未重跑冻结基线）。LLM News = NOT YET EVALUATED
+  （无 DEEPSEEK_API_KEY），不阻塞、不伪装。
+- **Portfolio Optimization Engine**（portfolio/ 包）：allocator（P0-P6）、
+  constraints、covariance（sample/EWMA + PIT + sanity gate + 修复链）、
+  risk_model（边际/成分风险贡献）、transaction_cost（复用冻结成本模型）、
+  optimizer（SLSQP + water-fill 二次强制约束）、portfolio_metrics
+  （含 VaR/CVaR/HHI/有效持仓数/行业集中度）、portfolio_registry、
+  backtest（T+1/涨跌停/停牌/手数/成本/双口径换手/可解释性/审计）、
+  rebalance（monthly/quarterly）。
+- **信号冻结**：S3；portfolio 只做 allocation，不重训 alpha、不改 alpha
+  排名（raw_rank 全程保存）。
+- **研究期 OOS 预测**：年度 walk-forward（train 2015..Y-2、ES=Y-1、
+  预测 Y）生成 2018-2021 的 S1/S2/S3 预测；发现并如实记录**新闻盲期**
+  （新闻覆盖自 2018 起 → 2018-2019 模型训练窗口无新闻，无法分裂）；
+  2020-2021 新闻生效。
+- **研究（选择只用 research 2018-2021 + valid 2022-2023，协议先于结果
+  写死）**：top_k 10/20/30/50 → 20；cash 5/10/15% → 5%；
+  方法 P0-P6 → **return P0 等权**；频率 monthly vs quarterly → monthly；
+  另做流动性约束补充研究与 benchmark 上下文（CSI300 买入持有 + 等权市场）。
+- **frozen test 2024-2025 单次评估** 7 个方法（只记录，绝不用于选择）；
+  **stress test**（2020/2022/2024 + 各期最大回撤窗口，含恢复天数）；
+  **组合相关性/权重集中度/行业暴露/风险贡献**分析；
+  **allocation audit**（权重和/现金缓冲/个股上限/行业上限/无做空/
+  无杠杆/可交易/手数/回退记录）。
+- **strategy_v2**（config/strategy_v2.yaml，未修改 strategy_v1）+
+  9 项 candidate gates + paper live（500,000 资本 → BUY/SELL/HOLD +
+  手数 + 预估费用；不连接券商）。
+- 验收：verify_step6.py **25/25 PASS**；全量测试 **400 个**；
+  verify_step1/2/3/4/5 无回归；2 份报告 + 12 张图。
+
+### 结果（诚实记录，不美化）
+
+| 阶段 | 结果 |
+| --- | --- |
+| 引擎锚点 | P0 ≡ strategy_v1_news，**drift 0.0000（NAV 逐位一致）** |
+| research（OOS） | P0 等权 Sharpe 0.296；**没有任何优化器超过它** |
+| validation（熊市） | 全部方法绝对收益为负；策略 −12.9% vs CSI300 −16.6%（IR +0.305） |
+| frozen test | P0 0.2812/1.022/−0.2351；risk_parity 略优（1.051/−0.220，单次观察，未用于选择） |
+
+**总回答（如实）**：**组合优化在本阶段没有带来增量 alpha 层面的改善**
+—— 在 research+valid 上没有任何 P1-P6 方法通过预先写死的门槛（valid≥0.8×
+稳定性门等），最终候选按规则退回 P0 等权。这不是调参失败，而是给定
+alpha 强度下的真实结论：等权已足够好，样本内优化更多在拟合协方差噪声
+（MVO/GMV 在 research 期反而更差）。若没有这一层检验，很容易把
+frozen test 上偶然更好的 risk_parity 当作"优化器有效"——本阶段明确
+拒绝这样做。
+
+### candidate gates（spec §54）
+
+7/9 通过；2 项未通过且**不重写门槛**：
+- `2_validation_pass`（ann>0）：2022-2023 熊市，绝对收益为负 —— 但
+  同期跑赢 CSI300（IR +0.305），相对表现单列记录。
+- `9_no_pathological_concentration`：P0 等权作为冻结基线不施 20% 行业
+  上限（锚点可复现的前提），实测行业集中度可达 ~40%；有效持仓数 ~61、
+  单只 ≤ 4.75%，属已知基线属性而非路径性集中。
+因此 strategy_v2 **保持研究候选状态，不晋升为生产候选**。
+
+### 本阶段发现并如实记录的问题
+
+1. 冻结预测 parquet 中约 44% 的行是**全 NaN 特征行**（冻结回测从未使用；
+   引擎通过重建冻结 predictor 路径复现，锚点因此 bit 级一致）。
+2. 候选股票历史不足时被协方差剔除 → 权重与协方差维度不一致（已修复：
+   `_cov_aligned` 按冻结的等比口径缩放目标，剔除者留在现金）。
+3. 500,000 资本 + 100 股手数下 paper live **实际投入仅 75.9%**（2 只低于
+   1 手 + 取整残差）—— 小账户手数摩擦真实存在。
+4. selection.json 的 numpy 整数被 `default=str` 序列化成字符串，导致
+   读回后崩溃（已修复为 int/float）。
+
+### 如何重新运行
+
+```bash
+source .venv/Scripts/activate
+python scripts/portfolio/write_incremental_check.py      # STEP5 增量检查
+python scripts/portfolio/build_alpha_predictions.py      # research 期 OOS 预测
+python scripts/research_portfolio.py --method gmv --period test   # playground
+python scripts/research_portfolio.py --method equal_weight --period test --check-anchor
+python scripts/portfolio/run_portfolio_study.py --stage all       # 6 阶段研究
+python scripts/portfolio/run_liquidity_study.py          # 流动性约束补充研究
+python scripts/portfolio/add_benchmark_context.py        # benchmark 上下文
+python scripts/portfolio/run_stress_test.py              # 压力测试
+python scripts/portfolio/run_strategy_v2.py              # strategy_v2 + gates
+python scripts/portfolio/generate_v2_recommendation.py --capital 500000
+python scripts/portfolio/make_figures_step6.py           # 12 张图
+python scripts/portfolio/write_step6_reports.py          # 2 份报告
+python scripts/verify_step6.py                           # 25 项验收
+python -m pytest tests/ -q                               # 400 测试
+```
+
+### 下一步
+
+**STEP 7: Build Personal Portfolio / Wealth Management and GUI**
 （未开始，暂定）
 
