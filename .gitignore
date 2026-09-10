@@ -57,3 +57,7 @@ experiments/news/**/model.txt
 experiments/portfolio/**/*.parquet
 experiments/news/strategy/research_model_*.txt
 experiments/news/strategy/research_predictions_*.parquet
+
+# --- STEP 7: personal wealth data (user data; never in git) ---
+data/wealth/
+backup/
