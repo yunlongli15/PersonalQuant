@@ -1,0 +1,59 @@
+{
+  "ran_at": "2026-09-10T22:20:23",
+  "steps": [
+    {
+      "step": "data_freshness",
+      "ok": true,
+      "detail": "['Market Data=STALE', 'Valuation=STALE', 'Financial Reports=OK', 'News=OK', 'Factors=OK', 'Forecast=STALE', 'Portfolio=UNKNOWN']",
+      "seconds": 0.4
+    },
+    {
+      "step": "factors (cached)",
+      "ok": true,
+      "detail": "{'labels': 'True', 'financial': 'True'}",
+      "seconds": 0.0
+    },
+    {
+      "step": "signal",
+      "ok": true,
+      "detail": "3027 symbols @ 2026-09-04 (strategy_v2/S3)",
+      "seconds": 0.0
+    },
+    {
+      "step": "forecast",
+      "ok": true,
+      "detail": "200 symbols x 3 horizons @ 2026-09-04",
+      "seconds": 0.0
+    },
+    {
+      "step": "trade_plan",
+      "ok": true,
+      "detail": "18 positions, invested 376,463, fees 286, net exp 1.38%",
+      "seconds": 0.0
+    },
+    {
+      "step": "wealth (demo entry)",
+      "ok": true,
+      "detail": "demo product 1: 2026-09-10 = 100055.00 (warnings: 1)",
+      "seconds": 0.0
+    },
+    {
+      "step": "wealth summary",
+      "ok": true,
+      "detail": "net worth 100,055.00, total P&L 0.00, TWR None",
+      "seconds": 0.0
+    },
+    {
+      "step": "recommendations",
+      "ok": true,
+      "detail": "20 recommendations recorded for user decision",
+      "seconds": 0.0
+    },
+    {
+      "step": "model vs actual",
+      "ok": true,
+      "detail": "20 symbols compared, 20 underweight",
+      "seconds": 0.0
+    }
+  ]
+}

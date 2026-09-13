@@ -1,0 +1,21 @@
+{
+  "as_of": "2026-09-11",
+  "computed_at": "2026-09-13T20:51:14",
+  "n_symbols": 200,
+  "n_rows": 600,
+  "calibration_obs": 1206018,
+  "model": {
+    "name": "forecast_v1",
+    "base_model": "strategy_v2/S3 (Alpha158+factor_pack_v1+news)",
+    "model_file": "experiments/news/strategy/model.txt",
+    "training_period": "2015-01-01..2021-12-31 (ES 2022) — frozen",
+    "features": "Alpha158 + factor_pack_v1 + factor_pack_news_v1",
+    "method": "rank-bucket conditional distribution of realized forward returns given the frozen score",
+    "horizons": [
+      1,
+      5,
+      20
+    ],
+    "n_buckets": 20
+  }
+}

@@ -71,18 +71,16 @@ Desktop.ini
 # --- Claude 本地配置 ---
 .claude/settings.local.json
 
-# --- STEP 3: large regenerable experiment artifacts ---
-experiments/**/predictions.parquet
+# --- 模型：全部入库（每个 40-70KB；S3 生产模型是推荐的来源，必须可复现）---
+# 曾经忽略 experiments/**/model.txt —— 已改为入库，见 DATA.md
+
+# --- STEP 3/6: 大型可再生成产物 ---
 experiments/**/walkforward_predictions.parquet
 experiments/**/walkforward/model_q*.txt
 
-# --- STEP 4: large regenerable artifacts ---
-experiments/factors/**/model.txt
+# --- STEP 4: 大型可再生成产物 ---
 experiments/factors/**/factor_dashboard_data.parquet
 experiments/factors/**/beam.json
-
-# --- STEP 5: large regenerable artifacts (news) ---
-experiments/news/**/model.txt
 
 # --- STEP 6: large regenerable artifacts (portfolio) ---
 experiments/portfolio/**/*.parquet
