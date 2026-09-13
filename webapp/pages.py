@@ -504,20 +504,41 @@ def trade_plan_page(vm: dict) -> str:
                 f'accept/modify/reject is yours</div>')
     rows = []
     for r in vm["rows"]:
+        badge = esc(r.get("board_name") or "")
+        if r.get("can_buy") is False:
+            badge = f'<span class="badge bad">{badge} 不可买</span>'
+        elif "临界" in (r.get("restriction_reason") or ""):
+            badge = f'<span class="badge warn">{badge} 临界</span>'
+        note = ""
+        if r.get("shares", 0) == 0:
+            note = "买不起1手"
         rows.append([
-            esc(r["symbol"]), esc(r.get("name")), str(r.get("raw_rank")),
+            esc(r["symbol"]), esc(r.get("name")), badge,
+            str(r.get("raw_rank")),
             money(r["current_price"]), money(r["recommended_entry_price"]),
             f'{money(r["entry_low"])}–{money(r["entry_high"])}',
             str(r["shares"]), money(r["buy_value"]),
             money(r.get("target_price")), money(r.get("stop_loss")),
-            pct(r.get("expected_return")),
-            pct(r.get("expected_net_return"))])
+            pct(r.get("expected_return")), note])
     body.append('<div class="card" style="margin-top:16px"><h2>Orders '
                 '(recommendation only)</h2>'
-                + table(["symbol", "name", "#", "last", "plan price",
-                         "entry band", "shares", "value", "target", "stop",
-                         "exp", "net"], rows, left_cols=[0, 1])
+                + table(["symbol", "name", "board", "#", "last",
+                         "plan price", "entry band", "shares", "value",
+                         "target", "stop", "exp", "note"], rows,
+                        left_cols=[0, 1, 2])
                 + "</div>")
+    ex = vm.get("excluded_restricted") or []
+    if ex:
+        exrows = [[esc(d["symbol"]), esc(d.get("name")),
+                   esc(d.get("board_name")), str(d.get("raw_rank")),
+                   money(d.get("capital_required"), 0),
+                   esc(d.get("reason"))] for d in ex[:20]]
+        body.append('<div class="card" style="margin-top:16px">'
+                    '<h2>因交易权限被排除（未占用资金）</h2>'
+                    + table(["symbol", "name", "board", "#", "门槛(元)",
+                             "原因"], exrows, left_cols=[0, 1, 2, 5])
+                    + '<div class="note">这些标的信号很好但账户暂时买不了；'
+                      '开通对应板块后会自动回到候选池</div></div>')
     return layout("Trade Plan", "/quant/trade-plan", "".join(body))
 
 

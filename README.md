@@ -17,6 +17,12 @@ A股数据 → 数据清洗与本地数据库 → 因子计算与因子挖掘 �
 **STEP 1 ✅ / STEP 2 ✅ / STEP 3 ✅ / STEP 4 ✅ / STEP 5 ✅ / STEP 6 ✅ /
 STEP 7 ✅**（详见 [ROADMAP.md](ROADMAP.md)）
 
+> 📖 **使用说明书：[docs/USER_GUIDE.md](docs/USER_GUIDE.md)** —— 怎么用、
+> 面板每个数字什么意思、板块交易权限、常见问题、系统边界。
+>
+> 📦 **数据与模型清单：[DATA.md](DATA.md)** —— 仓库里包含哪些数据、
+> 哪些需要重新生成、怎么生成。
+
 - STEP 1：Qlib 0.9.7 研究环境 + 官方 LightGBM/Alpha158 workflow 完整回测
   （基线报告 `reports/step1_qlib_baseline.md`）
 - STEP 2：本地 A 股数据基础设施 —— DuckDB + Parquet canonical 层

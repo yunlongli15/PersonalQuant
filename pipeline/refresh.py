@@ -17,12 +17,31 @@ Design rules:
 
 from __future__ import annotations
 
+import contextlib
 import os
+import sys
 from typing import Callable, Dict, List, Optional
 
 from . import jobs as jobstore
 
 PROJECT_ROOT = __import__("pathlib").Path(__file__).resolve().parents[1]
+
+
+@contextlib.contextmanager
+def _own_argv():
+    """Hide our command-line arguments while calling another script's
+    main().
+
+    The refresh jobs reuse the existing CLI entry points, and those parse
+    sys.argv with argparse: without this guard, `refresh_all.py --only X`
+    would be rejected by the called script's own parser ("unrecognized
+    arguments")."""
+    saved = sys.argv
+    sys.argv = [saved[0] if saved else "refresh"]
+    try:
+        yield
+    finally:
+        sys.argv = saved
 
 
 class OfflineMode(RuntimeError):
@@ -44,19 +63,27 @@ def _maybe_offline():
 # ---------------------------------------------------------------------------
 
 def market_update(**kw) -> str:
-    """Incremental daily bars from the canonical online providers."""
-    _maybe_offline()
-    from personal_quant.ingest import market_online
+    """Refresh daily bars from the upstream snapshot
+    (scripts/quant/update_market_snapshot.py: download the newest
+    chenditc release, swap qlib_data/, re-ingest the recent years).
 
-    fn = getattr(market_online, "update_daily_bars", None) or \
-        getattr(market_online, "fetch_recent", None)
-    if fn is None:
-        raise RuntimeError(
-            "personal_quant.ingest.market_online has no incremental entry "
-            "point (available: "
-            f"{[n for n in dir(market_online) if not n.startswith('_')][:8]}). "
-            "Use scripts/bootstrap_data.py for a rebuild instead.")
-    return str(fn(**kw))
+    Not incremental-by-stock: the canonical layer is built from that
+    snapshot, so refreshing means taking the newest snapshot. The
+    previous snapshot is kept as qlib_data_old/."""
+    _maybe_offline()
+    import subprocess
+
+    script = PROJECT_ROOT / "scripts" / "quant" / \
+        "update_market_snapshot.py"
+    r = subprocess.run([sys.executable, str(script),
+                        "--years", kw.get("years", "")],
+                       cwd=str(PROJECT_ROOT), capture_output=True, text=True,
+                       timeout=7200)
+    tail = (r.stdout or "").strip().splitlines()[-1:] or [""]
+    if r.returncode != 0:
+        raise RuntimeError(f"market snapshot update failed: "
+                           f"{(r.stderr or r.stdout)[-400:]}")
+    return tail[0]
 
 
 def news_update(**kw) -> str:
@@ -64,7 +91,8 @@ def news_update(**kw) -> str:
     _maybe_offline()
     from scripts.news import update_news  # type: ignore
 
-    return str(update_news.main())
+    with _own_argv():
+        return str(update_news.main())
 
 
 def financial_update(**kw) -> str:
@@ -72,18 +100,19 @@ def financial_update(**kw) -> str:
     _maybe_offline()
     from scripts import fetch_financial_universe  # type: ignore
 
-    return str(fetch_financial_universe.main())
+    with _own_argv():
+        return str(fetch_financial_universe.main())
 
 
 def valuation_update(**kw) -> str:
+    """Daily valuation snapshot (PE/PB/market cap) via the existing
+    ingest entry point (Tencent rank snapshot, raw response cached)."""
     _maybe_offline()
     from personal_quant.ingest import market_online
 
-    fn = getattr(market_online, "update_valuation", None)
-    if fn is None:
-        raise RuntimeError("no incremental valuation entry point in "
-                           "personal_quant.ingest.market_online")
-    return str(fn(**kw))
+    df = market_online.ingest_valuation()
+    d = df["trade_date"].iloc[0] if len(df) else "?"
+    return f"{len(df)} rows @ {d}"
 
 
 def factor_refresh(**kw) -> str:
@@ -91,7 +120,8 @@ def factor_refresh(**kw) -> str:
     financial snapshot) from canonical."""
     from scripts import factor_prepare  # type: ignore
 
-    return str(factor_prepare.main())
+    with _own_argv():
+        return str(factor_prepare.main())
 
 
 def signal_refresh(**kw) -> str:

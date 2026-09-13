@@ -30,6 +30,8 @@ from typing import Dict, List, Optional, Sequence
 import numpy as np
 import pandas as pd
 
+from .boards import eligibility
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 PLAN_DIR = PROJECT_ROOT / "data" / "quant" / "trade_plans"
 
@@ -72,6 +74,12 @@ class TradePlanRow:
     reasons: List[str] = field(default_factory=list)
     raw_rank: Optional[int] = None
     signal_prediction: Optional[float] = None
+    board: str = "UNKNOWN"                  # STAR/CHINEXT/BSE/MAIN/FUND
+    board_name: str = ""                    # 板块中文名
+    capital_required: float = 0.0           # 开通该板块所需日均资产
+    experience_months: int = 0
+    can_buy: bool = True                    # 账户当前是否满足门槛
+    restriction_reason: str = ""            # 不满足时的原因
 
 
 def _atr_like(close: pd.Series, window: int = 20) -> float:
@@ -127,7 +135,7 @@ def target_and_stop(price: float, plan_price: float, expected_return: float,
     }
 
 
-def _cost_rates(strategy_cfg: dict) -> tuple:
+def _cost_rates(strategy_cfg: dict) -> tuple:  # noqa: D401
     from personal_quant.strategy.costs import TransactionCostModel
     from portfolio.transaction_cost import round_trip_rate, unit_buy_rate, \
         unit_sell_rate
@@ -135,6 +143,49 @@ def _cost_rates(strategy_cfg: dict) -> tuple:
     model = TransactionCostModel.from_config(strategy_cfg)
     return (unit_buy_rate(model), unit_sell_rate(model),
             round_trip_rate(model))
+
+
+def account_profile() -> dict:
+    """Account capital + board permissions (config/account_profile.yaml).
+
+    Defaults to auto-detecting capital from the wealth database on top of
+    the configured starting capital, so the permission flags follow the
+    real account rather than a guess.
+    """
+    import yaml
+
+    p = PROJECT_ROOT / "config" / "account_profile.yaml"
+    cfg = {"capital": 100_000.0,
+           "experience_months": None,     # None = unknown (warn, not block)
+           "auto_detect_capital": True}
+    if p.exists():
+        cfg.update(yaml.safe_load(p.read_text(encoding="utf-8")) or {})
+    if cfg.get("auto_detect_capital"):
+        try:
+            from wealth import db as wdb
+            from wealth import service
+
+            s = service.latest_summary(wdb.connect())
+            if s.get("net_worth"):
+                cfg["capital"] = max(float(cfg["capital"]),
+                                     float(s["net_worth"]))
+        except Exception:                                    # noqa: BLE001
+            pass
+    return cfg
+
+
+def _effective_max_weight(top_k: int, invest_target: float,
+                          requested: float) -> float:
+    """Smallest single-name cap that still allows the target to be met.
+
+    K names each capped at `max_weight` can hold at most K x max_weight,
+    so with few names a 10% cap makes the problem infeasible (K=5 ->
+    50% < 95%). The cap therefore rises only when it must: the configured
+    10% is kept for K>=20 (so the STEP 6 behaviour and its anchor are
+    untouched) and lifted to invest_target/K x 1.05 for smaller books.
+    """
+    need = invest_target / max(top_k, 1) * 1.05
+    return round(max(requested, need), 4)
 
 
 def build_trade_plan(capital: float = 500_000.0,
@@ -145,8 +196,16 @@ def build_trade_plan(capital: float = 500_000.0,
                      cash_buffer: float = 0.05,
                      allocation_method: Optional[str] = None,
                      signal_date: Optional[str] = None,
-                     frequency: str = "monthly") -> dict:
-    """Full pipeline: frozen signal -> allocation -> lot-sized plan."""
+                     frequency: str = "monthly",
+                     account_capital: Optional[float] = None,
+                     experience_months: Optional[int] = None,
+                     exclude_restricted: bool = True) -> dict:
+    """Full pipeline: frozen signal -> allocation -> lot-sized plan.
+
+    `account_capital` drives the BOARD PERMISSION check (科创板 50万 /
+    创业板 10万), which is independent of the backtest capital: a user
+    with 10万元 cannot buy 科创板 regardless of the simulated size.
+    """
     import yaml
 
     from factors.base import load_factor_data
@@ -166,6 +225,12 @@ def build_trade_plan(capital: float = 500_000.0,
     portfolio_cfg = yaml.safe_load(
         (PROJECT_ROOT / "config" / "portfolio_v1.yaml")
         .read_text(encoding="utf-8"))
+
+    prof = account_profile()
+    if account_capital is None:
+        account_capital = float(prof["capital"])
+    if experience_months is None:
+        experience_months = prof.get("experience_months")
 
     sig = load_signals()
     if sig.empty:
@@ -187,6 +252,27 @@ def build_trade_plan(capital: float = 500_000.0,
             method = "equal_weight"
 
     sig = sig[~sig["symbol"].isin(_index_like())]
+    # A recommendation the account cannot act on is not a recommendation:
+    # by default the board filter runs BEFORE Top-K, so the K positions
+    # are the best K the account can actually buy. Restricted names are
+    # still reported (plan["excluded_restricted"]) so nothing is hidden.
+    excluded_restricted: List[dict] = []
+    if exclude_restricted:
+        ranked = sig.sort_values("prediction", ascending=False)
+        for sym in ranked["symbol"]:
+            e = eligibility(sym, account_capital, experience_months)
+            if not e.can_buy:
+                row = ranked[ranked["symbol"] == sym].iloc[0]
+                excluded_restricted.append({
+                    "symbol": sym, "name": row.get("name"),
+                    "raw_rank": int(row["raw_rank"]),
+                    "board": e.board, "board_name": e.board_name,
+                    "capital_required": e.capital_required,
+                    "reason": e.reason})
+            if len(excluded_restricted) >= 50:
+                break
+        blocked = {d["symbol"] for d in excluded_restricted}
+        sig = sig[~sig["symbol"].isin(blocked)]
     top = sig.sort_values("prediction", ascending=False).head(top_k)
     symbols = top["symbol"].tolist()
 
@@ -198,6 +284,7 @@ def build_trade_plan(capital: float = 500_000.0,
 
     cov = estimate_covariance(fdata.close_raw, symbols, as_of,
                               window=60, method="sample")
+    max_weight = _effective_max_weight(top_k, 1.0 - cash_buffer, max_weight)
     cons = PortfolioConstraints(max_weight=max_weight, sector_cap=sector_cap,
                                 cash_buffer=cash_buffer, lot_size=LOT)
     cand = pd.DataFrame({
@@ -247,12 +334,16 @@ def build_trade_plan(capital: float = 500_000.0,
             pd.notna(f20["expected_return"]) else np.nan
         tgt = target_and_stop(px, plan_px, exp_ret, vol, risk_profile)
         net_ret = exp_ret - rt_rate if np.isfinite(exp_ret) else np.nan
+        elig = eligibility(sym, account_capital, experience_months)
         reasons = []
         if shares == 0:
             reasons.append("SKIP: target value below one 100-share lot")
+        if elig.restricted:
+            reasons.append(f"权限受限（{elig.board_name}）：{elig.reason}")
         rows.append(TradePlanRow(
             symbol=sym, name=top.set_index("symbol")["name"].get(sym),
-            action="BUY" if shares > 0 else "SKIP",
+            action=("SKIP" if shares == 0
+                    else "BUY_RESTRICTED" if elig.restricted else "BUY"),
             current_price=round(px, 3),
             recommended_entry_price=round(plan_px, 3),
             entry_low=round(low, 3), entry_high=round(high, 3),
@@ -281,6 +372,10 @@ def build_trade_plan(capital: float = 500_000.0,
             raw_rank=int(top.set_index("symbol")["raw_rank"].get(sym, 0)),
             signal_prediction=float(
                 top.set_index("symbol")["prediction"].get(sym, np.nan)),
+            board=elig.board, board_name=elig.board_name,
+            capital_required=elig.capital_required,
+            experience_months=elig.experience_months,
+            can_buy=elig.can_buy, restriction_reason=elig.reason,
         ))
         planned_value += value
 
@@ -304,6 +399,8 @@ def build_trade_plan(capital: float = 500_000.0,
         "optimizer_status": alloc.optimizer_status,
         "fallback_reason": alloc.fallback_reason,
         "top_k": top_k, "max_weight": max_weight,
+        "max_weight_derived": (max_weight > 0.10 + 1e-9),
+        "account_capital": account_capital,
         "sector_cap": sector_cap, "cash_buffer": cash_buffer,
         "total_buy_value": round(invested, 2),
         "estimated_fees": round(fees_est, 2),
@@ -315,6 +412,8 @@ def build_trade_plan(capital: float = 500_000.0,
         "expected_volatility": (round(float(port_vol), 4)
                                 if port_vol is not None else None),
         "n_positions": int((df["shares"] > 0).sum()) if len(df) else 0,
+        "exclude_restricted": exclude_restricted,
+        "excluded_restricted": excluded_restricted,
         "signal_version": "strategy_v2/S3",
         "forecast_version": (fc["forecast_version"].iloc[0]
                              if len(fc) else None),
@@ -323,6 +422,77 @@ def build_trade_plan(capital: float = 500_000.0,
         "rows": df.to_dict("records") if len(df) else [],
     }
     return plan
+
+
+#: 小资金适配规则（先于结果写死，与 alpha 选择无关，纯粹是资金/手数可行性）
+SMALL_CAPITAL_MIN_HOLDINGS = 5      # 分散底线
+SMALL_CAPITAL_MIN_INVESTED = 0.60   # 最小投入率（其余是现金拖累）
+SMALL_CAPITAL_K_CANDIDATES = (3, 4, 5, 6, 7, 8, 10)
+
+
+def suggest_top_k(capital: float, risk_profile: str = "balanced",
+                  candidates=SMALL_CAPITAL_K_CANDIDATES) -> dict:
+    """Largest K whose plan still clears the small-capital floors.
+
+    A 100-share lot is 4,750 CNY of a 100,000 CNY book at K=20, so most
+    A-share names are simply unbuyable and the portfolio ends up half in
+    cash. This rule picks K from the price/lot arithmetic ALONE — no
+    return, IC or backtest number enters the decision, so it cannot
+    snoop on results.
+
+    Rule: the largest K with holdings >= 5 and invested >= 60%; if none
+    qualifies, the K with the highest invested fraction among those with
+    holdings >= 5.
+    """
+    scans = []
+    for k in candidates:
+        try:
+            p = build_trade_plan(capital=capital, top_k=k,
+                                 risk_profile=risk_profile,
+                                 exclude_restricted=True)
+        except Exception:                                    # noqa: BLE001
+            continue
+        inv = p["total_buy_value"] / p["capital"]
+        scans.append({"top_k": k, "invested": inv,
+                      "n_positions": p["n_positions"],
+                      "expected_net_return_pct": p["expected_net_return_pct"]})
+    ok = [s for s in scans
+          if s["n_positions"] >= SMALL_CAPITAL_MIN_HOLDINGS
+          and s["invested"] >= SMALL_CAPITAL_MIN_INVESTED]
+    if ok:
+        chosen = max(ok, key=lambda s: s["top_k"])
+        rule = (f"largest K with holdings>={SMALL_CAPITAL_MIN_HOLDINGS} and "
+                f"invested>={SMALL_CAPITAL_MIN_INVESTED:.0%}")
+    else:
+        pool = [s for s in scans
+                if s["n_positions"] >= SMALL_CAPITAL_MIN_HOLDINGS] or scans
+        chosen = max(pool, key=lambda s: s["invested"]) if pool else None
+        rule = "no K clears both floors -> highest invested fraction"
+    return {"chosen_top_k": chosen["top_k"] if chosen else None,
+            "rule": rule, "scans": scans, "capital": capital}
+
+
+def plan_summary_by_board(plan: dict) -> List[dict]:
+    """Per-board totals, split by whether the account can actually buy
+    (spec ask: 科创板需 50 万，账户不具备 → 必须标注)."""
+    rows = plan.get("rows", [])
+    out: Dict[str, dict] = {}
+    for r in rows:
+        b = r.get("board", "UNKNOWN")
+        d = out.setdefault(b, {
+            "board": b, "board_name": r.get("board_name", b),
+            "capital_required": r.get("capital_required", 0.0),
+            "n": 0, "n_buyable": 0, "value": 0.0, "value_buyable": 0.0,
+            "restricted_symbols": []})
+        v = float(r.get("buy_value") or 0.0)
+        d["n"] += 1
+        d["value"] += v
+        if r.get("can_buy"):
+            d["n_buyable"] += 1
+            d["value_buyable"] += v
+        else:
+            d["restricted_symbols"].append(r["symbol"])
+    return sorted(out.values(), key=lambda d: -d["value"])
 
 
 def _index_like() -> set:

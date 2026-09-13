@@ -255,6 +255,34 @@ LLM 新闻分析、自定义复杂因子、Transformer、强化学习、GUI、Tu
 - 审计与可解释性每次调仓全部落盘（experiments/portfolio/ 每个 run 的
   weights/audit/trades/metrics）。
 
+## 数据刷新与板块权限（2026-09-13 起）
+
+- **行情刷新**：canonical 由 chenditc/investment_data 快照构建 →
+  `scripts/quant/update_market_snapshot.py`（下载最新 release、切换
+  qlib_data/、重新 ingest 新年份）；旧快照保留为 qlib_data_old/ 直到
+  人工确认。增量"逐股抓取"不可行（数千只 × 单连接）。
+- **每次刷新后必须跑**：`pytest tests/market_data` —— 新快照可能引入
+  源侧缺陷。2026-09-12 快照就把 7 只标的的历史 factor 重定基准
+  （原始价连续、复权价跳 2~6 倍）→
+  `scripts/quant/repair_factor_rebase.py` 修复（把跳变后的正确水平
+  反向外推到历史段；与修复方向相反的 `scripts/repair_factors.py`
+  相区分）。修 factor 后必须重跑 factor_prepare（labels 会变）。
+- **板块交易权限**：trade_plan/boards.py 判定板块与开通门槛
+  （科创板 688 = 50 万 + 24 个月；创业板 300/301 = 10 万 + 24 个月；
+  北交所 = 50 万；主板/ETF 无门槛）。**交易计划默认先按权限过滤再取
+  Top-K**（`exclude_restricted=True`），被排除的标的写入
+  `plan["excluded_restricted"]` 完整展示，绝不静默丢弃。
+- 账户资金/经验来自 `config/account_profile.yaml`
+  （capital + experience_months；auto_detect_capital 与财富库取大值）。
+  经验未核实时**只提示不禁止**；资金临界（< 1.2× 门槛）时提示
+  "20 日均资产需核实"。
+- **小资金 K 规则**（`suggest_top_k`）：在「持仓 ≥ 5 只且投入 ≥ 60%」
+  前提下取最大 K，只依据资金/手数算术，**不读任何收益或回测数字**；
+  单只上限随之抬升（`_effective_max_weight`，K≥20 时仍为 10%，
+  STEP 6 锚点不受影响）。
+- 运行时 `refresh_all.py` 的 job 会把 argv 透传给被调脚本 →
+  `pipeline/refresh.py:_own_argv()` 负责屏蔽（否则 argparse 冲突）。
+
 ## STEP 7 个人财富与 GUI 要点（2026-09-10 起）
 
 - **Research DB（DuckDB/Parquet）与 Wealth DB（SQLite
