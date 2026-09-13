@@ -199,7 +199,9 @@ def build_trade_plan(capital: float = 500_000.0,
                      frequency: str = "monthly",
                      account_capital: Optional[float] = None,
                      experience_months: Optional[int] = None,
-                     exclude_restricted: bool = True) -> dict:
+                     exclude_restricted: bool = True,
+                     horizon: int = 20,
+                     holdings: Optional[Dict[str, int]] = None) -> dict:
     """Full pipeline: frozen signal -> allocation -> lot-sized plan.
 
     `account_capital` drives the BOARD PERMISSION check (科创板 50万 /
@@ -308,11 +310,24 @@ def build_trade_plan(capital: float = 500_000.0,
     buy_rate, sell_rate, rt_rate = _cost_rates(strategy_cfg)
 
     # forecasts (PIT) for the display + target prices
+    # Forecast horizon drives targets/stops/time-stop. 20 trading days is
+    # the FROZEN strategy's horizon (monthly rebalance); 5 days is the
+    # weekly variant the user asked for — the same frozen signal, but a
+    # shorter, explicitly non-validated holding period.
+    if horizon not in (1, 5, 20):
+        raise ValueError(f"horizon must be 1, 5 or 20 (got {horizon})")
     fc = load_forecasts()
     if fc.empty or (fc["signal_date"].iloc[0] if len(fc) else None) != as_of:
         fc = forecast_for_date(as_of, symbols=symbols)
-    fc20 = fc[fc["horizon"] == 20].set_index("symbol") if len(fc) else \
+    fch = fc[fc["horizon"] == horizon].set_index("symbol") if len(fc) else \
         pd.DataFrame()
+
+    # Holdings-aware mode (weekly rebalancing): with the user's actual
+    # positions the plan becomes a DELTA list — what to add, trim, exit —
+    # instead of a from-scratch shopping list. Without holdings it is the
+    # initial build (every row BUY/SKIP).
+    held = {k: int(v) for k, v in (holdings or {}).items() if v}
+    exiting: List[dict] = []
 
     rows: List[TradePlanRow] = []
     planned_value = 0.0
@@ -329,10 +344,11 @@ def build_trade_plan(capital: float = 500_000.0,
         budget = capital * float(weights[sym]) / (1.0 + buy_rate)
         shares = int(np.floor(budget / plan_px / LOT)) * LOT
         value = shares * plan_px
-        f20 = fc20.loc[sym] if len(fc20) and sym in fc20.index else None
-        exp_ret = float(f20["expected_return"]) if f20 is not None and \
-            pd.notna(f20["expected_return"]) else np.nan
-        tgt = target_and_stop(px, plan_px, exp_ret, vol, risk_profile)
+        fh = fch.loc[sym] if len(fch) and sym in fch.index else None
+        exp_ret = float(fh["expected_return"]) if fh is not None and \
+            pd.notna(fh["expected_return"]) else np.nan
+        tgt = target_and_stop(px, plan_px, exp_ret, vol, risk_profile,
+                              horizon=horizon)
         net_ret = exp_ret - rt_rate if np.isfinite(exp_ret) else np.nan
         elig = eligibility(sym, account_capital, experience_months)
         reasons = []
@@ -340,10 +356,25 @@ def build_trade_plan(capital: float = 500_000.0,
             reasons.append("SKIP: target value below one 100-share lot")
         if elig.restricted:
             reasons.append(f"权限受限（{elig.board_name}）：{elig.reason}")
+        cur = held.get(sym, 0)
+        if cur and shares:
+            if shares > cur:
+                action, reasons = "ADD", [f"加仓：现持 {cur} → 目标 "
+                                          f"{shares} 股"]
+            elif shares < cur:
+                action, reasons = "REDUCE", [f"减仓：现持 {cur} → 目标 "
+                                             f"{shares} 股"]
+            else:
+                action, reasons = "HOLD", [f"维持 {cur} 股"]
+        elif cur and not shares:
+            action, reasons = "SELL", [f"清仓 {cur} 股（已不在目标组合）"]
+        elif elig.restricted:
+            action = "BUY_RESTRICTED"
+        else:
+            action = "BUY" if shares else "SKIP"
         rows.append(TradePlanRow(
             symbol=sym, name=top.set_index("symbol")["name"].get(sym),
-            action=("SKIP" if shares == 0
-                    else "BUY_RESTRICTED" if elig.restricted else "BUY"),
+            action=action,
             current_price=round(px, 3),
             recommended_entry_price=round(plan_px, 3),
             entry_low=round(low, 3), entry_high=round(high, 3),
@@ -357,13 +388,13 @@ def build_trade_plan(capital: float = 500_000.0,
                                  if np.isfinite(net_ret) else None),
             expected_holding_days=tgt["expected_holding_days"],
             stop_loss=tgt["stop_loss"], time_stop_days=tgt["time_stop_days"],
-            forecast=({"expected_return_20d": float(exp_ret),
-                       "p_up_20d": float(f20["p_up"]) if f20 is not None
-                       else None,
-                       "q05": float(f20["q05"]) if f20 is not None else None,
-                       "q95": float(f20["q95"]) if f20 is not None else None,
-                       "trend": str(f20["trend"]) if f20 is not None
-                       else None} if f20 is not None else {}),
+            forecast=({f"expected_return_{horizon}d": float(exp_ret),
+                       f"p_up_{horizon}d": float(fh["p_up"])
+                       if fh is not None else None,
+                       "q05": float(fh["q05"]) if fh is not None else None,
+                       "q95": float(fh["q95"]) if fh is not None else None,
+                       "trend": str(fh["trend"]) if fh is not None
+                       else None} if fh is not None else {}),
             risk={"vol_60d": round(vol, 4),
                   "risk_share": float(alloc.extras.get("risk_share", pd.Series(
                       dtype=float)).get(sym, np.nan))
@@ -378,6 +409,27 @@ def build_trade_plan(capital: float = 500_000.0,
             can_buy=elig.can_buy, restriction_reason=elig.reason,
         ))
         planned_value += value
+
+    # held names that fell out of the target set: full exit
+    for sym, sh in held.items():
+        if sym in weights.index or sh <= 0:
+            continue
+        col = fdata.close_raw[sym] if sym in fdata.close_raw.columns else None
+        px = float(col.loc[:pd.Timestamp(as_of)].ffill().iloc[-1]) \
+            if col is not None and len(col.loc[:pd.Timestamp(as_of)]) else np.nan
+        e = eligibility(sym, account_capital, experience_months)
+        rows.append(TradePlanRow(
+            symbol=sym, name=None, action="SELL",
+            current_price=round(px, 3) if np.isfinite(px) else 0.0,
+            recommended_entry_price=round(px, 3) if np.isfinite(px) else 0.0,
+            entry_low=0.0, entry_high=0.0,
+            entry_rationale="exit: no longer in the target portfolio",
+            shares=0, lot_size=LOT, buy_value=0.0, weight=0.0,
+            target_weight=0.0, target_price=None, expected_return=None,
+            expected_net_return=None, expected_holding_days=0,
+            stop_loss=None, time_stop_days=0,
+            reasons=[f"清仓 {sh} 股：已不在目标组合（卖出理由见下）"],
+            board=e.board, board_name=e.board_name, can_buy=e.can_buy))
 
     df = pd.DataFrame([r.__dict__ for r in rows])
     if not df.empty:
@@ -398,7 +450,9 @@ def build_trade_plan(capital: float = 500_000.0,
         "allocation_method": method,
         "optimizer_status": alloc.optimizer_status,
         "fallback_reason": alloc.fallback_reason,
-        "top_k": top_k, "max_weight": max_weight,
+        "top_k": top_k, "horizon": horizon,
+        "horizon_validated": horizon == 20,
+        "max_weight": max_weight,
         "max_weight_derived": (max_weight > 0.10 + 1e-9),
         "account_capital": account_capital,
         "sector_cap": sector_cap, "cash_buffer": cash_buffer,

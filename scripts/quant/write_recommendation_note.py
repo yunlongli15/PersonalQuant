@@ -27,6 +27,9 @@ def main() -> int:
     ap.add_argument("--capital", type=float, default=None)
     ap.add_argument("--top-k", type=int, default=None)
     ap.add_argument("--risk-profile", default="balanced")
+    ap.add_argument("--horizon", type=int, default=20, choices=[1, 5, 20],
+                    help="预测周期（交易日）：20=月度（已验证），"
+                         "5=周度（未验证）")
     args = ap.parse_args()
 
     from pipeline import freshness
@@ -42,7 +45,11 @@ def main() -> int:
         sug = suggest_top_k(capital, args.risk_profile)
         top_k = sug["chosen_top_k"]
     plan = build_trade_plan(capital=capital, top_k=top_k,
-                            risk_profile=args.risk_profile)
+                            risk_profile=args.risk_profile,
+                            horizon=args.horizon)
+    plan["holding_period"] = (f"weekly (5 trading days)" if args.horizon == 5
+                              else f"monthly ({args.horizon} trading days)")
+    plan["validated"] = args.horizon == 20
     if sug:
         plan["small_capital_rule"] = {
             "rule": sug["rule"], "chosen_top_k": sug["chosen_top_k"],
@@ -57,10 +64,17 @@ def main() -> int:
     skipped = [r for r in rows if r.get("shares", 0) == 0]
 
     L = []
-    L.append(f"# 交易建议 · 基准信号日 {plan['as_of']}")
+    L.append(f"# 交易建议 · 基准信号日 {plan['as_of']} · "
+             f"{plan.get('holding_period')}")
     L.append("")
     L.append(f"生成时间: {datetime.now():%Y-%m-%d %H:%M} · "
              f"**仅供研究，不构成投资建议，系统不会自动下单**")
+    L.append("")
+    if not plan.get("validated", True):
+        L.append("> ⚠️ **本计划为周度（5 交易日）版本，不在验证范围内。** "
+                 "系统冻结的策略是月度调仓 + 20 交易日预测；周度从未回测过，"
+                 "换手成本约为月度的 3 倍。信号排序用同一个冻结模型，"
+                 "目标价/止损来自 5 日预测分布。**请自行判断风险。**")
     L.append("")
     L.append("## 一句话结论")
     L.append("")
@@ -70,7 +84,7 @@ def main() -> int:
              f"预留现金 {plan['remaining_cash']:,.0f} 元"
              f"（{plan['remaining_cash']/capital:.1%}）。"
              f"组合预期净收益 **{plan['expected_net_return_pct']:+.2%}**"
-             f"（20 个交易日，已扣双边成本），"
+             f"（{plan['horizon']} 个交易日，已扣双边成本），"
              f"预期年化波动 {plan['expected_volatility']:.1%}。")
     L.append("")
     L.append("## 买入清单")
@@ -174,7 +188,8 @@ def main() -> int:
     L.append("")
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    p = OUT_DIR / f"recommendation_{plan['as_of']}.md"
+    suffix = "" if args.horizon == 20 else f"_h{args.horizon}"
+    p = OUT_DIR / f"recommendation_{plan['as_of']}{suffix}.md"
     p.write_text("\n".join(L), encoding="utf-8")
     print(f"wrote {p}")
     print(f"买入 {len(buys)} 只 / {plan['total_buy_value']:,.0f} 元；"
