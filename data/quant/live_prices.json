@@ -1,0 +1,158 @@
+{
+  "fetched_at": "2026-09-14 20:21:24",
+  "price_date": "2026-09-14",
+  "n": 30,
+  "failed": [],
+  "prices": {
+    "001360.SZ": {
+      "close": 18.16,
+      "date": "2026-09-14",
+      "pct_chg": null
+    },
+    "301629.SZ": {
+      "close": 269.5,
+      "date": "2026-09-14",
+      "pct_chg": null
+    },
+    "603929.SH": {
+      "close": 152.21,
+      "date": "2026-09-14",
+      "pct_chg": null
+    },
+    "002631.SZ": {
+      "close": 9.28,
+      "date": "2026-09-14",
+      "pct_chg": null
+    },
+    "688416.SH": {
+      "close": 70.77,
+      "date": "2026-09-14",
+      "pct_chg": null
+    },
+    "300263.SZ": {
+      "close": 9.73,
+      "date": "2026-09-14",
+      "pct_chg": null
+    },
+    "301392.SZ": {
+      "close": 163.6,
+      "date": "2026-09-14",
+      "pct_chg": null
+    },
+    "688368.SH": {
+      "close": 127.25,
+      "date": "2026-09-14",
+      "pct_chg": null
+    },
+    "300932.SZ": {
+      "close": 10.73,
+      "date": "2026-09-14",
+      "pct_chg": null
+    },
+    "603690.SH": {
+      "close": 23.27,
+      "date": "2026-09-14",
+      "pct_chg": null
+    },
+    "300931.SZ": {
+      "close": 15.16,
+      "date": "2026-09-14",
+      "pct_chg": null
+    },
+    "000712.SZ": {
+      "close": 10.02,
+      "date": "2026-09-14",
+      "pct_chg": null
+    },
+    "301252.SZ": {
+      "close": 35.18,
+      "date": "2026-09-14",
+      "pct_chg": null
+    },
+    "002851.SZ": {
+      "close": 119.41,
+      "date": "2026-09-14",
+      "pct_chg": null
+    },
+    "301073.SZ": {
+      "close": 17.95,
+      "date": "2026-09-14",
+      "pct_chg": null
+    },
+    "688062.SH": {
+      "close": 25.79,
+      "date": "2026-09-14",
+      "pct_chg": null
+    },
+    "300672.SZ": {
+      "close": 162.62,
+      "date": "2026-09-14",
+      "pct_chg": null
+    },
+    "000700.SZ": {
+      "close": 11.6,
+      "date": "2026-09-14",
+      "pct_chg": null
+    },
+    "301070.SZ": {
+      "close": 62.23,
+      "date": "2026-09-14",
+      "pct_chg": null
+    },
+    "300323.SZ": {
+      "close": 10.57,
+      "date": "2026-09-14",
+      "pct_chg": null
+    },
+    "688786.SH": {
+      "close": 25.48,
+      "date": "2026-09-14",
+      "pct_chg": null
+    },
+    "603698.SH": {
+      "close": 21.39,
+      "date": "2026-09-14",
+      "pct_chg": null
+    },
+    "000672.SZ": {
+      "close": 14.33,
+      "date": "2026-09-14",
+      "pct_chg": null
+    },
+    "688383.SH": {
+      "close": 142.77,
+      "date": "2026-09-14",
+      "pct_chg": null
+    },
+    "300998.SZ": {
+      "close": 32.21,
+      "date": "2026-09-14",
+      "pct_chg": null
+    },
+    "301128.SZ": {
+      "close": 107.35,
+      "date": "2026-09-14",
+      "pct_chg": null
+    },
+    "002965.SZ": {
+      "close": 27.68,
+      "date": "2026-09-14",
+      "pct_chg": null
+    },
+    "300862.SZ": {
+      "close": 49.85,
+      "date": "2026-09-14",
+      "pct_chg": null
+    },
+    "688698.SH": {
+      "close": 41.89,
+      "date": "2026-09-14",
+      "pct_chg": null
+    },
+    "301151.SZ": {
+      "close": 21.02,
+      "date": "2026-09-14",
+      "pct_chg": null
+    }
+  }
+}

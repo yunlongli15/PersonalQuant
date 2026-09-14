@@ -201,7 +201,9 @@ def build_trade_plan(capital: float = 500_000.0,
                      experience_months: Optional[int] = None,
                      exclude_restricted: bool = True,
                      horizon: int = 20,
-                     holdings: Optional[Dict[str, int]] = None) -> dict:
+                     holdings: Optional[Dict[str, int]] = None,
+                     price_overrides: Optional[Dict[str, float]] = None
+                     ) -> dict:
     """Full pipeline: frozen signal -> allocation -> lot-sized plan.
 
     `account_capital` drives the BOARD PERMISSION check (科创板 50万 /
@@ -283,6 +285,19 @@ def build_trade_plan(capital: float = 500_000.0,
     prices = fdata.close_raw.loc[:pd.Timestamp(as_of), symbols].ffill()
     last = prices.iloc[-1]
     vols = prices.pct_change().tail(60).std()
+
+    # Live-price override: when the trading day has closed but the
+    # upstream snapshot has not published it yet, prices can be fetched
+    # per symbol. The SIGNAL stays at `as_of` (its ranking is unchanged);
+    # only the price inputs move, so the entry band / target / stop are
+    # actionable for the next session. Recorded in the plan so the mixed
+    # vintage is visible.
+    live_symbols = []
+    if price_overrides:
+        for sym, px in price_overrides.items():
+            if sym in last.index and px and np.isfinite(px):
+                last[sym] = float(px)
+                live_symbols.append(sym)
 
     cov = estimate_covariance(fdata.close_raw, symbols, as_of,
                               window=60, method="sample")
@@ -469,6 +484,9 @@ def build_trade_plan(capital: float = 500_000.0,
         "exclude_restricted": exclude_restricted,
         "excluded_restricted": excluded_restricted,
         "signal_version": "strategy_v2/S3",
+        "price_source": ("live fetch" if live_symbols
+                         else "canonical, same date as the signal"),
+        "live_prices": {s: float(last[s]) for s in live_symbols},
         "forecast_version": (fc["forecast_version"].iloc[0]
                              if len(fc) else None),
         "cost_model": {"unit_buy_rate": buy_rate, "unit_sell_rate": sell_rate,

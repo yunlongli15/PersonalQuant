@@ -22,6 +22,14 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 OUT_DIR = PROJECT_ROOT / "reports" / "paper_live"
 
 
+def plan_as_of_guess() -> str:
+    """Signal date the plan will use (so live prices are only applied when
+    they are NEWER than the signal)."""
+    from pipeline.signals import signals_state
+
+    return str(signals_state().get("as_of") or "9999-12-31")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--capital", type=float, default=None)
@@ -44,9 +52,22 @@ def main() -> int:
     if top_k is None:
         sug = suggest_top_k(capital, args.risk_profile)
         top_k = sug["chosen_top_k"]
+    # Live-price overlay: when a newer session has closed but the
+    # upstream snapshot has not published it, use the fetched closes so
+    # the bands/targets/stops are actionable. The ranking stays at the
+    # signal date — the note states both vintages.
+    live, live_date = {}, None
+    lp = PROJECT_ROOT / "data" / "quant" / "live_prices.json"
+    if lp.exists():
+        d = json.loads(lp.read_text(encoding="utf-8"))
+        live_date = d.get("price_date")
+        if live_date and live_date > str(plan_as_of_guess()):
+            live = {k: v["close"] for k, v in d.get("prices", {}).items()}
+
     plan = build_trade_plan(capital=capital, top_k=top_k,
                             risk_profile=args.risk_profile,
-                            horizon=args.horizon)
+                            horizon=args.horizon,
+                            price_overrides=live or None)
     plan["holding_period"] = (f"weekly (5 trading days)" if args.horizon == 5
                               else f"monthly ({args.horizon} trading days)")
     plan["validated"] = args.horizon == 20
@@ -167,6 +188,12 @@ def main() -> int:
     L.append(f"- 信号：{st.get('model_version', 'strategy_v2/S3')}，"
              f"信号日 **{st.get('as_of')}**（全市场 "
              f"{st.get('n_symbols')} 只打分）")
+    if plan.get("price_source", "").startswith("live"):
+        L.append(f"- 价格：**{live_date} 收盘**（实时抓取，"
+                 f"{len(plan.get('live_prices', {}))} 只）—— "
+                 f"**排序基于 {st.get('as_of')}，价格基于 {live_date}**；"
+                 f"上游快照尚未发布 {live_date} 的完整数据，"
+                 f"因此排序比价格旧一个交易日。")
     L.append(f"- 分配方法：{plan['allocation_method']}"
              f"（{plan['optimizer_status']}）")
     L.append(f"- 数据新鲜度：" + "，".join(
