@@ -176,7 +176,7 @@ def quant_signals(limit: int = 50) -> dict:
         return {"available": False, "reason": f"{type(e).__name__}: {e}"}
     if df.empty:
         return {"available": False,
-                "reason": "no signal snapshot yet — run "
+                "reason": "尚无信号快照 —— 请运行 "
                           "scripts/quant/refresh_all.py"}
     df = df.sort_values("raw_rank").head(limit)
     return {"available": True, "as_of": state.get("as_of"),
@@ -197,7 +197,7 @@ def quant_forecasts(symbols: Optional[List[str]] = None,
         return {"available": False, "reason": f"{type(e).__name__}: {e}"}
     if df.empty:
         return {"available": False,
-                "reason": "no forecasts yet — run forecast_refresh"}
+                "reason": "尚无预测 —— 请运行 forecast_refresh"}
     if symbols:
         df = df[df["symbol"].isin(symbols)]
     else:
@@ -261,7 +261,7 @@ def portfolio_view() -> dict:
     st = portfolio_state()
     if not st:
         return {"available": False,
-                "reason": "no portfolio snapshot yet"}
+                "reason": "尚无组合快照"}
     return {"available": True, **st}
 
 
@@ -292,7 +292,7 @@ def paper_live_view() -> dict:
     p = PROJECT_ROOT / "reports" / "paper_live" / \
         "latest_recommendation_v2.csv"
     if not p.exists():
-        return {"available": False, "reason": "no paper-live run yet"}
+        return {"available": False, "reason": "尚无模拟盘运行记录"}
     df = pd.read_csv(p)
     return {"available": True, "path": str(p.relative_to(PROJECT_ROOT)),
             "as_of": str(df["date"].iloc[0]) if len(df) else None,

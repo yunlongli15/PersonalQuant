@@ -169,7 +169,7 @@ def dashboard(wealth: dict, signals: dict, data: dict) -> str:
     else:
         body.append('<div class="grid cols-4">'
                     + kpi("总资产", money(wealth["net_worth"]),
-                          f'as of {esc(wealth.get("as_of") or "—")}')
+                          f'数据日期 {esc(wealth.get("as_of") or "—")}')
                     + kpi("今日盈亏", money(wealth["day_pnl"]),
                           "投资收益（已剔除本金进出）",
                           signed_class(wealth["day_pnl"]))
@@ -215,7 +215,7 @@ def dashboard(wealth: dict, signals: dict, data: dict) -> str:
                 for r in signals["rows"][:10]]
         body.append(table(["#", "代码", "名称", "信号分"], rows,
                           left_cols=[0, 1, 2]))
-        body.append(f'<div class="note">as of {esc(signals.get("as_of"))} · '
+        body.append(f'<div class="note">数据日期 {esc(signals.get("as_of"))} · '
                     f'{signals.get("n_symbols")} symbols scored · '
                     f'<a href="/quant/signals">all signals</a></div>')
     body.append("</div>")
@@ -242,7 +242,7 @@ def dashboard(wealth: dict, signals: dict, data: dict) -> str:
 
 
 def wealth_overview(vm: dict) -> str:
-    body = ['<h2 style="margin-top:0">Wealth overview</h2>']
+    body = ['<h2 style="margin-top:0">资产总览</h2>']
     if not vm.get("available"):
         body.append(f'<div class="banner warn">{esc(vm.get("reason"))}'
                     f'<div class="note">Add products and today\'s amounts '
@@ -251,7 +251,7 @@ def wealth_overview(vm: dict) -> str:
         return layout("资产总览", "/wealth/overview", "".join(body))
     body.append('<div class="grid cols-4">'
                 + kpi("净资产", money(vm["net_worth"]),
-                      f'as of {esc(vm.get("as_of") or "—")}')
+                      f'数据日期 {esc(vm.get("as_of") or "—")}')
                 + kpi("累计投入本金", money(vm["invested_capital"]))
                 + kpi("累计盈亏", money(vm["total_pnl"]), "已剔除本金进出",
                       signed_class(vm["total_pnl"]))
@@ -279,7 +279,7 @@ def wealth_overview(vm: dict) -> str:
 
 def daily_update_page(products: List[dict], as_of: str,
                       result: Optional[dict] = None) -> str:
-    body = ['<h2 style="margin-top:0">Daily Update</h2>',
+    body = ['<h2 style="margin-top:0">每日录入</h2>',
             '<div class="note">Enter today\'s amount per product. Income, '
             '万份收益, units and positions are derived — you do not type '
             'returns. External flows (deposits/withdrawals) belong in '
@@ -318,7 +318,7 @@ def daily_update_page(products: List[dict], as_of: str,
 
 
 def positions_page(rows: List[dict]) -> str:
-    body = ['<h2 style="margin-top:0">Positions</h2>',
+    body = ['<h2 style="margin-top:0">持仓明细</h2>',
             '<div class="card">']
     body.append(table(
         ["名称", "类型", "数据日期", "份额", "净值", "市值", "成本", "浮动盈亏"],
@@ -331,7 +331,7 @@ def positions_page(rows: List[dict]) -> str:
 
 
 def transactions_page(rows: List[dict]) -> str:
-    body = ['<h2 style="margin-top:0">Transactions</h2>',
+    body = ['<h2 style="margin-top:0">交易流水</h2>',
             '<div class="card">']
     body.append(table(
         ["日期", "产品", "类型", "份额", "价格", "金额", "费用", "资金流"],
@@ -347,7 +347,7 @@ def transactions_page(rows: List[dict]) -> str:
 
 def performance_page(vm: dict, income: List[dict],
                      decomposition: Optional[dict] = None) -> str:
-    body = ['<h2 style="margin-top:0">Performance</h2>']
+    body = ['<h2 style="margin-top:0">收益表现</h2>']
     if not vm.get("available"):
         body.append(not_available(vm))
         return layout("收益表现", "/wealth/performance", "".join(body))
@@ -388,7 +388,7 @@ def performance_page(vm: dict, income: List[dict],
 
 
 def accounts_page(rows: List[dict]) -> str:
-    body = ['<h2 style="margin-top:0">Accounts</h2>', '<div class="card">',
+    body = ['<h2 style="margin-top:0">账户总览</h2>', '<div class="card">',
             table(["平台", "类型", "账户", "产品数", "市值"],
                   [[esc(r["platform"]), esc(r["kind"]), esc(r["account"]),
                     str(r["n_products"]), money(r["value"])] for r in rows],
@@ -401,7 +401,7 @@ def signals_page(vm: dict) -> str:
     if not vm.get("available"):
         body.append(not_available(vm))
     else:
-        body.append(f'<div class="note">as of {esc(vm.get("as_of"))} · '
+        body.append(f'<div class="note">数据日期 {esc(vm.get("as_of"))} · '
                     f'model {esc(vm.get("model_version"))} · '
                     f'{vm.get("n_symbols")} symbols · ranking is the frozen '
                     f'S3 signal; the UI never re-orders it</div>')
@@ -416,14 +416,14 @@ def signals_page(vm: dict) -> str:
 
 
 def forecasts_page(vm: dict) -> str:
-    body = ['<h2 style="margin-top:0">Forecasts</h2>']
+    body = ['<h2 style="margin-top:0">价格预测</h2>']
     if not vm.get("available"):
         body.append(not_available(vm))
         return layout("价格预测", "/quant/forecasts", "".join(body))
     model = vm.get("model", {})
     body.append(f'<div class="note">{esc(model.get("method", ""))} · '
                 f'{esc(model.get("base_model", ""))} · horizons '
-                f'{esc(model.get("horizons"))} · as of '
+                f'{esc(model.get("horizons"))} · 数据日期 '
                 f'{esc(vm.get("as_of"))}</div>')
     rows = vm["rows"]
     by_symbol: Dict[str, dict] = {}
@@ -470,7 +470,7 @@ def symbol_page(vm: dict) -> str:
 
 
 def trade_plan_page(vm: dict) -> str:
-    body = ['<h2 style="margin-top:0">Trade plan</h2>']
+    body = ['<h2 style="margin-top:0">交易计划</h2>']
     if not vm.get("available"):
         body.append(not_available(vm))
         body.append(f'<div class="note">Generate one with '
@@ -514,8 +514,8 @@ def trade_plan_page(vm: dict) -> str:
             str(r["shares"]), money(r["buy_value"]),
             money(r.get("target_price")), money(r.get("stop_loss")),
             pct(r.get("expected_return")), note])
-    body.append('<div class="card" style="margin-top:16px"><h2>建议下单清单 '
-                '(recommendation only)</h2>'
+    body.append('<div class="card" style="margin-top:16px"><h2>建议下单清单'
+                '（仅供参考）</h2>'
                 + table(["代码", "名称", "板块", "排名", "现价", "建议买入价", "可接受区间", "股数", "金额", "目标价", "止损", "预期收益", "备注"], rows,
                         left_cols=[0, 1, 2])
                 + "</div>")
@@ -534,7 +534,7 @@ def trade_plan_page(vm: dict) -> str:
 
 
 def research_page(vm: dict) -> str:
-    body = ['<h2 style="margin-top:0">Research</h2>',
+    body = ['<h2 style="margin-top:0">研究状态</h2>',
             '<div class="banner">status: <b>RESEARCH CANDIDATE</b> — '
             'not a live strategy. Selection used research 2018-2021 + '
             'validation 2022-2023 only; the frozen test was evaluated '
@@ -572,7 +572,7 @@ def research_page(vm: dict) -> str:
 
 
 def paper_live_page(vm: dict) -> str:
-    body = ['<h2 style="margin-top:0">Paper live</h2>',
+    body = ['<h2 style="margin-top:0">模拟盘</h2>',
             '<div class="note">research simulation only — no broker '
             'connection, no orders</div>']
     if not vm.get("available"):
@@ -589,7 +589,7 @@ def paper_live_page(vm: dict) -> str:
 
 
 def data_page(vm: dict) -> str:
-    body = ['<h2 style="margin-top:0">Data status</h2>']
+    body = ['<h2 style="margin-top:0">数据状态</h2>']
     if not vm.get("available"):
         body.append(not_available(vm))
     else:
@@ -628,7 +628,7 @@ def data_page(vm: dict) -> str:
 
 
 def settings_page(vm: dict) -> str:
-    body = ['<h2 style="margin-top:0">Settings</h2>']
+    body = ['<h2 style="margin-top:0">设置</h2>']
     cost = vm.get("cost_model", {})
     body.append('<div class="card"><h2>交易成本模型（全局共用）</h2>'
                 + table(["项目", "取值"],

@@ -1,79 +1,45 @@
 {
-  "as_of": "2026-09-11",
-  "computed_at": "2026-09-13T20:51:17",
-  "generated_at": "2026-09-13T20:51:17",
-  "capital": 500000.0,
+  "as_of": "2026-09-16",
+  "computed_at": "2026-09-16T22:49:04",
+  "generated_at": "2026-09-16T22:49:04",
+  "capital": 90000,
   "frequency": "monthly",
   "risk_profile": "balanced",
   "allocation_method": "equal_weight",
   "optimizer_status": "optimal",
   "fallback_reason": null,
-  "top_k": 20,
+  "top_k": 10,
+  "horizon": 20,
+  "horizon_validated": true,
   "max_weight": 0.1,
   "max_weight_derived": false,
   "account_capital": 100055.0,
   "sector_cap": 0.2,
   "cash_buffer": 0.05,
-  "total_buy_value": 398469.89,
-  "estimated_fees": 302.84,
-  "remaining_cash": 101227.27,
-  "cash_residual_pct": 0.2025,
-  "expected_gross_return_value": 6836.21,
-  "expected_net_return_value": 6034.67,
-  "expected_net_return_pct": 0.0121,
-  "expected_volatility": 0.0323,
-  "n_positions": 19,
+  "total_buy_value": 64054.98,
+  "estimated_fees": 48.68,
+  "remaining_cash": 25896.34,
+  "cash_residual_pct": 0.2877,
+  "expected_gross_return_value": 1694.02,
+  "expected_net_return_value": 1564.4,
+  "expected_net_return_pct": 0.0174,
+  "expected_volatility": 0.0333,
+  "n_positions": 9,
   "exclude_restricted": true,
   "excluded_restricted": [
     {
-      "symbol": "688416.SH",
-      "name": "恒烁股份",
-      "raw_rank": 5,
+      "symbol": "688800.SH",
+      "name": "瑞可达",
+      "raw_rank": 9,
       "board": "STAR",
       "board_name": "科创板",
       "capital_required": 500000.0,
       "reason": "需50万元日均资产（当前 10.0万元）"
     },
     {
-      "symbol": "688368.SH",
-      "name": "晶丰明源",
-      "raw_rank": 8,
-      "board": "STAR",
-      "board_name": "科创板",
-      "capital_required": 500000.0,
-      "reason": "需50万元日均资产（当前 10.0万元）"
-    },
-    {
-      "symbol": "688062.SH",
-      "name": "迈威生物",
-      "raw_rank": 16,
-      "board": "STAR",
-      "board_name": "科创板",
-      "capital_required": 500000.0,
-      "reason": "需50万元日均资产（当前 10.0万元）"
-    },
-    {
-      "symbol": "688786.SH",
-      "name": "悦安新材",
-      "raw_rank": 21,
-      "board": "STAR",
-      "board_name": "科创板",
-      "capital_required": 500000.0,
-      "reason": "需50万元日均资产（当前 10.0万元）"
-    },
-    {
-      "symbol": "688383.SH",
-      "name": "新益昌",
-      "raw_rank": 24,
-      "board": "STAR",
-      "board_name": "科创板",
-      "capital_required": 500000.0,
-      "reason": "需50万元日均资产（当前 10.0万元）"
-    },
-    {
-      "symbol": "688698.SH",
-      "name": "伟创电气",
-      "raw_rank": 29,
+      "symbol": "688143.SH",
+      "name": "长盈通",
+      "raw_rank": 12,
       "board": "STAR",
       "board_name": "科创板",
       "capital_required": 500000.0,
@@ -82,42 +48,33 @@
     {
       "symbol": "688319.SH",
       "name": "欧林生物",
-      "raw_rank": 31,
+      "raw_rank": 16,
       "board": "STAR",
       "board_name": "科创板",
       "capital_required": 500000.0,
       "reason": "需50万元日均资产（当前 10.0万元）"
     },
     {
-      "symbol": "688141.SH",
-      "name": "杰华特",
-      "raw_rank": 32,
+      "symbol": "688630.SH",
+      "name": "芯碁微装",
+      "raw_rank": 22,
       "board": "STAR",
       "board_name": "科创板",
       "capital_required": 500000.0,
       "reason": "需50万元日均资产（当前 10.0万元）"
     },
     {
-      "symbol": "688226.SH",
-      "name": "威腾电气",
-      "raw_rank": 35,
+      "symbol": "688146.SH",
+      "name": "中船特气",
+      "raw_rank": 28,
       "board": "STAR",
       "board_name": "科创板",
       "capital_required": 500000.0,
       "reason": "需50万元日均资产（当前 10.0万元）"
     },
     {
-      "symbol": "688125.SH",
-      "name": "安达智能",
-      "raw_rank": 41,
-      "board": "STAR",
-      "board_name": "科创板",
-      "capital_required": 500000.0,
-      "reason": "需50万元日均资产（当前 10.0万元）"
-    },
-    {
-      "symbol": "688401.SH",
-      "name": "路维光电",
+      "symbol": "688485.SH",
+      "name": "九州一轨",
       "raw_rank": 42,
       "board": "STAR",
       "board_name": "科创板",
@@ -125,81 +82,54 @@
       "reason": "需50万元日均资产（当前 10.0万元）"
     },
     {
-      "symbol": "688379.SH",
-      "name": "华光新材",
-      "raw_rank": 43,
+      "symbol": "688028.SH",
+      "name": "沃尔德",
+      "raw_rank": 53,
       "board": "STAR",
       "board_name": "科创板",
       "capital_required": 500000.0,
       "reason": "需50万元日均资产（当前 10.0万元）"
     },
     {
-      "symbol": "688775.SH",
-      "name": "影石创新",
-      "raw_rank": 44,
+      "symbol": "688498.SH",
+      "name": "源杰科技",
+      "raw_rank": 62,
       "board": "STAR",
       "board_name": "科创板",
       "capital_required": 500000.0,
       "reason": "需50万元日均资产（当前 10.0万元）"
     },
     {
-      "symbol": "688759.SH",
-      "name": "必贝特",
-      "raw_rank": 49,
+      "symbol": "688300.SH",
+      "name": "联瑞新材",
+      "raw_rank": 64,
       "board": "STAR",
       "board_name": "科创板",
       "capital_required": 500000.0,
       "reason": "需50万元日均资产（当前 10.0万元）"
     },
     {
-      "symbol": "688386.SH",
-      "name": "泛亚微透",
-      "raw_rank": 63,
+      "symbol": "688026.SH",
+      "name": "洁特生物",
+      "raw_rank": 66,
       "board": "STAR",
       "board_name": "科创板",
       "capital_required": 500000.0,
       "reason": "需50万元日均资产（当前 10.0万元）"
     },
     {
-      "symbol": "688685.SH",
-      "name": "迈信林",
-      "raw_rank": 68,
+      "symbol": "688710.SH",
+      "name": "益诺思",
+      "raw_rank": 88,
       "board": "STAR",
       "board_name": "科创板",
       "capital_required": 500000.0,
       "reason": "需50万元日均资产（当前 10.0万元）"
     },
     {
-      "symbol": "688270.SH",
-      "name": "ST臻镭",
-      "raw_rank": 72,
-      "board": "STAR",
-      "board_name": "科创板",
-      "capital_required": 500000.0,
-      "reason": "需50万元日均资产（当前 10.0万元）"
-    },
-    {
-      "symbol": "688418.SH",
-      "name": "震有科技",
-      "raw_rank": 75,
-      "board": "STAR",
-      "board_name": "科创板",
-      "capital_required": 500000.0,
-      "reason": "需50万元日均资产（当前 10.0万元）"
-    },
-    {
-      "symbol": "688400.SH",
-      "name": "凌云光",
-      "raw_rank": 81,
-      "board": "STAR",
-      "board_name": "科创板",
-      "capital_required": 500000.0,
-      "reason": "需50万元日均资产（当前 10.0万元）"
-    },
-    {
-      "symbol": "688518.SH",
-      "name": "联赢激光",
-      "raw_rank": 82,
+      "symbol": "688001.SH",
+      "name": "华兴源创",
+      "raw_rank": 100,
       "board": "STAR",
       "board_name": "科创板",
       "capital_required": 500000.0,
@@ -208,160 +138,16 @@
     {
       "symbol": "688411.SH",
       "name": "海博思创",
-      "raw_rank": 83,
+      "raw_rank": 103,
       "board": "STAR",
       "board_name": "科创板",
       "capital_required": 500000.0,
       "reason": "需50万元日均资产（当前 10.0万元）"
     },
     {
-      "symbol": "688636.SH",
-      "name": "智明达",
-      "raw_rank": 84,
-      "board": "STAR",
-      "board_name": "科创板",
-      "capital_required": 500000.0,
-      "reason": "需50万元日均资产（当前 10.0万元）"
-    },
-    {
-      "symbol": "688603.SH",
-      "name": "天承科技",
-      "raw_rank": 93,
-      "board": "STAR",
-      "board_name": "科创板",
-      "capital_required": 500000.0,
-      "reason": "需50万元日均资产（当前 10.0万元）"
-    },
-    {
-      "symbol": "688359.SH",
-      "name": "三孚新科",
-      "raw_rank": 106,
-      "board": "STAR",
-      "board_name": "科创板",
-      "capital_required": 500000.0,
-      "reason": "需50万元日均资产（当前 10.0万元）"
-    },
-    {
-      "symbol": "688629.SH",
-      "name": "华丰科技",
-      "raw_rank": 111,
-      "board": "STAR",
-      "board_name": "科创板",
-      "capital_required": 500000.0,
-      "reason": "需50万元日均资产（当前 10.0万元）"
-    },
-    {
-      "symbol": "688017.SH",
-      "name": "绿的谐波",
-      "raw_rank": 114,
-      "board": "STAR",
-      "board_name": "科创板",
-      "capital_required": 500000.0,
-      "reason": "需50万元日均资产（当前 10.0万元）"
-    },
-    {
-      "symbol": "688332.SH",
-      "name": "中科蓝讯",
-      "raw_rank": 116,
-      "board": "STAR",
-      "board_name": "科创板",
-      "capital_required": 500000.0,
-      "reason": "需50万元日均资产（当前 10.0万元）"
-    },
-    {
-      "symbol": "688336.SH",
-      "name": "三生国健",
-      "raw_rank": 118,
-      "board": "STAR",
-      "board_name": "科创板",
-      "capital_required": 500000.0,
-      "reason": "需50万元日均资产（当前 10.0万元）"
-    },
-    {
-      "symbol": "688601.SH",
-      "name": "力芯微",
-      "raw_rank": 131,
-      "board": "STAR",
-      "board_name": "科创板",
-      "capital_required": 500000.0,
-      "reason": "需50万元日均资产（当前 10.0万元）"
-    },
-    {
-      "symbol": "688521.SH",
-      "name": "芯原股份",
-      "raw_rank": 132,
-      "board": "STAR",
-      "board_name": "科创板",
-      "capital_required": 500000.0,
-      "reason": "需50万元日均资产（当前 10.0万元）"
-    },
-    {
-      "symbol": "688047.SH",
-      "name": "龙芯中科",
-      "raw_rank": 141,
-      "board": "STAR",
-      "board_name": "科创板",
-      "capital_required": 500000.0,
-      "reason": "需50万元日均资产（当前 10.0万元）"
-    },
-    {
-      "symbol": "688403.SH",
-      "name": "汇成股份",
-      "raw_rank": 145,
-      "board": "STAR",
-      "board_name": "科创板",
-      "capital_required": 500000.0,
-      "reason": "需50万元日均资产（当前 10.0万元）"
-    },
-    {
-      "symbol": "688343.SH",
-      "name": "云天励飞",
-      "raw_rank": 146,
-      "board": "STAR",
-      "board_name": "科创板",
-      "capital_required": 500000.0,
-      "reason": "需50万元日均资产（当前 10.0万元）"
-    },
-    {
-      "symbol": "688795.SH",
-      "name": "摩尔线程",
-      "raw_rank": 164,
-      "board": "STAR",
-      "board_name": "科创板",
-      "capital_required": 500000.0,
-      "reason": "需50万元日均资产（当前 10.0万元）"
-    },
-    {
-      "symbol": "688709.SH",
-      "name": "成都华微",
-      "raw_rank": 170,
-      "board": "STAR",
-      "board_name": "科创板",
-      "capital_required": 500000.0,
-      "reason": "需50万元日均资产（当前 10.0万元）"
-    },
-    {
-      "symbol": "688148.SH",
-      "name": "芳源股份",
-      "raw_rank": 174,
-      "board": "STAR",
-      "board_name": "科创板",
-      "capital_required": 500000.0,
-      "reason": "需50万元日均资产（当前 10.0万元）"
-    },
-    {
-      "symbol": "688499.SH",
-      "name": "利元亨",
-      "raw_rank": 175,
-      "board": "STAR",
-      "board_name": "科创板",
-      "capital_required": 500000.0,
-      "reason": "需50万元日均资产（当前 10.0万元）"
-    },
-    {
-      "symbol": "688353.SH",
-      "name": "华盛锂电",
-      "raw_rank": 177,
+      "symbol": "688612.SH",
+      "name": "威迈斯",
+      "raw_rank": 110,
       "board": "STAR",
       "board_name": "科创板",
       "capital_required": 500000.0,
@@ -370,25 +156,16 @@
     {
       "symbol": "688787.SH",
       "name": "海天瑞声",
-      "raw_rank": 180,
+      "raw_rank": 120,
       "board": "STAR",
       "board_name": "科创板",
       "capital_required": 500000.0,
       "reason": "需50万元日均资产（当前 10.0万元）"
     },
     {
-      "symbol": "688182.SH",
-      "name": "灿勤科技",
-      "raw_rank": 194,
-      "board": "STAR",
-      "board_name": "科创板",
-      "capital_required": 500000.0,
-      "reason": "需50万元日均资产（当前 10.0万元）"
-    },
-    {
-      "symbol": "688551.SH",
-      "name": "科威尔",
-      "raw_rank": 196,
+      "symbol": "688249.SH",
+      "name": "晶合集成",
+      "raw_rank": 127,
       "board": "STAR",
       "board_name": "科创板",
       "capital_required": 500000.0,
@@ -397,52 +174,124 @@
     {
       "symbol": "688041.SH",
       "name": "海光信息",
-      "raw_rank": 205,
+      "raw_rank": 128,
       "board": "STAR",
       "board_name": "科创板",
       "capital_required": 500000.0,
       "reason": "需50万元日均资产（当前 10.0万元）"
     },
     {
-      "symbol": "688239.SH",
-      "name": "航宇科技",
-      "raw_rank": 207,
+      "symbol": "688717.SH",
+      "name": "艾罗能源",
+      "raw_rank": 133,
       "board": "STAR",
       "board_name": "科创板",
       "capital_required": 500000.0,
       "reason": "需50万元日均资产（当前 10.0万元）"
     },
     {
-      "symbol": "688102.SH",
-      "name": "斯瑞新材",
-      "raw_rank": 209,
+      "symbol": "688525.SH",
+      "name": "佰维存储",
+      "raw_rank": 141,
       "board": "STAR",
       "board_name": "科创板",
       "capital_required": 500000.0,
       "reason": "需50万元日均资产（当前 10.0万元）"
     },
     {
-      "symbol": "688008.SH",
-      "name": "澜起科技",
-      "raw_rank": 212,
+      "symbol": "688047.SH",
+      "name": "龙芯中科",
+      "raw_rank": 148,
       "board": "STAR",
       "board_name": "科创板",
       "capital_required": 500000.0,
       "reason": "需50万元日均资产（当前 10.0万元）"
     },
     {
-      "symbol": "688097.SH",
-      "name": "博众精工",
-      "raw_rank": 213,
+      "symbol": "688766.SH",
+      "name": "普冉股份",
+      "raw_rank": 152,
       "board": "STAR",
       "board_name": "科创板",
       "capital_required": 500000.0,
       "reason": "需50万元日均资产（当前 10.0万元）"
     },
     {
-      "symbol": "688484.SH",
-      "name": "南芯科技",
-      "raw_rank": 230,
+      "symbol": "688170.SH",
+      "name": "德龙激光",
+      "raw_rank": 153,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688275.SH",
+      "name": "万润新能",
+      "raw_rank": 155,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688403.SH",
+      "name": "汇成股份",
+      "raw_rank": 161,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688248.SH",
+      "name": "南网科技",
+      "raw_rank": 171,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688775.SH",
+      "name": "影石创新",
+      "raw_rank": 172,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688375.SH",
+      "name": "国博电子",
+      "raw_rank": 177,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688582.SH",
+      "name": "芯动联科",
+      "raw_rank": 178,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688336.SH",
+      "name": "三生国健",
+      "raw_rank": 179,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688556.SH",
+      "name": "高测股份",
+      "raw_rank": 180,
       "board": "STAR",
       "board_name": "科创板",
       "capital_required": 500000.0,
@@ -451,7 +300,142 @@
     {
       "symbol": "688258.SH",
       "name": "卓易信息",
-      "raw_rank": 231,
+      "raw_rank": 183,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688729.SH",
+      "name": "屹唐股份",
+      "raw_rank": 185,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688172.SH",
+      "name": "燕东微",
+      "raw_rank": 186,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688802.SH",
+      "name": "沐曦股份",
+      "raw_rank": 188,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688019.SH",
+      "name": "安集科技",
+      "raw_rank": 192,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688759.SH",
+      "name": "必贝特",
+      "raw_rank": 194,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688506.SH",
+      "name": "百利天恒",
+      "raw_rank": 196,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688165.SH",
+      "name": "埃夫特",
+      "raw_rank": 204,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688191.SH",
+      "name": "智洋创新",
+      "raw_rank": 218,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688795.SH",
+      "name": "摩尔线程",
+      "raw_rank": 229,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688655.SH",
+      "name": "迅捷兴",
+      "raw_rank": 230,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688387.SH",
+      "name": "信科移动",
+      "raw_rank": 238,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688017.SH",
+      "name": "绿的谐波",
+      "raw_rank": 239,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688685.SH",
+      "name": "迈信林",
+      "raw_rank": 240,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688376.SH",
+      "name": "美埃科技",
+      "raw_rank": 246,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688106.SH",
+      "name": "金宏气体",
+      "raw_rank": 247,
       "board": "STAR",
       "board_name": "科创板",
       "capital_required": 500000.0,
@@ -460,16 +444,34 @@
     {
       "symbol": "688221.SH",
       "name": "前沿生物",
-      "raw_rank": 240,
+      "raw_rank": 250,
       "board": "STAR",
       "board_name": "科创板",
       "capital_required": 500000.0,
       "reason": "需50万元日均资产（当前 10.0万元）"
     },
     {
-      "symbol": "688027.SH",
-      "name": "国盾量子",
-      "raw_rank": 255,
+      "symbol": "688601.SH",
+      "name": "力芯微",
+      "raw_rank": 254,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688291.SH",
+      "name": "金橙子",
+      "raw_rank": 256,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688120.SH",
+      "name": "华海清科",
+      "raw_rank": 269,
       "board": "STAR",
       "board_name": "科创板",
       "capital_required": 500000.0,
@@ -477,6 +479,8 @@
     }
   ],
   "signal_version": "strategy_v2/S3",
+  "price_source": "canonical, same date as the signal",
+  "live_prices": {},
   "forecast_version": "forecast_v1",
   "cost_model": {
     "unit_buy_rate": 0.00076,
