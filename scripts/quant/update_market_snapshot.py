@@ -89,13 +89,21 @@ def main() -> int:
     STAGING.mkdir(parents=True)
     print("extracting ...")
     with tarfile.open(tar_path, "r:gz") as tf:
-        tf.extractall(STAGING)                       # noqa: S202 (own data)
-    inner = STAGING / "cn_data"
-    src = inner if inner.exists() else STAGING
-    if BACKUP.exists():
-        print(f"note: {BACKUP.name} already exists — leaving it in place")
-    else:
-        QLIB_DIR.rename(BACKUP)
+        # the archive holds a single top-level dir (qlib_bin/) whose
+        # CONTENTS are the data root: strip one level
+        for m in tf.getmembers():
+            parts = m.name.split("/", 1)
+            if len(parts) < 2 or not parts[1]:
+                continue
+            m.name = parts[1]
+            tf.extract(m, STAGING)                   # noqa: S202 (own data)
+    src = STAGING
+    # never overwrite an existing backup: keep one timestamped copy
+    if QLIB_DIR.exists():
+        stamp = time.strftime("%Y%m%d_%H%M%S")
+        keep = PROJECT_ROOT / f"qlib_data_prev_{stamp}"
+        QLIB_DIR.rename(keep)
+        print(f"previous snapshot kept at {keep.name}")
     src.rename(QLIB_DIR)
     print(f"qlib_data updated -> calendar ends {current_version()}")
 

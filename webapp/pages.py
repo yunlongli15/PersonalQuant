@@ -68,20 +68,20 @@ text-align:center}
 """
 
 NAV = [
-    ("/", "Dashboard"),
-    ("/wealth/overview", "Wealth"),
-    ("/wealth/daily-update", "Daily Update"),
-    ("/wealth/positions", "Positions"),
-    ("/wealth/transactions", "Transactions"),
-    ("/wealth/performance", "Performance"),
-    ("/wealth/accounts", "Accounts"),
-    ("/quant/signals", "Signals"),
-    ("/quant/forecasts", "Forecasts"),
-    ("/quant/trade-plan", "Trade Plan"),
-    ("/quant/paper-live", "Paper Live"),
-    ("/quant/research", "Research"),
-    ("/data/status", "Data Status"),
-    ("/settings", "Settings"),
+    ("/", "总览"),
+    ("/wealth/overview", "资产总览"),
+    ("/wealth/daily-update", "每日录入"),
+    ("/wealth/positions", "持仓明细"),
+    ("/wealth/transactions", "交易流水"),
+    ("/wealth/performance", "收益表现"),
+    ("/wealth/accounts", "账户总览"),
+    ("/quant/signals", "今日信号"),
+    ("/quant/forecasts", "价格预测"),
+    ("/quant/trade-plan", "交易计划"),
+    ("/quant/paper-live", "模拟盘"),
+    ("/quant/research", "研究状态"),
+    ("/data/status", "数据状态"),
+    ("/settings", "设置"),
 ]
 
 
@@ -148,12 +148,12 @@ def table(headers: List[str], rows: List[List[str]],
             for i, c in enumerate(r)) + "</tr>" for r in rows)
     if not rows:
         body = (f'<tr><td class="l muted" colspan="{len(headers)}">'
-                f'no rows</td></tr>')
+                f'暂无数据</td></tr>')
     return f"<table><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>"
 
 
 def not_available(vm: Dict) -> str:
-    return (f'<div class="banner warn">{esc(vm.get("reason", "unavailable"))}'
+    return (f'<div class="banner warn">{esc(vm.get("reason", "暂无数据"))}'
             f'</div>')
 
 
@@ -164,56 +164,56 @@ def not_available(vm: Dict) -> str:
 def dashboard(wealth: dict, signals: dict, data: dict) -> str:
     body = []
     if not wealth.get("available"):
-        body.append(f'<div class="banner warn">wealth database: '
+        body.append(f'<div class="banner warn">财富数据库：'
                     f'{esc(wealth.get("reason"))}</div>')
     else:
         body.append('<div class="grid cols-4">'
-                    + kpi("Total Net Worth", money(wealth["net_worth"]),
+                    + kpi("总资产", money(wealth["net_worth"]),
                           f'as of {esc(wealth.get("as_of") or "—")}')
-                    + kpi("Today P&L", money(wealth["day_pnl"]),
-                          "investment P&L (flows excluded)",
+                    + kpi("今日盈亏", money(wealth["day_pnl"]),
+                          "投资收益（已剔除本金进出）",
                           signed_class(wealth["day_pnl"]))
-                    + kpi("YTD P&L", money(wealth["year_pnl"]),
-                          "year to date", signed_class(wealth["year_pnl"]))
-                    + kpi("Cumulative Return", pct(wealth.get("twr")),
+                    + kpi("今年盈亏", money(wealth["year_pnl"]),
+                          "年初至今", signed_class(wealth["year_pnl"]))
+                    + kpi("累计收益率", pct(wealth.get("twr")),
                           f'TWR · XIRR {pct(wealth.get("mwr_xirr"))}')
                     + "</div>")
         body.append('<div class="grid cols-2" style="margin-top:16px">')
-        body.append('<div class="card"><h2>Net worth</h2>'
-                    + svg.line_chart([{"name": "Net worth",
+        body.append('<div class="card"><h2>资产净值</h2>'
+                    + svg.line_chart([{"name": "资产净值",
                                        "points": wealth["curve_points"]}],
-                                     title="net worth (CNY)")
+                                     title="资产净值（元）")
                     + "</div>")
-        body.append('<div class="card"><h2>Asset allocation</h2>'
+        body.append('<div class="card"><h2>资产配置</h2>'
                     + svg.donut(list(wealth["by_category"].items()),
-                                title="by category")
+                                title="按资产类别")
                     + "</div></div>")
         body.append('<div class="grid cols-2" style="margin-top:16px">'
-                    '<div class="card"><h2>Cumulative investment P&L</h2>'
+                    '<div class="card"><h2>累计投资收益</h2>'
                     + svg.line_chart([{"name": "P&L",
                                        "points": wealth["pnl_points"]}],
-                                     title="cumulative investment P&L (CNY)")
+                                     title="累计投资收益（元）")
                     + "</div>")
-        body.append('<div class="card"><h2>By platform</h2>'
+        body.append('<div class="card"><h2>按平台分布</h2>'
                     + svg.bar_chart([k for k, _ in
                                      sorted(wealth["by_platform"].items(),
                                             key=lambda kv: -kv[1])],
                                     [v for _, v in
                                      sorted(wealth["by_platform"].items(),
                                             key=lambda kv: -kv[1])],
-                                    title="market value by platform (CNY)")
+                                    title="各平台市值（元）")
                     + "</div></div>")
 
     # quant signals
     body.append('<div class="card" style="margin-top:16px">'
-                '<h2>Today\'s quant signals</h2>')
+                '<h2>今日量化信号</h2>')
     if not signals.get("available"):
         body.append(not_available(signals))
     else:
         rows = [[f'{r.get("raw_rank")}', esc(r.get("symbol")),
                  esc(r.get("name")), f'{r.get("prediction"):+.4f}']
                 for r in signals["rows"][:10]]
-        body.append(table(["#", "symbol", "name", "signal"], rows,
+        body.append(table(["#", "代码", "名称", "信号分"], rows,
                           left_cols=[0, 1, 2]))
         body.append(f'<div class="note">as of {esc(signals.get("as_of"))} · '
                     f'{signals.get("n_symbols")} symbols scored · '
@@ -222,7 +222,7 @@ def dashboard(wealth: dict, signals: dict, data: dict) -> str:
 
     # data status
     body.append('<div class="card" style="margin-top:16px">'
-                '<h2>Data status</h2>')
+                '<h2>数据状态</h2>')
     if not data.get("available"):
         body.append(not_available(data))
     else:
@@ -236,10 +236,9 @@ def dashboard(wealth: dict, signals: dict, data: dict) -> str:
             rows.append([esc(r["domain"]), esc(r["latest"] or "—"),
                          esc(r["expected"] or "—"), badge,
                          esc(r.get("detail") or "")])
-        body.append(table(["domain", "latest", "expected", "status",
-                           "note"], rows, left_cols=[0, 1, 2, 4]))
+        body.append(table(["数据域", "最新", "应有", "状态", "说明"], rows, left_cols=[0, 1, 2, 4]))
     body.append("</div>")
-    return layout("Dashboard", "/", "".join(body))
+    return layout("总览", "/", "".join(body))
 
 
 def wealth_overview(vm: dict) -> str:
@@ -249,33 +248,33 @@ def wealth_overview(vm: dict) -> str:
                     f'<div class="note">Add products and today\'s amounts '
                     f'in <a href="/wealth/daily-update">Daily Update</a>.'
                     f'</div></div>')
-        return layout("Wealth", "/wealth/overview", "".join(body))
+        return layout("资产总览", "/wealth/overview", "".join(body))
     body.append('<div class="grid cols-4">'
-                + kpi("Net Worth", money(vm["net_worth"]),
+                + kpi("净资产", money(vm["net_worth"]),
                       f'as of {esc(vm.get("as_of") or "—")}')
-                + kpi("Invested Capital", money(vm["invested_capital"]))
-                + kpi("Total P&L", money(vm["total_pnl"]), "flows excluded",
+                + kpi("累计投入本金", money(vm["invested_capital"]))
+                + kpi("累计盈亏", money(vm["total_pnl"]), "已剔除本金进出",
                       signed_class(vm["total_pnl"]))
-                + kpi("Income / Fees", f'{money(vm["income"])} / '
+                + kpi("分红收入 / 费用", f'{money(vm["income"])} / '
                       f'{money(vm["fees"])}')
                 + "</div>")
     body.append('<div class="grid cols-2" style="margin-top:16px">'
-                '<div class="card"><h2>Net worth curve</h2>'
+                '<div class="card"><h2>资产净值曲线</h2>'
                 + svg.line_chart([{"name": "net worth",
                                    "points": vm["curve_points"]}],
-                                 title="net worth (CNY)")
-                + "</div><div class=\"card\"><h2>Allocation</h2>"
+                                 title="资产净值（元）")
+                + "</div><div class=\"card\"><h2>资产配置</h2>"
                 + svg.donut(list(vm["by_category"].items()),
-                            title="by category") + "</div></div>")
+                            title="按资产类别") + "</div></div>")
     rows = [[esc(h["name"]), esc(h["product_type"]),
              money(h["units"], 2), money(h["nav"], 4),
              money(h["market_value"]), pct(h["weight"])]
             for h in vm["holdings"]]
     body.append('<div class="card" style="margin-top:16px">'
-                '<h2>Holdings</h2>'
-                + table(["name", "type", "units", "nav", "value", "weight"],
+                '<h2>持仓明细</h2>'
+                + table(["名称", "类型", "份额", "净值", "市值", "占比"],
                         rows, left_cols=[0, 1]) + "</div>")
-    return layout("Wealth", "/wealth/overview", "".join(body))
+    return layout("资产总览", "/wealth/overview", "".join(body))
 
 
 def daily_update_page(products: List[dict], as_of: str,
@@ -315,29 +314,27 @@ def daily_update_page(products: List[dict], as_of: str,
                 "</form>")
     body.append('<div class="card" style="margin-top:12px">'
                 + "".join(form) + "</div>")
-    return layout("Daily Update", "/wealth/daily-update", "".join(body))
+    return layout("每日录入", "/wealth/daily-update", "".join(body))
 
 
 def positions_page(rows: List[dict]) -> str:
     body = ['<h2 style="margin-top:0">Positions</h2>',
             '<div class="card">']
     body.append(table(
-        ["name", "type", "as of", "units", "nav", "value", "avg cost",
-         "unrealized"],
+        ["名称", "类型", "数据日期", "份额", "净值", "市值", "成本", "浮动盈亏"],
         [[esc(r["name"]), esc(r["product_type"]), esc(r["as_of"]),
           money(r["units"]), money(r["nav"], 4), money(r["market_value"]),
           money(r["avg_cost"], 4), money(r["unrealized_pnl"])]
          for r in rows], left_cols=[0, 1, 2]))
     body.append("</div>")
-    return layout("Positions", "/wealth/positions", "".join(body))
+    return layout("持仓明细", "/wealth/positions", "".join(body))
 
 
 def transactions_page(rows: List[dict]) -> str:
     body = ['<h2 style="margin-top:0">Transactions</h2>',
             '<div class="card">']
     body.append(table(
-        ["date", "product", "type", "units", "price", "amount", "fee",
-         "cash flow"],
+        ["日期", "产品", "类型", "份额", "价格", "金额", "费用", "资金流"],
         [[esc(r["txn_date"]), esc(r["product_name"]), esc(r["txn_type"]),
           money(r["units"]), money(r["price"], 4), money(r["amount"]),
           money(r["fee"]), money(r["cash_flow"])] for r in rows],
@@ -345,7 +342,7 @@ def transactions_page(rows: List[dict]) -> str:
     body.append('<div class="note">external cash flow is signed '
                 '(deposit +, withdrawal −); buy/sell are internal and must '
                 'not carry one</div></div>')
-    return layout("Transactions", "/wealth/transactions", "".join(body))
+    return layout("交易流水", "/wealth/transactions", "".join(body))
 
 
 def performance_page(vm: dict, income: List[dict],
@@ -353,19 +350,19 @@ def performance_page(vm: dict, income: List[dict],
     body = ['<h2 style="margin-top:0">Performance</h2>']
     if not vm.get("available"):
         body.append(not_available(vm))
-        return layout("Performance", "/wealth/performance", "".join(body))
+        return layout("收益表现", "/wealth/performance", "".join(body))
     body.append('<div class="grid cols-4">'
-                + kpi("Daily Return", pct(vm.get("daily_return")))
-                + kpi("Month P&L", money(vm.get("month_pnl")),
+                + kpi("当日收益率", pct(vm.get("daily_return")))
+                + kpi("本月盈亏", money(vm.get("month_pnl")),
                       "", signed_class(vm.get("month_pnl")))
-                + kpi("YTD P&L", money(vm.get("year_pnl")),
+                + kpi("今年盈亏", money(vm.get("year_pnl")),
                       "", signed_class(vm.get("year_pnl")))
-                + kpi("TWR / XIRR",
+                + kpi("时间加权 / 资金加权收益率",
                       f'{pct(vm.get("twr"))} / {pct(vm.get("mwr_xirr"))}')
                 + "</div>")
     if decomposition:
         body.append('<div class="card" style="margin-top:16px">'
-                    '<h2>Net worth change decomposition</h2>')
+                    '<h2>资产变动拆解</h2>')
         rows = [[esc(k), money(v)] for k, v in
                 [("External Contributions", decomposition["external_contributions"]),
                  ("Investment P&L", decomposition["investment_pnl"]),
@@ -381,23 +378,22 @@ def performance_page(vm: dict, income: List[dict],
     body.append('<div class="card" style="margin-top:16px">'
                 '<h2>万份收益 (money-market income)</h2>')
     body.append(table(
-        ["date", "product", "daily income", "per 10,000", "annualized",
-         "method"],
+        ["日期", "产品", "当日收益", "万份收益", "年化", "口径"],
         [[esc(r["income_date"]), esc(r["product_name"]),
           money(r["daily_income"]), money(r["income_per_10000"], 4),
           pct(r["annualized_yield"]), esc(r["calculation_method"])]
          for r in income], left_cols=[0, 1]))
     body.append("</div>")
-    return layout("Performance", "/wealth/performance", "".join(body))
+    return layout("收益表现", "/wealth/performance", "".join(body))
 
 
 def accounts_page(rows: List[dict]) -> str:
     body = ['<h2 style="margin-top:0">Accounts</h2>', '<div class="card">',
-            table(["platform", "kind", "account", "products", "value"],
+            table(["平台", "类型", "账户", "产品数", "市值"],
                   [[esc(r["platform"]), esc(r["kind"]), esc(r["account"]),
                     str(r["n_products"]), money(r["value"])] for r in rows],
                   left_cols=[0, 1, 2]), "</div>"]
-    return layout("Accounts", "/wealth/accounts", "".join(body))
+    return layout("账户总览", "/wealth/accounts", "".join(body))
 
 
 def signals_page(vm: dict) -> str:
@@ -411,19 +407,19 @@ def signals_page(vm: dict) -> str:
                     f'S3 signal; the UI never re-orders it</div>')
         body.append('<div class="card" style="margin-top:12px">')
         body.append(table(
-            ["rank", "symbol", "name", "signal"],
+            ["排名", "代码", "名称", "信号分"],
             [[str(r["raw_rank"]), esc(r["symbol"]), esc(r.get("name")),
               f'{r["prediction"]:+.4f}'] for r in vm["rows"]],
             left_cols=[0, 1, 2]))
         body.append("</div>")
-    return layout("Signals", "/quant/signals", "".join(body))
+    return layout("今日信号", "/quant/signals", "".join(body))
 
 
 def forecasts_page(vm: dict) -> str:
     body = ['<h2 style="margin-top:0">Forecasts</h2>']
     if not vm.get("available"):
         body.append(not_available(vm))
-        return layout("Forecasts", "/quant/forecasts", "".join(body))
+        return layout("价格预测", "/quant/forecasts", "".join(body))
     model = vm.get("model", {})
     body.append(f'<div class="note">{esc(model.get("method", ""))} · '
                 f'{esc(model.get("base_model", ""))} · horizons '
@@ -443,12 +439,11 @@ def forecasts_page(vm: dict) -> str:
                          f'{pct(r["p_up"], 0)}' if r else "—")
         table_rows.append(cells)
     body.append('<div class="card" style="margin-top:12px">')
-    body.append(table(["symbol", "name", "1D exp/P(up)", "5D exp/P(up)",
-                       "20D exp/P(up)"], table_rows, left_cols=[0, 1]))
+    body.append(table(["代码", "名称", "1日 预期/上涨概率", "5日 预期/上涨概率", "20日 预期/上涨概率"], table_rows, left_cols=[0, 1]))
     body.append('<div class="note">estimates from the conditional '
                 'distribution of realized returns — not promises</div>'
                 "</div>")
-    return layout("Forecasts", "/quant/forecasts", "".join(body))
+    return layout("价格预测", "/quant/forecasts", "".join(body))
 
 
 def symbol_page(vm: dict) -> str:
@@ -457,22 +452,21 @@ def symbol_page(vm: dict) -> str:
     if not vm.get("available"):
         body.append(f'<div class="banner warn">no forecast for '
                     f'{esc(vm.get("symbol"))} yet</div>')
-        return layout("Stock", "/quant/signals", "".join(body))
+        return layout("个股详情", "/quant/signals", "".join(body))
     hist = vm.get("history", [])
     if hist:
-        body.append('<div class="card"><h2>Price history</h2>'
+        body.append('<div class="card"><h2>历史价格</h2>'
                     + svg.line_chart([{"name": "close", "points": hist}],
-                                     title="close (CNY) — historical data only")
+                                     title="历史收盘价（元）—— 仅历史数据")
                     + "</div>")
     rows = [[str(h["horizon"]) + "D", pct(h["expected_return"]),
              pct(h["q05"]) + " … " + pct(h["q95"]),
              pct(h["p_up"], 0), esc(h["trend"]), str(h["n_obs"])]
             for h in sorted(vm["horizons"], key=lambda x: x["horizon"])]
     body.append('<div class="card" style="margin-top:16px">'
-                '<h2>Forecast by horizon</h2>'
-                + table(["horizon", "expected", "5–95% interval", "P(up)",
-                         "trend", "n obs"], rows) + "</div>")
-    return layout("Stock", "/quant/signals", "".join(body))
+                '<h2>分周期预测</h2>'
+                + table(["周期", "预期收益", "5–95%区间", "上涨概率", "趋势", "样本数"], rows) + "</div>")
+    return layout("个股详情", "/quant/signals", "".join(body))
 
 
 def trade_plan_page(vm: dict) -> str:
@@ -482,15 +476,15 @@ def trade_plan_page(vm: dict) -> str:
         body.append(f'<div class="note">Generate one with '
                     f'<code>python scripts/quant/refresh_all.py --only '
                     f'portfolio_refresh</code></div>')
-        return layout("Trade Plan", "/quant/trade-plan", "".join(body))
+        return layout("交易计划", "/quant/trade-plan", "".join(body))
     body.append('<div class="grid cols-4">'
-                + kpi("Capital", money(vm["capital"]),
+                + kpi("可投入资金", money(vm["capital"]),
                       f'{esc(vm["frequency"])} · {esc(vm["risk_profile"])}')
-                + kpi("Total Buy Value", money(vm["total_buy_value"]),
+                + kpi("买入金额合计", money(vm["total_buy_value"]),
                       f'{pct(vm["total_buy_value"]/vm["capital"])} invested')
-                + kpi("Estimated Fees", money(vm["estimated_fees"]),
+                + kpi("预估交易费用", money(vm["estimated_fees"]),
                       f'cash residual {money(vm["remaining_cash"])}')
-                + kpi("Expected Net Return",
+                + kpi("预期净收益",
                       money(vm["expected_net_return_value"]),
                       pct(vm["expected_net_return_pct"]) + " on capital",
                       signed_class(vm["expected_net_return_value"]))
@@ -520,11 +514,9 @@ def trade_plan_page(vm: dict) -> str:
             str(r["shares"]), money(r["buy_value"]),
             money(r.get("target_price")), money(r.get("stop_loss")),
             pct(r.get("expected_return")), note])
-    body.append('<div class="card" style="margin-top:16px"><h2>Orders '
+    body.append('<div class="card" style="margin-top:16px"><h2>建议下单清单 '
                 '(recommendation only)</h2>'
-                + table(["symbol", "name", "board", "#", "last",
-                         "plan price", "entry band", "shares", "value",
-                         "target", "stop", "exp", "note"], rows,
+                + table(["代码", "名称", "板块", "排名", "现价", "建议买入价", "可接受区间", "股数", "金额", "目标价", "止损", "预期收益", "备注"], rows,
                         left_cols=[0, 1, 2])
                 + "</div>")
     ex = vm.get("excluded_restricted") or []
@@ -535,11 +527,10 @@ def trade_plan_page(vm: dict) -> str:
                    esc(d.get("reason"))] for d in ex[:20]]
         body.append('<div class="card" style="margin-top:16px">'
                     '<h2>因交易权限被排除（未占用资金）</h2>'
-                    + table(["symbol", "name", "board", "#", "门槛(元)",
-                             "原因"], exrows, left_cols=[0, 1, 2, 5])
+                    + table(["代码", "名称", "板块", "排名", "门槛(元)", "原因"], exrows, left_cols=[0, 1, 2, 5])
                     + '<div class="note">这些标的信号很好但账户暂时买不了；'
                       '开通对应板块后会自动回到候选池</div></div>')
-    return layout("Trade Plan", "/quant/trade-plan", "".join(body))
+    return layout("交易计划", "/quant/trade-plan", "".join(body))
 
 
 def research_page(vm: dict) -> str:
@@ -550,13 +541,13 @@ def research_page(vm: dict) -> str:
             'once and never used for selection.</div>']
     m = vm.get("test_metrics", {})
     body.append('<div class="grid cols-4">'
-                + kpi("Frozen Test Sharpe", f'{m.get("sharpe", float("nan")):.3f}'
+                + kpi("冻结检验 Sharpe", f'{m.get("sharpe", float("nan")):.3f}'
                       if m else "—", "2024-2025")
-                + kpi("Frozen Test Ann.", pct(m.get("annualized_return"))
+                + kpi("冻结检验 年化", pct(m.get("annualized_return"))
                       if m else "—")
-                + kpi("Frozen Test MDD", pct(m.get("max_drawdown"))
+                + kpi("冻结检验 最大回撤", pct(m.get("max_drawdown"))
                       if m else "—")
-                + kpi("Candidate Gates",
+                + kpi("候选门槛",
                       f'{sum(1 for v in vm.get("gates", {}).values() if v)}'
                       f'/{len(vm.get("gates", {}))}'
                       if vm.get("gates") else "—",
@@ -567,17 +558,17 @@ def research_page(vm: dict) -> str:
                  '<span class="badge bad">FAIL</span>']
                 for k, v in vm["gates"].items()]
         body.append('<div class="card" style="margin-top:16px">'
-                    '<h2>Candidate gates</h2>'
-                    + table(["gate", "result"], rows) + "</div>")
+                    '<h2>候选门槛</h2>'
+                    + table(["门槛", "结果"], rows) + "</div>")
     body.append('<div class="card" style="margin-top:16px">'
-                '<h2>Frozen pipeline</h2>'
+                '<h2>冻结流程</h2>'
                 '<div class="note">signal: strategy_v2 / S3 '
                 '(Alpha158 + factor_pack_v1 + news) · allocation: '
                 'equal weight · top_k 20 · cash 5% · monthly · '
                 'max weight 10% · industry cap 20% · '
                 'strategy_v1 and all frozen packs are unmodified.</div>'
                 "</div>")
-    return layout("Research", "/quant/research", "".join(body))
+    return layout("研究状态", "/quant/research", "".join(body))
 
 
 def paper_live_page(vm: dict) -> str:
@@ -592,10 +583,9 @@ def paper_live_page(vm: dict) -> str:
                  money(r.get("shares")), money(r.get("target_weight"), 4),
                  money(r.get("price")), esc(r.get("industry"))]
                 for r in vm["rows"]]
-        body.append(table(["symbol", "action", "shares", "target weight",
-                           "price", "industry"], rows, left_cols=[0, 1, 5]))
+        body.append(table(["代码", "操作", "股数", "目标权重", "价格", "行业"], rows, left_cols=[0, 1, 5]))
         body.append(f'<div class="note">{esc(vm.get("path"))}</div></div>')
-    return layout("Paper Live", "/quant/paper-live", "".join(body))
+    return layout("模拟盘", "/quant/paper-live", "".join(body))
 
 
 def data_page(vm: dict) -> str:
@@ -618,8 +608,7 @@ def data_page(vm: dict) -> str:
                          esc(r["expected"] or "—"), badge,
                          esc(r.get("detail") or "")])
         body.append('<div class="card">'
-                    + table(["domain", "latest", "expected", "status",
-                             "note"], rows, left_cols=[0, 1, 2, 4])
+                    + table(["数据域", "最新", "应有", "状态", "说明"], rows, left_cols=[0, 1, 2, 4])
                     + "</div>")
         job_rows = [[esc(j.get("job_name")), esc(j.get("status")),
                      esc(j.get("finished_at")),
@@ -628,29 +617,29 @@ def data_page(vm: dict) -> str:
                      esc((j.get("error") or j.get("detail") or "")[:160])]
                     for j in vm.get("jobs", [])]
         body.append('<div class="card" style="margin-top:16px">'
-                    '<h2>Last job runs</h2>'
-                    + table(["job", "status", "finished", "took", "detail"],
+                    '<h2>最近任务运行</h2>'
+                    + table(["任务", "状态", "完成时间", "耗时", "说明"],
                             job_rows, left_cols=[0, 1, 2, 4]) + "</div>")
         body.append('<div class="note">Refresh with '
                     '<code>python scripts/quant/refresh_all.py</code>. '
                     'Offline runs are recorded SKIPPED, never as success.'
                     "</div>")
-    return layout("Data Status", "/data/status", "".join(body))
+    return layout("数据状态", "/data/status", "".join(body))
 
 
 def settings_page(vm: dict) -> str:
     body = ['<h2 style="margin-top:0">Settings</h2>']
     cost = vm.get("cost_model", {})
-    body.append('<div class="card"><h2>Transaction cost model (shared)</h2>'
-                + table(["item", "value"],
+    body.append('<div class="card"><h2>交易成本模型（全局共用）</h2>'
+                + table(["项目", "取值"],
                         [[esc(k), money(v, 6)] for k, v in cost.items()])
                 + '<div class="note">one model for backtests, trade plans '
                   'and wealth accounting — rate changes live in '
                   'config/strategy_v1.yaml</div></div>')
     p = vm.get("portfolio", {})
     body.append('<div class="card" style="margin-top:16px">'
-                '<h2>Portfolio / strategy_v2</h2>'
-                + table(["item", "value"],
+                '<h2>组合配置 / strategy_v2</h2>'
+                + table(["项目", "取值"],
                         [[esc(k), esc(v)] for k, v in
                          list(p.get("constraints", {}).items())])
                 + f'<div class="note">allocation method: '
@@ -658,14 +647,14 @@ def settings_page(vm: dict) -> str:
                   f' · top_k {esc(vm.get("strategy_v2", {}).get("top_k"))}'
                   f'</div></div>')
     body.append('<div class="card" style="margin-top:16px">'
-                '<h2>Platforms</h2>'
-                + table(["platform", "kind", "status"],
+                '<h2>平台</h2>'
+                + table(["平台", "类型", "状态"],
                         [[esc(r["name"]), esc(r["kind"]), esc(r["status"])]
                          for r in vm.get("platforms", [])], left_cols=[0, 1, 2])
                 + "</div>")
     body.append('<div class="card" style="margin-top:16px">'
-                '<h2>Backup</h2><form method="post" action="/settings/backup">'
+                '<h2>备份</h2><form method="post" action="/settings/backup">'
                 '<button type="submit">Back up wealth database</button>'
                 '</form><div class="note">writes backup/wealth_*.db and '
                 'never uploads anything</div></div>')
-    return layout("Settings", "/settings", "".join(body))
+    return layout("设置", "/settings", "".join(body))

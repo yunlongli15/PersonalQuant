@@ -13,6 +13,8 @@ env/
 # --- Qlib 数据（大型第三方数据集，不提交；可用脚本重新下载） ---
 qlib_data/
 qlib_data_old/
+qlib_data_prev/
+qlib_data_prev_*/
 mlruns/
 
 # --- 数据层：逐层放行（git 不进被排除的目录，所以必须按父目录排除）---

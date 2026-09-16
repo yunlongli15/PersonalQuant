@@ -86,7 +86,7 @@ async def daily_update_submit(request: Request) -> str:
     if not entries:
         return pages.daily_update_page(
             _update_products(), as_of,
-            {"ok": False, "error": "no amounts entered"})
+            {"ok": False, "error": "未填写任何金额"})
     try:
         res = record_daily_update(_wealth_conn(), as_of, entries)
         return pages.daily_update_page(
@@ -210,7 +210,7 @@ def api_signals(limit: int = 50) -> dict:
 def api_forecast(symbol: str) -> dict:
     vm = services.quant_forecast_for(symbol)
     if not vm.get("available"):
-        raise HTTPException(status_code=404, detail="no forecast")
+        raise HTTPException(status_code=404, detail="暂无该标的预测")
     return vm
 
 
