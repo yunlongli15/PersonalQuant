@@ -77,8 +77,6 @@ def compute_signals(signal_date: str, top_k: int = 20,
     from personal_quant.strategy.features import (compute_features,
                                                   flatten_columns)
     from personal_quant.strategy.model import AlphaModel
-    from personal_quant.strategy.qlib_provider import \
-        init_qlib_with_canonical
     from personal_quant.strategy.universe import build_universe
 
     cfg = yaml.safe_load((PROJECT_ROOT / "config" / "strategy_v1.yaml")
@@ -88,7 +86,14 @@ def compute_signals(signal_date: str, top_k: int = 20,
     cfg["universe"]["st_filter"]["enabled"] = True     # live view only
     d = pd.Timestamp(signal_date)
 
-    init_qlib_with_canonical()
+    # NOTE: do NOT call init_qlib_with_canonical() in THIS process.
+    # compute_features() below spawns per-quarter worker subprocesses that
+    # initialise qlib themselves; if the parent has already brought qlib
+    # (and its joblib pool) up on Windows, the worker deadlocks and the
+    # run times out after 30 minutes with no error (reproduced 2026-09-17,
+    # and the reason features.py uses subprocesses at all). The universe
+    # comes from DuckDB and the model from LightGBM — neither needs qlib
+    # here.
     universe = build_universe(d, cfg)
     symbols = universe["symbol"].tolist()
     feats = compute_features(symbols, [d], cache=False)

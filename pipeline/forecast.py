@@ -310,6 +310,17 @@ def refresh_forecasts(signal_date: Optional[str] = None,
     sc = current_scores()
     if sc.empty:
         raise RuntimeError("no signal snapshot — run signal_refresh first")
+    # Vintage guard: forecasting at date D from a signal dated earlier
+    # would silently label stale scores as D's forecast (this happened on
+    # 2026-09-17 when the signal job timed out and the forecast job ran
+    # anyway). Refuse rather than mislabel.
+    sig_dates = sorted({str(pd.Timestamp(d).date())
+                        for d in sc["signal_date"].unique()})
+    if sig_dates != [as_of]:
+        raise RuntimeError(
+            f"signal snapshot is dated {sig_dates}, not {as_of} — "
+            f"refusing to label stale scores as today's forecast; "
+            f"run signal_refresh first")
     scores = sc.sort_values("prediction", ascending=False).head(top_k)
     cal = build_calibration(as_of)
     if cal.empty:

@@ -516,7 +516,7 @@ def trade_plan_page(vm: dict) -> str:
             pct(r.get("expected_return")), note])
     body.append('<div class="card" style="margin-top:16px"><h2>建议下单清单'
                 '（仅供参考）</h2>'
-                + table(["代码", "名称", "板块", "排名", "现价", "建议买入价", "可接受区间", "股数", "金额", "目标价", "止损", "预期收益", "备注"], rows,
+                + table(["代码", "名称", "板块", "排名", "现价", "建议买入价", "可接受区间", "股数", "金额", "目标价", "止损", "预期净收益", "备注"], rows,
                         left_cols=[0, 1, 2])
                 + "</div>")
     ex = vm.get("excluded_restricted") or []

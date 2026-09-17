@@ -136,6 +136,11 @@ def target_and_stop(price: float, plan_price: float, expected_return: float,
 
 
 def _cost_rates(strategy_cfg: dict) -> tuple:  # noqa: D401
+    """(buy unit rate, sell unit rate, round-trip rate) — used only for
+    sizing and for the coarse ordering of candidates. Per-position fees
+    that the user sees are computed with the full model (see
+    `_position_fees`) because the unit rates ignore the minimum
+    commission."""
     from personal_quant.strategy.costs import TransactionCostModel
     from portfolio.transaction_cost import round_trip_rate, unit_buy_rate, \
         unit_sell_rate
@@ -143,6 +148,23 @@ def _cost_rates(strategy_cfg: dict) -> tuple:  # noqa: D401
     model = TransactionCostModel.from_config(strategy_cfg)
     return (unit_buy_rate(model), unit_sell_rate(model),
             round_trip_rate(model))
+
+
+def _position_fees(strategy_cfg: dict, buy_value: float,
+                   exit_value: float) -> tuple:
+    """(buy fee, sell fee) for one position using the REAL cost model.
+
+    Why not value x unit_rate: the broker charges a minimum commission
+    (5 CNY), which binds for every position a small account can afford
+    (~9,500 CNY -> 2.4 CNY of commission, floored to 5). The unit rates
+    ignore the floor, understating the round trip by ~0.055% of the
+    position — small, but it is the user's money, so the plan reports the
+    floored, real number.
+    """
+    from personal_quant.strategy.costs import TransactionCostModel
+
+    m = TransactionCostModel.from_config(strategy_cfg)
+    return m.buy_cost(buy_value), m.sell_cost(exit_value)
 
 
 def account_profile() -> dict:
@@ -364,7 +386,18 @@ def build_trade_plan(capital: float = 500_000.0,
             pd.notna(fh["expected_return"]) else np.nan
         tgt = target_and_stop(px, plan_px, exp_ret, vol, risk_profile,
                               horizon=horizon)
-        net_ret = exp_ret - rt_rate if np.isfinite(exp_ret) else np.nan
+        # real round-trip cost for THIS position size (minima included),
+        # expressed as a rate on the buy value
+        if value > 0:
+            exit_value = value * (1.0 + (exp_ret if np.isfinite(exp_ret)
+                                         else 0.0))
+            buy_fee, sell_fee = _position_fees(strategy_cfg, value,
+                                               exit_value)
+            fee_rate = (buy_fee + sell_fee) / value
+        else:
+            buy_fee = sell_fee = 0.0
+            fee_rate = rt_rate
+        net_ret = exp_ret - fee_rate if np.isfinite(exp_ret) else np.nan
         elig = eligibility(sym, account_capital, experience_months)
         reasons = []
         if shares == 0:
@@ -450,7 +483,12 @@ def build_trade_plan(capital: float = 500_000.0,
     if not df.empty:
         df = df.sort_values("target_weight", ascending=False).reset_index(
             drop=True)
-    fees_est = float((df["buy_value"] * buy_rate).sum()) if len(df) else 0.0
+    if len(df):
+        fees_est = float(sum(
+            _position_fees(strategy_cfg, v, v)[0]
+            for v in df["buy_value"] if v > 0))
+    else:
+        fees_est = 0.0
     exp_gross = float((df["expected_return"].fillna(0)
                        * df["buy_value"]).sum()) if len(df) else 0.0
     exp_net = float((df["expected_net_return"].fillna(0)
