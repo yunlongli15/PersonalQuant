@@ -25,6 +25,9 @@ class UpdateEntry:
     nav: Optional[float] = None
     cash_flow: float = 0.0
     note: Optional[str] = None
+    #: 平台 App 上显示的“今日收益”（元）。用户直接抄下来即可；系统会与
+    #: 自己推导的收益对账，差异超过容忍度就提示（不覆盖用户填的数）。
+    reported_income: Optional[float] = None
 
 
 @dataclass
@@ -96,9 +99,9 @@ def record_daily_update(conn, snap_date: str,
                 _flows_on(conn, e.product_id, snap_date) == 0.0:
             # first ever entry: treat today's value as a contribution
             res.warnings.append(
-                f"{product['name']}: first snapshot with no cash_flow — "
-                f"recorded as-is (added to the ledger as 'deposit' so the "
-                f"P&L history starts clean)")
+                f"{product['name']}：首次录入，金额 {e.market_value:,.2f} 元"
+                f"已作为「初始投入」记账（这样收益从 0 开始算，不会把本金"
+                f"当成收益）")
             repo.create_transaction(
                 conn, snap_date, e.product_id, "deposit",
                 amount=float(e.market_value),
@@ -109,9 +112,8 @@ def record_daily_update(conn, snap_date: str,
                    - pd.Timestamp(prev["snap_date"])).days
             if gap > max_stale_days:
                 res.warnings.append(
-                    f"{product['name']}: {gap}-day gap since the last "
-                    f"entry ({prev['snap_date']}) — daily P&L for the gap "
-                    f"is NOT interpolated")
+                    f"{product['name']}：距上次录入（{prev['snap_date']}）"
+                    f"已有 {gap} 天，中间空档不做插值（不猜数据）")
 
         units = e.units
         nav = e.nav
@@ -130,9 +132,8 @@ def record_daily_update(conn, snap_date: str,
         if ledger_flow and e.cash_flow and \
                 abs(ledger_flow - e.cash_flow) > 1e-9:
             res.warnings.append(
-                f"{product['name']}: snapshot cash_flow {e.cash_flow:.2f} "
-                f"differs from the ledger ({ledger_flow:.2f}) — using the "
-                f"ledger")
+                f"{product['name']}：填写的资金流 {e.cash_flow:.2f} 与台账"
+                f"（{ledger_flow:.2f}）不一致 —— 以台账为准")
         cash_flow = ledger_flow if ledger_flow else e.cash_flow
 
         repo.upsert_snapshot(conn, snap_date, e.product_id, units=units,
@@ -165,6 +166,46 @@ def record_daily_update(conn, snap_date: str,
                 source="system")
             res.income_records.append({"product_id": e.product_id,
                                        **day.as_record()})
+            derived = day.daily_income
+        else:
+            derived = (float(e.market_value)
+                       - float(prev["market_value"]) - cash_flow
+                       if prev is not None else None)
+
+        # 用户从平台 App 抄下来的“今日收益”：照原样入库（calculation
+        # _method='reported'，来源是用户而不是系统），并与系统推导值对账。
+        # 对不上时只提示，不覆盖——平台口径可能有费用/分红/确认日差异，
+        # 谁对谁错要人看，不能由程序替用户决定。
+        if e.reported_income is not None:
+            reps = (float(prev["units"]) if prev else 0.0)
+            if not reps and units:
+                reps = float(units)
+            per_10000 = (e.reported_income / reps * 10000.0) if reps else 0.0
+            repo.upsert_income(
+                conn, snap_date, e.product_id,
+                beginning_units=float(prev["units"]) if prev else 0.0,
+                ending_units=float(units or 0.0),
+                beginning_value=float(prev["market_value"]) if prev else 0.0,
+                ending_value=float(e.market_value),
+                cash_flow=cash_flow, daily_income=float(e.reported_income),
+                income_per_10000=per_10000,
+                annualized_yield=(per_10000 / 10000.0 * 365.0
+                                  if per_10000 else None),
+                calculation_method="reported", source="user")
+            res.income_records.append({
+                "product_id": e.product_id, "daily_income":
+                float(e.reported_income),
+                "calculation_method": "reported"})
+            if derived is not None:
+                diff = float(e.reported_income) - derived
+                tol = max(0.05, abs(derived) * 0.2)
+                if abs(diff) > tol:
+                    res.warnings.append(
+                        f"{product['name']}：你填的今日收益 "
+                        f"{e.reported_income:.2f} 与系统按金额变动推导的 "
+                        f"{derived:.2f} 相差 {diff:+.2f} 元 —— 已按你填的"
+                        f"数字记录；若差额来自费用/分红，建议在"
+                        f"「交易流水」补一笔")
     return res
 
 

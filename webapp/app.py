@@ -43,7 +43,18 @@ def wealth_overview() -> str:
 
 @app.get("/wealth/daily-update", response_class=HTMLResponse)
 def daily_update_form(as_of: Optional[str] = None) -> str:
-    return pages.daily_update_page(_update_products(), as_of or _today())
+    return _render_daily(as_of or _today())
+
+
+def _render_daily(as_of: str, result: Optional[dict] = None) -> str:
+    from wealth import db as wdb
+    from wealth import repository as repo
+    from wealth.models import PRODUCT_TYPES
+
+    conn = wdb.connect()
+    return pages.daily_update_page(
+        _update_products(), repo.list_platforms(conn), list(PRODUCT_TYPES),
+        as_of, result)
 
 
 def _update_products() -> list:
@@ -64,39 +75,93 @@ def _update_products() -> list:
     return products
 
 
+def _num(raw) -> Optional[float]:
+    """Parse a user-typed number; None when blank, raises on garbage."""
+    if raw is None or str(raw).strip() == "":
+        return None
+    return float(str(raw).replace(",", "").replace("，", ""))
+
+
 @app.post("/wealth/daily-update", response_class=HTMLResponse)
 async def daily_update_submit(request: Request) -> str:
     form = await request.form()
     as_of = str(form.get("as_of") or _today())
-    entries, warnings = [], []
+    warnings: List[str] = []
+    from wealth import db as wdb
+    from wealth import repository as repo
     from wealth.service import UpdateEntry, record_daily_update
 
+    conn = wdb.connect()
+    entries = []
+
+    # ① 已有产品：amount_<pid> / income_<pid>
     for key, value in form.items():
         if not key.startswith("amount_"):
             continue
-        if value is None or str(value).strip() == "":
-            continue
+        pid = int(key.split("_")[1])
         try:
-            amount = float(str(value).replace(",", ""))
+            amount = _num(value)
+            income = _num(form.get(f"income_{pid}"))
         except ValueError:
-            warnings.append(f"{key}: not a number ({value!r})")
+            warnings.append(f"{key}: 不是数字（{value!r}）")
             continue
-        entries.append(UpdateEntry(product_id=int(key.split("_")[1]),
-                                   market_value=amount))
-    if not entries:
-        return pages.daily_update_page(
-            _update_products(), as_of,
-            {"ok": False, "error": "未填写任何金额"})
+        if amount is None:
+            continue
+        entries.append(UpdateEntry(product_id=pid, market_value=amount,
+                                   reported_income=income))
+
+    # ② 新建产品（渠道可选已有的，或当场新建）
+    new_name = str(form.get("new_product_name") or "").strip()
+    new_amount = None
     try:
-        res = record_daily_update(_wealth_conn(), as_of, entries)
-        return pages.daily_update_page(
-            _update_products(), as_of,
-            {"ok": True, "n": len(res.updated), "as_of": as_of,
-             "warnings": warnings + res.warnings})
+        new_amount = _num(form.get("new_amount"))
+        new_income = _num(form.get("new_income"))
+    except ValueError:
+        new_income = None
+        warnings.append("新建产品：金额不是数字")
+    if new_name and new_amount is not None:
+        try:
+            plat_name = str(form.get("new_platform_name") or "").strip() \
+                or str(form.get("new_platform") or "").strip()
+            if not plat_name:
+                raise ValueError("请选择或填写渠道")
+            plat = next((x for x in repo.list_platforms(conn)
+                         if x["name"] == plat_name), None)
+            if plat is None:
+                pid_plat = repo.create_platform(conn, plat_name,
+                                                "other", "每日录入新建")
+                acct = repo.create_account(conn, pid_plat,
+                                           f"{plat_name} 默认账户")
+                warnings.append(f"已新建渠道「{plat_name}」")
+            else:
+                accts = repo.list_accounts(conn, plat["platform_id"])
+                acct = accts[0]["account_id"]
+            prod = next((x for x in repo.list_products(conn, include_inactive=True)
+                         if x["account_id"] == acct and x["name"] == new_name),
+                        None)
+            if prod is None:
+                ptype = str(form.get("new_product_type") or "other")
+                pid_new = repo.create_product(conn, acct, new_name, ptype)
+                warnings.append(f"已新建产品「{new_name}」")
+            else:
+                pid_new = prod["product_id"]
+            entries.append(UpdateEntry(product_id=pid_new,
+                                       market_value=new_amount,
+                                       reported_income=new_income))
+        except Exception as e:                               # noqa: BLE001
+            warnings.append(f"新建产品失败：{type(e).__name__}: {e}")
+
+    if not entries:
+        return _render_daily(as_of, {"ok": False,
+                                     "error": "没有填写任何金额"})
+    try:
+        res = record_daily_update(conn, as_of, entries)
+        return _render_daily(as_of, {
+            "ok": True, "n": len(res.updated), "as_of": as_of,
+            "warnings": warnings + res.warnings})
     except Exception as e:                                   # noqa: BLE001
-        return pages.daily_update_page(
-            _update_products(), as_of,
-            {"ok": False, "error": f"{type(e).__name__}: {e}"})
+        return _render_daily(as_of, {
+            "ok": False, "error": f"{type(e).__name__}: {e}"})
 
 
 def _wealth_conn():

@@ -67,6 +67,17 @@ footer{color:var(--muted);font-size:12px;padding:22px 20px;
 text-align:center}
 """
 
+#: 界面中文名（内部枚举值保持不变，只影响显示）
+PRODUCT_TYPE_CN = {
+    "cash": "现金", "money_fund": "货币基金", "bond_fund": "债券基金",
+    "index_fund": "指数基金", "qdii": "QDII 基金", "stock": "股票",
+    "etf": "ETF", "gold": "黄金", "other": "其他",
+}
+PLATFORM_KIND_CN = {
+    "fund_platform": "基金平台", "bank": "银行", "broker": "券商",
+    "cash": "现金", "other": "其他",
+}
+
 NAV = [
     ("/", "总览"),
     ("/wealth/overview", "资产总览"),
@@ -277,43 +288,96 @@ def wealth_overview(vm: dict) -> str:
     return layout("资产总览", "/wealth/overview", "".join(body))
 
 
-def daily_update_page(products: List[dict], as_of: str,
+def daily_update_page(products: List[dict], platforms: List[dict],
+                      product_types: List[str], as_of: str,
                       result: Optional[dict] = None) -> str:
-    body = ['<h2 style="margin-top:0">每日录入</h2>',
-            '<div class="note">Enter today\'s amount per product. Income, '
-            '万份收益, units and positions are derived — you do not type '
-            'returns. External flows (deposits/withdrawals) belong in '
-            'Transactions, not here.</div>']
+    """每日录入：日期 + 渠道 + 今日金额 + 今日收益。
+
+    用户只做两件事：选渠道（已有的选，没有的当场新建）、抄平台上显示的
+    两个数字。收益/万份收益/份额/持仓由系统推导，并与用户填的收益对账。
+    """
+    body = ['<h2 style="margin-top:0">每日录入</h2>']
     if result:
         if result.get("ok"):
-            body.append('<div class="banner">saved '
-                        f'{esc(result.get("n"))} entries for '
-                        f'{esc(result.get("as_of"))}'
-                        + (f'<div class="note">'
-                           f'{esc("; ".join(result.get("warnings", [])))}'
-                           f'</div>' if result.get("warnings") else "")
-                        + "</div>")
+            body.append(
+                f'<div class="banner">已保存 {esc(result.get("n"))} 条'
+                f'（{esc(result.get("as_of"))}）'
+                + "".join(f'<div class="note">· {esc(w)}</div>'
+                          for w in (result.get("warnings") or []))
+                + "</div>")
         else:
             body.append(f'<div class="banner bad">'
                         f'{esc(result.get("error"))}</div>')
-    form = [f'<form class="stack" method="post" action="/wealth/daily-update">'
-            f'<label>Date<input type="date" name="as_of" '
-            f'value="{esc(as_of)}"></label>']
+    body.append('<div class="note">只需填两个数字：<b>今日金额</b>'
+                '（账户里现在有多少钱）和 <b>今日收益</b>（平台 App 上显示的'
+                '当日收益，选填）。收益、万份收益、份额、持仓由系统推导；'
+                '转入/转出请记在「交易流水」，不要填在这里。</div>')
+
+    form = ['<form method="post" action="/wealth/daily-update">',
+            '<div class="card" style="margin-top:12px">',
+            '<h2>① 今日账户</h2>',
+            f'<label style="max-width:240px">日期'
+            f'<input type="date" name="as_of" value="{esc(as_of)}"></label>']
     if not products:
-        form.append('<div class="note">No products yet. Create them first '
-                    '(Accounts page or scripts/wealth/init_wealth_db.py).'
-                    '</div>')
-    for p in products:
-        form.append(
-            f'<label>{esc(p["platform"])} · {esc(p["name"])} '
-            f'({esc(p["product_type"])})'
-            f'<input name="amount_{p["product_id"]}" inputmode="decimal" '
-            f'placeholder="今日金额" value="{esc(p.get("last_value", ""))}">'
-            f'</label>')
-    form.append('<button type="submit">Save today\'s numbers</button>'
-                "</form>")
-    body.append('<div class="card" style="margin-top:12px">'
-                + "".join(form) + "</div>")
+        form.append('<div class="note">还没有任何产品 —— 用下面的'
+                    '「② 新建产品」添加第一个。</div>')
+    else:
+        form.append('<table><thead><tr>'
+                    '<th class="l">渠道</th><th class="l">产品</th>'
+                    '<th class="l">类型</th><th>上次金额</th>'
+                    '<th>今日金额</th><th>今日收益(元)</th>'
+                    '</tr></thead><tbody>')
+        for p in products:
+            ptype = PRODUCT_TYPE_CN.get(p["product_type"],
+                                        p["product_type"])
+            form.append(
+                f'<tr><td class="l">{esc(p["platform"])}</td>'
+                f'<td class="l">{esc(p["name"])}</td>'
+                f'<td class="l">{esc(ptype)}</td>'
+                f'<td>{esc(p.get("last_value") or "—")}</td>'
+                f'<td><input name="amount_{p["product_id"]}" '
+                f'inputmode="decimal" placeholder="今日金额" '
+                f'style="width:130px"></td>'
+                f'<td><input name="income_{p["product_id"]}" '
+                f'inputmode="decimal" placeholder="选填" '
+                f'style="width:110px"></td></tr>')
+        form.append('</tbody></table>')
+    form.append('<div style="margin-top:14px">'
+                '<button type="submit">保存今日数据</button></div>'
+                '</div>')
+
+    opts = "".join(
+        f'<option value="{esc(x["name"])}">{esc(x["name"])}'
+        f'（{esc(PLATFORM_KIND_CN.get(x["kind"], x["kind"]))}）</option>'
+        for x in platforms)
+    type_opts = "".join(
+        f'<option value="{t}">{esc(PRODUCT_TYPE_CN.get(t, t))}</option>'
+        for t in product_types)
+    form.append(
+        '<div class="card" style="margin-top:16px">'
+        '<h2>② 新建产品（首次录入时用）</h2>'
+        '<table><thead><tr><th class="l">渠道（已有）</th>'
+        '<th class="l">或新建渠道</th><th class="l">产品名称</th>'
+        '<th class="l">类型</th><th>金额</th><th>今日收益</th>'
+        '</tr></thead><tbody><tr>'
+        f'<td class="l"><select name="new_platform">{opts}</select></td>'
+        '<td class="l"><input name="new_platform_name" '
+        'placeholder="新渠道名"></td>'
+        '<td class="l"><input name="new_product_name" '
+        'placeholder="如：债券基金A"></td>'
+        f'<td class="l"><select name="new_product_type">{type_opts}</select>'
+        '</td>'
+        '<td><input name="new_amount" inputmode="decimal" '
+        'placeholder="今日金额" style="width:120px"></td>'
+        '<td><input name="new_income" inputmode="decimal" '
+        'placeholder="选填" style="width:100px"></td>'
+        '</tr></tbody></table>'
+        '<div class="note">渠道：下拉里选已有的；若要新建，填右边那格'
+        '（会自动创建该渠道）。</div>'
+        '<div style="margin-top:14px">'
+        '<button type="submit">保存今日数据</button></div>'
+        '</div></form>')
+    body.append("".join(form))
     return layout("每日录入", "/wealth/daily-update", "".join(body))
 
 

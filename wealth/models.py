@@ -32,7 +32,11 @@ INTERNAL_FLOW_TYPES = ("buy", "sell", "subscribe", "redeem", "dividend",
 TXN_TYPES = EXTERNAL_FLOW_TYPES + INTERNAL_FLOW_TYPES
 
 #: 收益记录的计算口径（spec §8.2）
-CALCULATION_METHODS = ("exact", "estimated", "manual")
+#: exact     — derived from begin/end values with known flow timing
+#: estimated — derived, but the intraday flow timing was unknown
+#: reported  — typed in by the user from the platform's own 今日收益
+#: manual    — entered/adjusted by hand with no derivation
+CALCULATION_METHODS = ("exact", "estimated", "reported", "manual")
 
 BENCHMARKS = ("CSI300", "SSE_COMPOSITE", "SP500", "NASDAQ")
 

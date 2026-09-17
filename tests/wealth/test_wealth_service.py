@@ -61,7 +61,7 @@ def test_gap_warning_is_recorded(basic):
     service.snapshot_from_amount(conn, "2026-09-01", basic["fund"], 10000.0)
     res = service.snapshot_from_amount(conn, "2026-10-15", basic["fund"],
                                        10200.0)
-    assert any("gap" in w for w in res.warnings)
+    assert any("距上次录入" in w for w in res.warnings)
 
 
 def test_units_and_nav_derivation(basic):
