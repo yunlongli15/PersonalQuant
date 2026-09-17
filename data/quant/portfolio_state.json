@@ -1,8 +1,8 @@
 {
   "as_of": "2026-09-17",
-  "computed_at": "2026-09-17T22:14:40",
-  "generated_at": "2026-09-17T22:14:40",
-  "capital": 66000,
+  "computed_at": "2026-09-17T22:15:27",
+  "generated_at": "2026-09-17T22:15:12",
+  "capital": 66000.0,
   "frequency": "monthly",
   "risk_profile": "balanced",
   "allocation_method": "equal_weight",
@@ -486,5 +486,55 @@
     "unit_buy_rate": 0.00076,
     "unit_sell_rate": 0.00126,
     "round_trip_rate": 0.00202
+  },
+  "holding_period": "monthly (20 trading days)",
+  "validated": true,
+  "small_capital_rule": {
+    "rule": "largest K with holdings>=5 and invested>=60%",
+    "chosen_top_k": 6,
+    "scans": [
+      {
+        "top_k": 3,
+        "invested": 0.8135342424242424,
+        "n_positions": 3,
+        "expected_net_return_pct": 0.0218
+      },
+      {
+        "top_k": 4,
+        "invested": 0.8225721212121212,
+        "n_positions": 4,
+        "expected_net_return_pct": 0.0219
+      },
+      {
+        "top_k": 5,
+        "invested": 0.6984343939393939,
+        "n_positions": 4,
+        "expected_net_return_pct": 0.0185
+      },
+      {
+        "top_k": 6,
+        "invested": 0.7185101515151515,
+        "n_positions": 5,
+        "expected_net_return_pct": 0.0187
+      },
+      {
+        "top_k": 7,
+        "invested": 0.47821969696969696,
+        "n_positions": 5,
+        "expected_net_return_pct": 0.0118
+      },
+      {
+        "top_k": 8,
+        "invested": 0.5647927272727272,
+        "n_positions": 6,
+        "expected_net_return_pct": 0.0133
+      },
+      {
+        "top_k": 10,
+        "invested": 0.5655446969696969,
+        "n_positions": 7,
+        "expected_net_return_pct": 0.0111
+      }
+    ]
   }
 }
