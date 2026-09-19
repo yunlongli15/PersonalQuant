@@ -106,7 +106,7 @@ regime split: up-market IC -0.1330 (n=13) / down-market IC -0.1350 (n=11)
 
 quantile mean forward 20d returns: Q1: 0.01706  Q2: 0.00781  Q3: 0.00533  Q4: -0.00426  Q5: -0.01140
 Q5-Q1 long-short (gross, monthly): mean -0.02846, ann -0.2784, Sharpe -3.034, MDD -0.4793
-top-quintile turnover: 0.160
+top-quintile turnover: 0.161
 
 | year | n | rank IC mean | ICIR | IC>0 |
 | --- | --- | --- | --- | --- |
@@ -171,7 +171,7 @@ regime split: up-market IC -0.0134 (n=15) / down-market IC -0.1270 (n=9)
 
 ## correlation with other factors (avg cross-sectional spearman, research)
 
-`amount_20`: 0.952  `volatility_60`: 0.473  `downside_volatility_60`: 0.402  `volatility_20`: 0.371  `roe`: 0.338
+`amount_20`: 0.952  `amihud_20`: -0.914  `downside_volatility_60`: 0.402  `max_return_20`: 0.333  `momentum_120`: 0.313
 
 ## redundancy cluster
 

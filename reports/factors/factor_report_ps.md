@@ -107,7 +107,7 @@
 
 ## correlation with other factors (avg cross-sectional spearman, research)
 
-`amount_20`: —  `amount_60`: —  `debt_to_asset`: —  `downside_volatility_60`: —  `earnings_yield`: —
+`amihud_20`: —  `amount_20`: —  `amount_60`: —  `amount_share_20`: —  `announcement_attention_5d`: —
 
 ## interpretation & limitations
 

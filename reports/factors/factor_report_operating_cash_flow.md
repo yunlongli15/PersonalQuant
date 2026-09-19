@@ -171,7 +171,7 @@ regime split: up-market IC -0.1475 (n=15) / down-market IC 0.1383 (n=9)
 
 ## correlation with other factors (avg cross-sectional spearman, research)
 
-`ocf_to_net_profit`: 0.597  `ocf_to_assets`: 0.338  `downside_volatility_60`: -0.291  `volatility_60`: -0.286  `volatility_20`: -0.259
+`downside_volatility_60`: -0.291  `amihud_20`: -0.278  `earnings_yield`: 0.246  `max_return_20`: -0.207  `gross_margin`: 0.204
 
 ## interpretation & limitations
 

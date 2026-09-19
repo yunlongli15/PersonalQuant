@@ -135,7 +135,7 @@ regime split: up-market IC -0.0683 (n=13) / down-market IC -0.1476 (n=11)
 
 quantile mean forward 20d returns: Q1: 0.02807  Q2: 0.03578  Q3: 0.04268  Q4: 0.03649  Q5: 0.02772
 Q5-Q1 long-short (gross, monthly): mean -0.00035, ann -0.0167, Sharpe -0.093, MDD -0.1627
-top-quintile turnover: 0.683
+top-quintile turnover: 0.682
 
 | year | n | rank IC mean | ICIR | IC>0 |
 | --- | --- | --- | --- | --- |
@@ -158,7 +158,7 @@ regime split: up-market IC -0.0093 (n=15) / down-market IC -0.1772 (n=9)
 
 quantile mean forward 20d returns: Q1: 0.02807  Q2: 0.03578  Q3: 0.04271  Q4: 0.03646  Q5: 0.02772
 Q5-Q1 long-short (gross, monthly): mean -0.00035, ann -0.0167, Sharpe -0.093, MDD -0.1627
-top-quintile turnover: 0.683
+top-quintile turnover: 0.682
 
 | year | n | rank IC mean | ICIR | IC>0 |
 | --- | --- | --- | --- | --- |
@@ -171,11 +171,11 @@ regime split: up-market IC -0.0093 (n=15) / down-market IC -0.1772 (n=9)
 
 ## correlation with other factors (avg cross-sectional spearman, research)
 
-`volatility_60`: 0.810  `downside_volatility_60`: 0.709  `earnings_yield`: -0.480  `amount_20`: 0.478  `pe`: 0.456
+`max_return_20`: 0.895  `downside_volatility_60`: 0.709  `limit_up_count_20`: 0.598  `earnings_yield`: -0.480  `amount_20`: 0.478
 
 ## redundancy cluster
 
-cluster members: `downside_volatility_60`, `volatility_20`, `volatility_60`
+cluster members: `downside_volatility_60`, `max_return_20`, `parkinson_vol_20`, `volatility_20`, `volatility_60`
 
 ## interpretation & limitations
 

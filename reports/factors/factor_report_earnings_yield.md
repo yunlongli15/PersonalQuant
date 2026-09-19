@@ -171,7 +171,7 @@ regime split: up-market IC -0.1085 (n=15) / down-market IC 0.1926 (n=9)
 
 ## correlation with other factors (avg cross-sectional spearman, research)
 
-`pe`: -0.938  `downside_volatility_60`: -0.526  `volatility_60`: -0.525  `volatility_20`: -0.480  `net_margin`: 0.358
+`downside_volatility_60`: -0.526  `max_return_20`: -0.412  `net_margin`: 0.358  `gross_margin`: 0.228  `momentum_120`: -0.203
 
 ## interpretation & limitations
 

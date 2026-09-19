@@ -1,0 +1,25 @@
+{
+  "run_id": "micro_run_001",
+  "created": "2026-09-19T14:50:32",
+  "git_commit": "68633722e829c987e831d910e6cf4cfd94c9e14c",
+  "config_sha256": "67674a18efe85e289c33f19a8dd21eb04e3ab8b052f75dbccfbcf5dfbf574401",
+  "scale_table": "C:\\Users\\Administrator\\Desktop\\PersonalQuant\\data\\parquet\\market\\market_scale.parquet",
+  "scale_rows": 5557,
+  "scale_available": true,
+  "n_factors": 75,
+  "n_selected": 11,
+  "periods": {
+    "research": [
+      "2018-01-01",
+      "2021-12-31"
+    ],
+    "valid": [
+      "2022-01-01",
+      "2023-12-31"
+    ],
+    "test": [
+      "2024-01-01",
+      "2025-12-31"
+    ]
+  }
+}

@@ -40,7 +40,16 @@ def quantile_analysis(predictions: pd.DataFrame, n_quantiles: int = 5) -> pd.Dat
         g = g.dropna(subset=["label"])
         if len(g) < n_quantiles * 5:
             continue
-        g["q"] = pd.qcut(g["prediction"], n_quantiles, labels=False)
+        # Rank-based bucketing rather than pd.qcut: a model whose
+        # predictions tie heavily (e.g. a small feature set producing
+        # repeated LightGBM leaf values) makes qcut fail with
+        # "Bin edges must be unique". Ranking gives the same quantiles
+        # for continuous predictions and degrades gracefully when they
+        # are discrete — ties land in adjacent buckets instead of
+        # aborting the run.
+        ranks = g["prediction"].rank(method="first", pct=True)
+        g["q"] = np.ceil(ranks * n_quantiles).clip(1, n_quantiles) - 1
+        g["q"] = g["q"].astype(int)
         for q in range(n_quantiles):
             sub = g[g["q"] == q]
             rows.append(

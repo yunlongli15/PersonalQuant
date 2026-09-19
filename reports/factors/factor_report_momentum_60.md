@@ -171,7 +171,7 @@ regime split: up-market IC -0.0982 (n=15) / down-market IC -0.0269 (n=9)
 
 ## correlation with other factors (avg cross-sectional spearman, research)
 
-`price_vs_ma120`: 0.884  `price_vs_ma60`: 0.809  `momentum_120`: 0.651  `momentum_20`: 0.507  `reversal_20`: -0.507
+`momentum_120`: 0.651  `high_52w_proximity`: 0.604  `momentum_20`: 0.507  `max_return_20`: 0.393  `amount_20`: 0.284
 
 ## redundancy cluster
 

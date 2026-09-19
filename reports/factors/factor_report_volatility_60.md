@@ -171,11 +171,11 @@ regime split: up-market IC 0.0313 (n=15) / down-market IC -0.1974 (n=9)
 
 ## correlation with other factors (avg cross-sectional spearman, research)
 
-`downside_volatility_60`: 0.913  `volatility_20`: 0.810  `earnings_yield`: -0.525  `pe`: 0.501  `amount_60`: 0.473
+`downside_volatility_60`: 0.913  `max_return_20`: 0.677  `earnings_yield`: -0.525  `amount_60`: 0.473  `amount_20`: 0.462
 
 ## redundancy cluster
 
-cluster members: `downside_volatility_60`, `volatility_20`, `volatility_60`
+cluster members: `downside_volatility_60`, `max_return_20`, `parkinson_vol_20`, `volatility_20`, `volatility_60`
 
 ## interpretation & limitations
 

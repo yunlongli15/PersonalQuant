@@ -171,7 +171,7 @@ regime split: up-market IC -0.0400 (n=15) / down-market IC 0.0331 (n=9)
 
 ## correlation with other factors (avg cross-sectional spearman, research)
 
-`roa`: 0.484  `ocf_to_net_profit`: 0.390  `gross_margin`: 0.375  `operating_cash_flow`: 0.338  `debt_to_asset`: -0.305
+`gross_margin`: 0.375  `debt_to_asset`: -0.305  `net_profit_growth`: 0.209  `earnings_yield`: -0.196  `amount_60`: 0.172
 
 ## interpretation & limitations
 

@@ -34,9 +34,25 @@ def make_data(n_days: int = 400, seed: int = 7) -> FactorData:
     close = pd.DataFrame(closes, index=cal)
     vol = pd.DataFrame(rng.uniform(1e5, 1e6, (n_days, len(symbols))),
                        index=cal, columns=symbols)
+    # bars 必须是完整的 long 表：微结构因子（隔夜/日内、Parkinson、
+    # 跳空）读 open/high/low，空表会让它们无法被 PIT 测试覆盖。
+    open_ = close * (1 + rng.normal(0, 0.004, close.shape))
+    high = np.maximum(close, open_) * (1 + np.abs(rng.normal(
+        0, 0.004, close.shape)))
+    low = np.minimum(close, open_) * (1 - np.abs(rng.normal(
+        0, 0.004, close.shape)))
+    bars = []
+    for s in symbols:
+        bars.append(pd.DataFrame({
+            "symbol": s, "trade_date": cal,
+            "open": open_[s].to_numpy(), "high": high[s].to_numpy(),
+            "low": low[s].to_numpy(), "close": close[s].to_numpy(),
+            "volume": vol[s].to_numpy(), "amount": (vol[s] * close[s]).to_numpy(),
+            "factor": 1.0}))
+    bars = pd.concat(bars, ignore_index=True)
     return FactorData(
         calendar=cal,
-        bars=pd.DataFrame(),
+        bars=bars,
         adj_close=close,
         close_raw=close,
         volume_raw=vol,
@@ -63,6 +79,13 @@ def test_factor_invariant_to_future_corruption(name):
                  "amount_cny"):
         frame = getattr(data2, attr)
         frame.loc[mask] = frame.loc[mask] * 7.0 + 3.0
+    # bars 也要污染：微结构因子读 open/high/low，只污染宽表等于没测到它们
+    if len(data2.bars):
+        bmask = data2.bars["trade_date"] > t
+        for col in ("open", "high", "low", "close", "volume", "amount"):
+            if col in data2.bars.columns:
+                data2.bars.loc[bmask, col] = \
+                    data2.bars.loc[bmask, col] * 7.0 + 3.0
     corrupted = fn(data2, dates=None)
 
     for col in intact.columns:

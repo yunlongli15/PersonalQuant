@@ -171,7 +171,7 @@ regime split: up-market IC -0.0142 (n=15) / down-market IC 0.0232 (n=9)
 
 ## correlation with other factors (avg cross-sectional spearman, research)
 
-`revenue_growth`: 0.581  `roe`: 0.273  `roa`: 0.255  `gross_margin`: 0.222  `amount_60`: 0.217
+`gross_margin`: 0.222  `amount_60`: 0.217  `amount_20`: 0.209  `amihud_20`: -0.189  `debt_to_asset`: -0.164
 
 ## interpretation & limitations
 

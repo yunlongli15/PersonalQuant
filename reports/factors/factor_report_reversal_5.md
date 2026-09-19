@@ -27,7 +27,7 @@
 
 quantile mean forward 20d returns: Q1: 0.00593  Q2: 0.01177  Q3: 0.01271  Q4: 0.01380  Q5: 0.01152
 Q5-Q1 long-short (gross, monthly): mean 0.00560, ann 0.0511, Sharpe 0.365, MDD -0.1146
-top-quintile turnover: 0.801
+top-quintile turnover: 0.800
 
 | year | n | rank IC mean | ICIR | IC>0 |
 | --- | --- | --- | --- | --- |
@@ -171,7 +171,7 @@ regime split: up-market IC 0.0321 (n=15) / down-market IC -0.0237 (n=9)
 
 ## correlation with other factors (avg cross-sectional spearman, research)
 
-`price_vs_ma20`: -0.725  `momentum_20`: -0.448  `reversal_20`: 0.448  `price_vs_ma60`: -0.434  `volume_ratio_5_20`: -0.319
+`momentum_20`: -0.448  `amount_share_20`: -0.446  `high_52w_proximity`: -0.263  `momentum_60`: -0.240  `momentum_120`: -0.181
 
 ## interpretation & limitations
 

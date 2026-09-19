@@ -171,7 +171,7 @@ regime split: up-market IC 0.0595 (n=15) / down-market IC -0.0291 (n=9)
 
 ## correlation with other factors (avg cross-sectional spearman, research)
 
-`net_profit_growth`: 0.581  `roe`: 0.312  `roa`: 0.290  `volatility_60`: 0.232  `downside_volatility_60`: 0.226
+`net_profit_growth`: 0.581  `downside_volatility_60`: 0.226  `max_return_20`: 0.176  `amount_60`: 0.170  `amount_20`: 0.164
 
 ## interpretation & limitations
 

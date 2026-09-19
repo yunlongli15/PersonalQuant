@@ -1,0 +1,65 @@
+{
+  "variant": "M",
+  "features": [
+    "amount_20",
+    "limit_up_count_20",
+    "max_return_20",
+    "momentum_60",
+    "price_vs_ma20",
+    "reversal_20",
+    "skewness_60",
+    "volume_price_corr_20",
+    "volume_ratio_20_60",
+    "volume_ratio_5_20",
+    "volume_trend_5_60"
+  ],
+  "strategy": {
+    "label": "micro_M",
+    "cumulative_return": 0.7019958776230224,
+    "annualized_return": 0.3053196130870588,
+    "annualized_volatility": 0.2513797283286948,
+    "sharpe": 1.1480215939773402,
+    "max_drawdown": -0.2743024610237368,
+    "calmar": 1.1130764629218473,
+    "win_rate_monthly": 0.6086956521739131,
+    "n_days": 485,
+    "avg": 0.4271246842226439,
+    "total": 9.823867737120809,
+    "n": 23,
+    "n_trades": 824
+  },
+  "ic": {
+    "valid": {
+      "period": "valid",
+      "n_months": 24,
+      "ic_mean": 0.051928346077194314,
+      "ic_std": 0.07538242764824195,
+      "icir": 0.6888653987041684,
+      "ic_positive_ratio": 0.8333333333333334,
+      "rank_ic_mean": 0.06840037400757874,
+      "rank_icir": 0.70282724974032,
+      "rank_ic_positive_ratio": 0.75
+    },
+    "test": {
+      "period": "test",
+      "n_months": 23,
+      "ic_mean": 0.030282094629401072,
+      "ic_std": 0.10198413780836925,
+      "icir": 0.2969294566798406,
+      "ic_positive_ratio": 0.6086956521739131,
+      "rank_ic_mean": 0.0649168223470757,
+      "rank_icir": 0.4975058470716862,
+      "rank_ic_positive_ratio": 0.6521739130434783
+    }
+  },
+  "top_bottom_spread": {
+    "spread_mean": 0.010049828132515417,
+    "spread_positive_ratio": 0.6170212765957447,
+    "n_months": 47
+  },
+  "fit": {
+    "best_iteration": 1,
+    "train_rmse": 0.15541994066774087,
+    "valid_rmse": 0.13328440638958197
+  }
+}

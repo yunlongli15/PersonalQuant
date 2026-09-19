@@ -17,4 +17,5 @@ Layers:
 """
 
 from . import base, fundamental, growth, normalization, quality, registry
-from . import news_factors, technical, valuation  # noqa: F401  (registration)
+from . import microstructure, news_factors, technical, valuation  # noqa: F401
+# ^ import order matters only in that each module registers on import
