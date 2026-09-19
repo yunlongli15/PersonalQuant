@@ -249,9 +249,86 @@ def positions() -> str:
     return pages.positions_page(services.wealth_positions())
 
 
+def _render_transactions(result: Optional[dict] = None,
+                         as_of: Optional[str] = None) -> str:
+    return pages.transactions_page(services.wealth_transactions(),
+                                   _update_products(), as_of or _today(),
+                                   result)
+
+
 @app.get("/wealth/transactions", response_class=HTMLResponse)
 def transactions() -> str:
-    return pages.transactions_page(services.wealth_transactions())
+    return _render_transactions()
+
+
+@app.post("/wealth/transaction", response_class=HTMLResponse)
+async def add_transaction(request: Request) -> str:
+    """记一笔流水（转入/转出/分红/费用/买卖）。
+
+    这是「外部资金流」的唯一入口：转入/转出在这里记，收益计算才会把
+    它剔除。买卖是内部变动，cash_flow 必须为 0（repository 强制）。
+    """
+    form = await request.form()
+    from wealth import db as wdb
+    from wealth import repository as repo
+    from wealth.models import EXTERNAL_FLOW_TYPES
+
+    conn = wdb.connect()
+    txn_date = str(form.get("txn_date") or _today())
+    ttype = str(form.get("txn_type") or "deposit")
+    note = str(form.get("note") or "").strip() or None
+    try:
+        pid = int(str(form.get("product_id")))
+        amount = _num(form.get("amount"))
+        units = _num(form.get("units"))
+        price = _num(form.get("price"))
+    except (TypeError, ValueError):
+        return _render_transactions(
+            {"ok": False, "error": "产品/金额格式不对"}, txn_date)
+
+    try:
+        if ttype in ("buy", "sell"):
+            if not units or not price:
+                raise ValueError("买入/卖出需要同时填股数和价格")
+            amt = units * price
+            repo.create_transaction(conn, txn_date, pid, ttype,
+                                    units=units, price=price, amount=amt,
+                                    note=note, source="user")
+            msg = (f"已记录：{TXN_LABEL[ttype]} {units:g} 股 @ {price:g}"
+                   f"（{amt:,.2f} 元，内部变动，不影响收益）")
+        elif ttype in ("dividend", "fee"):
+            if not amount:
+                raise ValueError("请填写金额")
+            if ttype == "fee":
+                repo.create_transaction(conn, txn_date, pid, "fee",
+                                        amount=amount, fee=amount,
+                                        note=note, source="user")
+            else:
+                repo.create_transaction(conn, txn_date, pid, "dividend",
+                                        amount=amount, note=note,
+                                        source="user")
+            msg = f"已记录：{TXN_LABEL[ttype]} {amount:,.2f} 元"
+        else:                                   # 外部资金流
+            if not amount:
+                raise ValueError("请填写金额")
+            signed = -abs(amount) if ttype in ("withdrawal",
+                                               "transfer_out") \
+                else abs(amount)
+            repo.create_transaction(conn, txn_date, pid, ttype,
+                                    amount=abs(amount), cash_flow=signed,
+                                    note=note, source="user")
+            msg = (f"已记录：{TXN_LABEL[ttype]} {abs(amount):,.2f} 元"
+                   f"（外部资金流 {signed:+,.2f}，已从收益中剔除）")
+        return _render_transactions({"ok": True, "msg": msg}, txn_date)
+    except Exception as e:                                   # noqa: BLE001
+        return _render_transactions(
+            {"ok": False, "error": f"{type(e).__name__}: {e}"}, txn_date)
+
+
+TXN_LABEL = {"deposit": "转入", "withdrawal": "转出",
+             "transfer_in": "内部转入", "transfer_out": "内部转出",
+             "dividend": "分红", "fee": "费用",
+             "buy": "买入", "sell": "卖出"}
 
 
 @app.get("/wealth/performance", response_class=HTMLResponse)

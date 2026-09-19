@@ -312,8 +312,11 @@ def daily_update_page(products: List[dict], platforms: List[dict],
                         f'{esc(result.get("error"))}</div>')
     body.append('<div class="note">只需填两个数字：<b>今日金额</b>'
                 '（账户里现在有多少钱）和 <b>今日收益</b>（平台 App 上显示的'
-                '当日收益，选填）。收益、万份收益、份额、持仓由系统推导；'
-                '转入/转出请记在「交易流水」，不要填在这里。</div>')
+                '当日收益，选填）。收益、万份收益、份额、持仓由系统推导。<br>'
+                '<b>从银行卡转入 / 转出到银行卡</b>这类外部资金进出，请到 '
+                '<a href="/wealth/transactions">交易流水</a> 记一笔'
+                '（记了才会从收益里剔除，否则会被当成赚了钱）；'
+                '股票请用下面的股票表单独填。</div>')
 
     form = ['<form method="post" action="/wealth/daily-update">',
             '<div class="card" style="margin-top:12px">',
@@ -445,18 +448,80 @@ def positions_page(rows: List[dict]) -> str:
     return layout("持仓明细", "/wealth/positions", "".join(body))
 
 
-def transactions_page(rows: List[dict]) -> str:
-    body = ['<h2 style="margin-top:0">交易流水</h2>',
-            '<div class="card">']
+TXN_TYPE_CN = {
+    "deposit": "转入（外部资金流入）",
+    "withdrawal": "转出（外部资金流出）",
+    "transfer_in": "内部转入",
+    "transfer_out": "内部转出",
+    "dividend": "分红",
+    "fee": "费用",
+    "buy": "买入（股票/ETF 加仓）",
+    "sell": "卖出（股票/ETF 减仓）",
+}
+
+
+def transactions_page(rows: List[dict], products: List[dict],
+                      as_of: str, result: Optional[dict] = None) -> str:
+    body = ['<h2 style="margin-top:0">交易流水</h2>']
+    if result:
+        if result.get("ok"):
+            body.append(f'<div class="banner">{esc(result.get("msg"))}'
+                        + "".join(f'<div class="note">· {esc(w)}</div>'
+                                  for w in (result.get("warnings") or []))
+                        + "</div>")
+        else:
+            body.append(f'<div class="banner bad">'
+                        f'{esc(result.get("error"))}</div>')
+
+    # 记账表单：转入/转出是「外部资金流」，绝不计入收益
+    prods = "".join(
+        f'<option value="{p["product_id"]}">'
+        f'{esc(p["platform"])} · {esc(p["name"])}</option>' for p in products)
+    types = "".join(f'<option value="{k}">{esc(v)}</option>'
+                    for k, v in TXN_TYPE_CN.items())
+    body.append(
+        '<div class="card" style="margin-bottom:16px">'
+        '<h2>记一笔</h2>'
+        '<div class="note"><b>转入 / 转出</b>指的是「从银行卡转到平台」或'
+        '「转出到银行卡」这类<b>外部资金进出</b>，系统会自动把它从收益里'
+        '剔除（否则会被当成赚了钱）。<b>分红、费用</b>按实际填。'
+        '<b>买入 / 卖出</b>是账户内部的钱变股票，不是外部资金流。</div>'
+        '<form method="post" action="/wealth/transaction">'
+        '<table><thead><tr><th class="l">日期</th>'
+        '<th class="l">渠道 · 产品</th><th class="l">类型</th>'
+        '<th>金额(元)</th><th>股数</th><th>价格</th>'
+        '<th class="l">备注</th><th></th></tr></thead><tbody><tr>'
+        f'<td class="l"><input type="date" name="txn_date" '
+        f'value="{esc(as_of)}"></td>'
+        f'<td class="l"><select name="product_id">{prods}</select></td>'
+        f'<td class="l"><select name="txn_type">{types}</select></td>'
+        '<td><input name="amount" inputmode="decimal" placeholder="金额" '
+        'style="width:110px"></td>'
+        '<td><input name="units" inputmode="decimal" placeholder="买卖才填" '
+        'style="width:100px"></td>'
+        '<td><input name="price" inputmode="decimal" placeholder="买卖才填" '
+        'style="width:100px"></td>'
+        '<td class="l"><input name="note" placeholder="备注（选填）" '
+        'style="width:150px"></td>'
+        '<td><button type="submit">记账</button></td>'
+        '</tr></tbody></table></form>'
+        '<div class="note">金额填正数即可：类型选「转出」时系统自动按负数'
+        '记账。</div></div>')
+
+    body.append('<div class="card"><h2>全部流水</h2>')
     body.append(table(
         ["日期", "产品", "类型", "份额", "价格", "金额", "费用", "资金流"],
-        [[esc(r["txn_date"]), esc(r["product_name"]), esc(r["txn_type"]),
+        [[esc(r["txn_date"]), esc(r["product_name"]),
+          esc(TXN_TYPE_CN.get(r["txn_type"], r["txn_type"])),
           money(r["units"]), money(r["price"], 4), money(r["amount"]),
-          money(r["fee"]), money(r["cash_flow"])] for r in rows],
+          money(r["fee"]),
+          f'<span class="{signed_class(r["cash_flow"])}">'
+          f'{money(r["cash_flow"])}</span>' if r["cash_flow"] else "—"]
+         for r in rows],
         left_cols=[0, 1, 2]))
-    body.append('<div class="note">external cash flow is signed '
-                '(deposit +, withdrawal −); buy/sell are internal and must '
-                'not carry one</div></div>')
+    body.append('<div class="note">「资金流」列 = 外部资金进出（转入为正、'
+                '转出为负）；买卖/分红/费用是内部变动，此列为 —。'
+                '收益计算永远扣掉这一列。</div></div>')
     return layout("交易流水", "/wealth/transactions", "".join(body))
 
 
