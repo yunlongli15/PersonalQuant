@@ -1,0 +1,31 @@
+production_freeze:
+  version: 1.0.0
+  freeze_date: '2026-09-19'
+  git_commit: 6241abd2a5ba1afb40ee0ae2a4a3733cf6311dce
+  production_enabled: true
+  strategy_version: strategy_v2
+  feature_version: alpha158+factor_pack_v1
+  news_feature_version: factor_pack_news_v1
+  model_version: s3
+  allocation_method: equal_weight
+  execution_model: T1_open
+  forward_holdout_start: '2026-09-18'
+  top_k: 20
+  rebalance_frequency: monthly
+  transaction_costs:
+    commission_rate: 0.00025
+    min_commission: 5.0
+    stamp_duty: 0.0005
+    transfer_fee: 1.0e-05
+    slippage: 0.0005
+  historical_test:
+  - '2024-01-01'
+  - '2025-12-31'
+  hashes:
+    paper_live_config: 4c30f7d93e7a8a7a7f76b8ea3e94b867144adc507faaf3d1d8d90b0e92c21851
+    strategy_v2_config: a6555258ab3696267335020fa4ac9547a9ed218766c84350e0fef2c028cb1cad
+    strategy_v1_config: f93df33c9761c0313927652c718f6fa7b49a55c0667a984082f4dbe53e4f5a93
+    factor_selection_v2_config: 06719de4acc98281115c77784ccc83fc003c61cbb1964964db8fa57ad1ecf6c0
+    feature_pack_v1: e1e1c5efef42687dc7626723bf427fbf2e533bd83c96d318d264244b60e2ed38
+    news_factor_pack: b4decd5c38ee5217ea8fe88b56f598b0263383b15087b42487a859ed425db7ec
+    production_model: 769f67656a713fef42747070266209e6037ba92595a6fde6601b2a5f2ed737f2

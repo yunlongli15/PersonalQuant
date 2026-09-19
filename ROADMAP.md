@@ -1023,3 +1023,90 @@ Order）；GUI 不能修改任何冻结策略；不写 forward holdout；API key
 
 下一阶段（未开始）：**STEP 12: Automated Daily Research / Data Update /
 Reporting**。
+
+---
+
+## STEP 12: Daily Automation & Reporting
+
+> 目标：把系统串成"每天跑一次"的自动化流水线 —— 数据更新 → Paper Live →
+> 组合状态 → 风险检查 → 日报。**不新增任何投资逻辑。**
+>
+> 状态：**COMPLETED**（2026-09-19）｜ **V1.0.0**
+> 发布说明：`docs/V1_RELEASE.md`｜ 冻结规则：`docs/V1_FREEZE.md`
+
+### 12.1 每日一条命令
+
+```bash
+python scripts/run_daily.py            # 平常只需这一条
+python scripts/run_daily.py --dry-run  # 只做检查，不写任何东西
+```
+
+14 个步骤：环境 → 数据源健康 → 行情/日历 → 新闻 → 财务(按需) → 数据质量
+→ Paper Live 预测 → T+1 模拟 → 个人账户快照 → 业绩 → 风险 → 漂移
+→ 日报 → manifest → 告警。普通日数十秒。
+
+### 12.2 生产冻结（§2 / §35）
+
+`config/production_freeze.yaml` 记录 6 类生产工件的 sha256。
+启动流水线前校验，不一致 → `PRODUCTION_DRIFT` → **停止正式 forward
+observation**（数据与报告照常）。`production_enabled: false` = 一键停止。
+
+### 12.3 幂等与守护
+
+| 机制 | 说明 |
+|---|---|
+| 输入指纹 | 同一天输入未变 → `ALREADY_COMPLETED`，0 秒返回 |
+| run_id 唯一 | 同秒重跑会自动加序号，**绝不覆盖**原记录（§5） |
+| 依赖图 | Data/Feature 失败 → Prediction **不允许运行**（§22） |
+| forward 守卫 | 起点前的运行写 `pre_forward/`，**绝不污染** `forward_holdout/` |
+| 回填守卫 | 默认禁止回写历史；`--backfill` 必须显式 `--force` |
+| 冻结守卫 | 哈希不一致 → 停止 forward 观测 |
+
+### 12.4 无人值守（§42 的六个场景）
+
+| 场景 | 行为 |
+|---|---|
+| 正常工作日 | 全绿，出日报 |
+| 调仓日 | 生成目标组合 + T+1 模拟成交 |
+| 新闻源失败 | **WARNING**，不阻断 prediction |
+| 市场数据失败 | **INVALID**，阻断 prediction（不会做错误交易） |
+| 重复运行日 | `ALREADY_COMPLETED`，不重复下载/预测/交易 |
+| scheduler 补跑 | `StartWhenAvailable`，用实际最新交易日 |
+
+### 12.5 本阶段修掉的问题
+
+| # | 问题 | 后果 |
+|---|---|---|
+| 1 | manifest 在任务循环里写，字段还没填 | 写出的清单几乎为空（缺 14 个字段） |
+| 2 | 日报的 `end_time` 在循环里还不存在 | 摘要里时间戳为空 |
+| 3 | `run_id` 只到秒 | 同秒重跑撞号 → `INSERT OR REPLACE` **覆盖原记录** |
+| 4 | dry-run 会真的下载行情快照 | "看一眼"却拉了几百 MB |
+| 5 | 财务任务每天都抓年报 | CNINFO 403 重试，几分钟，违反 §38 |
+| 6 | 行情任务每天下整份快照 | 同上；改为先 `--check` 再决定 |
+| 7 | Dashboard 直接 import pipeline | 违反"GUI 只经 services"（被 AST 测试抓住） |
+| 8 | 服务层 `fetch_df()` 用在 sqlite3 上 | 三个服务全挂 |
+| 9 | 风险 HHI 用"占总资产"权重 | 93% 现金时 HHI 0.0046、有效持仓 217，完全误导 |
+
+### 12.6 数据修复（顺带）
+
+- 上游新快照（行情到 **2026-09-18**）在 **48 个北交所标的**上有复权因子
+  跳变（0.18 → 3.28 之类）。已用 `repair_factor_rebase.py` 修正
+  31,240 行，**影响为零**（北交所不在 `exchanges: [SH, SZ]` 股票池内）。
+- 日历同步到 2026-09-18；`factor_prepare` 重跑（labels/universes 重建）。
+
+### 12.7 Forward Holdout 正式开始
+
+数据跨过起点后，**2026-09-18 产生第一份正式前瞻观测**
+（3016 只预测、20 笔订单，写入 `forward_holdout/`）。
+这是 V1 之后唯一的样本外证据来源。
+
+### 12.8 V1.0 发布
+
+- `VERSION` = `1.0.0`；`git tag v1.0.0`
+- 验收：`verify_step12.py` **24/24 PASS**；`pytest` 全绿
+
+### 12.9 下一步
+
+**NO NEW DEVELOPMENT** —— 进入 **V1.0 观察期**。
+
+新需求统一走 V1.1 / research experiment（见 `docs/V1_FREEZE.md`）。

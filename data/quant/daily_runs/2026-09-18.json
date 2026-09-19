@@ -1,0 +1,197 @@
+{
+  "freeze": {
+    "frozen": true,
+    "drift": false,
+    "ok": true,
+    "mismatches": [],
+    "missing": [],
+    "detail": "一致",
+    "production_enabled": true,
+    "current": {
+      "paper_live_config": "4c30f7d93e7a8a7a7f76b8ea3e94b867144adc507faaf3d1d8d90b0e92c21851",
+      "strategy_v2_config": "a6555258ab3696267335020fa4ac9547a9ed218766c84350e0fef2c028cb1cad",
+      "strategy_v1_config": "f93df33c9761c0313927652c718f6fa7b49a55c0667a984082f4dbe53e4f5a93",
+      "factor_selection_v2_config": "06719de4acc98281115c77784ccc83fc003c61cbb1964964db8fa57ad1ecf6c0",
+      "feature_pack_v1": "e1e1c5efef42687dc7626723bf427fbf2e533bd83c96d318d264244b60e2ed38",
+      "news_factor_pack": "b4decd5c38ee5217ea8fe88b56f598b0263383b15087b42487a859ed425db7ec",
+      "production_model": "769f67656a713fef42747070266209e6037ba92595a6fde6601b2a5f2ed737f2"
+    },
+    "recorded": {
+      "paper_live_config": "4c30f7d93e7a8a7a7f76b8ea3e94b867144adc507faaf3d1d8d90b0e92c21851",
+      "strategy_v2_config": "a6555258ab3696267335020fa4ac9547a9ed218766c84350e0fef2c028cb1cad",
+      "strategy_v1_config": "f93df33c9761c0313927652c718f6fa7b49a55c0667a984082f4dbe53e4f5a93",
+      "factor_selection_v2_config": "06719de4acc98281115c77784ccc83fc003c61cbb1964964db8fa57ad1ecf6c0",
+      "feature_pack_v1": "e1e1c5efef42687dc7626723bf427fbf2e533bd83c96d318d264244b60e2ed38",
+      "news_factor_pack": "b4decd5c38ee5217ea8fe88b56f598b0263383b15087b42487a859ed425db7ec",
+      "production_model": "769f67656a713fef42747070266209e6037ba92595a6fde6601b2a5f2ed737f2"
+    }
+  },
+  "run_id": "2026-09-18_220943",
+  "date": "2026-09-18",
+  "status": "WARNING",
+  "start_time": "2026-09-19T22:09:43+08:00",
+  "end_time": "2026-09-19T22:11:06+08:00",
+  "duration_s": 82.94,
+  "git_commit": "6241abd2a5ba1afb40ee0ae2a4a3733cf6311dce",
+  "strategy_version": "strategy_v2",
+  "model_version": "s3",
+  "feature_version": "alpha158+factor_pack_v1",
+  "news_version": "factor_pack_news_v1",
+  "data_snapshot_id": "2026-09-18",
+  "is_rebalance": true,
+  "forward_observation": true,
+  "paper_root": "C:\\Users\\Administrator\\Desktop\\PersonalQuant\\forward_holdout",
+  "dry_run": false,
+  "backfill": false,
+  "tasks": [
+    {
+      "name": "environment",
+      "status": "OK",
+      "detail": "Python 3.12.10；冻结状态 一致；DuckDB 可独占打开",
+      "error": "",
+      "duration_s": 1.04,
+      "depends_on": []
+    },
+    {
+      "name": "source_health",
+      "status": "WARNING",
+      "detail": "STALE：['Valuation', 'News']（行情最新 2026-09-18）",
+      "error": "",
+      "duration_s": 0.46,
+      "depends_on": [
+        "environment"
+      ]
+    },
+    {
+      "name": "market_data",
+      "status": "OK",
+      "detail": "行情最新 2026-09-18（日历 2026-09-18 00:00:00），落后 0 天，无需下载新快照",
+      "error": "",
+      "duration_s": 0.7,
+      "depends_on": [
+        "source_health"
+      ]
+    },
+    {
+      "name": "news",
+      "status": "OK",
+      "detail": "新闻最新 2026-09-11；覆盖 4223 只",
+      "error": "",
+      "duration_s": 52.13,
+      "depends_on": [
+        "environment"
+      ]
+    },
+    {
+      "name": "financial_lazy",
+      "status": "SKIPPED",
+      "detail": "按需加载：当前最新 2026-04-30；S3 特征集不含财务因子，未触发抓取（需要时加 --with-financial）",
+      "error": "",
+      "duration_s": 0.0,
+      "depends_on": [
+        "environment"
+      ]
+    },
+    {
+      "name": "data_quality",
+      "status": "OK",
+      "detail": "价格 5558 只全部正常",
+      "error": "",
+      "duration_s": 0.19,
+      "depends_on": [
+        "market_data"
+      ]
+    },
+    {
+      "name": "paper_prediction",
+      "status": "OK",
+      "detail": "预测 3016 只；订单挂起等 T+1；写入 forward_holdout（正式前瞻）",
+      "error": "",
+      "duration_s": 27.91,
+      "depends_on": [
+        "data_quality"
+      ]
+    },
+    {
+      "name": "personal_snapshot",
+      "status": "OK",
+      "detail": "个人账户 1 只，市值 9,750",
+      "error": "",
+      "duration_s": 0.03,
+      "depends_on": [
+        "environment"
+      ]
+    },
+    {
+      "name": "performance",
+      "status": "OK",
+      "detail": "净值序列不足",
+      "error": "",
+      "duration_s": 0.01,
+      "depends_on": [
+        "environment"
+      ]
+    },
+    {
+      "name": "risk",
+      "status": "OK",
+      "detail": "HHI 1.0000；有效持仓 1.0；最大单只 100.00%；现金 92.73%",
+      "error": "",
+      "duration_s": 0.04,
+      "depends_on": [
+        "performance"
+      ]
+    },
+    {
+      "name": "drift",
+      "status": "WARNING",
+      "detail": "paper drift: {'concentration': 'CONCENTRATION_WARNING'}",
+      "error": "",
+      "duration_s": 0.0,
+      "depends_on": [
+        "paper_prediction"
+      ]
+    },
+    {
+      "name": "alerts",
+      "status": "WARNING",
+      "detail": "4 条告警：['DATA_WARNING']",
+      "error": "",
+      "duration_s": 0.0,
+      "depends_on": [
+        "drift"
+      ]
+    },
+    {
+      "name": "report",
+      "status": "OK",
+      "detail": "C:\\Users\\Administrator\\Desktop\\PersonalQuant\\reports\\daily\\2026-09-18.md",
+      "error": "",
+      "duration_s": 0.41,
+      "depends_on": [
+        "alerts"
+      ]
+    },
+    {
+      "name": "manifest",
+      "status": "OK",
+      "detail": "C:\\Users\\Administrator\\Desktop\\PersonalQuant\\data\\quant\\daily_runs\\2026-09-18.json",
+      "error": "",
+      "duration_s": 0.02,
+      "depends_on": [
+        "report"
+      ]
+    }
+  ],
+  "warnings": [
+    "source_health: STALE：['Valuation', 'News']（行情最新 2026-09-18）",
+    "drift: paper drift: {'concentration': 'CONCENTRATION_WARNING'}",
+    "alerts: 4 条告警：['DATA_WARNING']"
+  ],
+  "errors": [],
+  "input_fingerprint": "338da9e3b3746e67",
+  "daily_summary": {
+    "status": "WARNING",
+    "n_alerts": 4
+  }
+}

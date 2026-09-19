@@ -66,17 +66,23 @@ def metrics(benchmark: str = "CSI300") -> dict:
 
     # --- 持仓层（无需净值）---
     if pos.get("available") and pos["rows"]:
-        weights = np.array([to_float(r["weight"]) for r in pos["rows"]])
-        w = weights[weights > 0]
+        # 集中度必须用**已投资权重**（归一化到 1），不能用"占总资产"的权重。
+        # 否则现金占 90% 时，HHI 会被现金稀释成一个无意义的极小值
+        # （实测：1 只持仓 + 93% 现金 → HHI 0.0046，有效持仓数 217，
+        # 完全误导）。现金单独用 cash_ratio 报告。
+        mv = np.array([to_float(r["market_value"]) for r in pos["rows"]])
+        invested = float(mv[mv > 0].sum())
+        w = (mv[mv > 0] / invested) if invested > 0 else np.array([])
         hhi = float((w ** 2).sum()) if len(w) else None
-        rows = pos["rows"]
         out["holdings_based"] = {
-            "n_positions": len(rows),
+            "n_positions": len(pos["rows"]),
+            "invested_value": invested,
             "hhi": hhi,
             "effective_n": (1.0 / hhi) if hhi else None,
-            "top_weight": float(max(w)) if len(w) else None,
+            "top_weight": float(w.max()) if len(w) else None,
             "top5_weight": float(np.sort(w)[::-1][:5].sum()) if len(w) else None,
             "cash_ratio": None,
+            "basis": "已投资权重（不含现金）；现金见 cash_ratio",
         }
         alloc = portfolio_service.allocation()
         if alloc.get("available"):

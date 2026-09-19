@@ -20,6 +20,36 @@ from services import (market_service, news_service, performance_service,
 
 page_setup("仪表盘", "📊")
 
+# ---------------------------------------------------------------- 每日流水线 §39
+# 经服务层拿，不直接 import pipeline（GUI 只允许调 services）
+from services import health_service as _health          # noqa: E402
+_daily = _health.daily_run()
+
+if _daily.get("available"):
+    _st = _daily.get("status", "—")
+    _sm = _daily.get("summary", {})
+    _al = _daily.get("alert_summary", {})
+    _pl = _daily.get("paper_live") or {}
+    _ts = _daily.get("timestamps", {})
+    render_chips([(f"最近每日运行 {_daily.get('date')}", _st),
+                  (f"状态 {_st}",
+                   "PASS" if _st == "OK" else "WARNING"),
+                  (f"告警 {_al.get('n', 0)}",
+                   "WARNING" if _al.get("n") else "PASS")])
+    st.caption(
+        f"每日流水线：`{_daily.get('run_id')}` ｜ "
+        f"耗时 {_daily.get('duration_s')}s ｜ "
+        f"行情更新至 {_ts.get('market_latest') or '—'} ｜ "
+        f"正式 forward 观测 "
+        f"{'是' if _sm.get('forward_observation') else '否'} ｜ "
+        f"Paper Live "
+        + (f"{_pl.get('n_predictions')} 只预测 / {_pl.get('n_fills')} 笔成交"
+           if _pl else "未运行"))
+    if _sm.get("failed") or _sm.get("blocked"):
+        st.warning(f"上次运行有失败/跳过的步骤："
+                   f"失败 {_sm.get('failed')}，跳过 {_sm.get('blocked')}")
+    st.markdown("---")
+
 # ---------------------------------------------------------------- 顶部状态卡
 card = strategy_service.status_card()
 if not unavailable_block(card, "策略状态不可用"):

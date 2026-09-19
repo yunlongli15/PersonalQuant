@@ -263,6 +263,32 @@ def monthly_report(store, cfg: dict, month: str,
         "因子选择、模型选择、参数调整、prompt 调整、新闻阈值调整、"
         "交易成本调整、top_k 调整、调仓频率调整、优化器调整、风险限制调整。",
         "冻结哈希每日校验，见上节。", "",
+        "## 8.5 数据质量 / 告警 / 冻结状态（STEP 12）", "",
+    ]
+    try:
+        from pipeline.daily_report import load_latest_summary
+        ds = load_latest_summary() or {}
+        alerts = ds.get("alerts") or []
+        from collections import Counter
+        lines += [
+            f"- 最近一次每日运行：{ds.get('date')}"
+            f"（状态 {ds.get('status')}）",
+            f"- 该次数据新鲜度："
+            + "；".join(f"{r.get('domain')}={r.get('status')}"
+                        for r in (ds.get('data', {}) or {}).get('freshness', [])),
+            f"- 告警 {len(alerts)} 条："
+            f"{dict(Counter(a['code'] for a in alerts))}",
+        ]
+        fz = (ds.get("strategy") or {})
+        lines.append(
+            f"- 生产冻结：策略 `{fz.get('strategy_version')}` / "
+            f"模型 `{fz.get('model_version')}` / "
+            f"分配 `{fz.get('allocation_method')}` / "
+            f"执行 `{fz.get('execution_model')}`")
+    except Exception as e:                                     # noqa: BLE001
+        lines.append(f"- 每日运行摘要不可用：{type(e).__name__}")
+    lines += [
+        "",
         "## 9. 可以怎么说（ANALYSIS）", "",
         "> 本节允许的解释仅限于：描述本月相对基准的表现、"
         "指出样本量是否足以支撑任何结论。",

@@ -16,9 +16,10 @@ A股数据 → 数据清洗与本地数据库 → 因子计算与因子挖掘 �
 ## 当前状态
 
 **STEP 1 ✅ / STEP 2 ✅ / STEP 3 ✅ / STEP 4 ✅ / STEP 5 ✅ / STEP 6 ✅ /
-STEP 7 ✅ / STEP 9 ✅ / STEP 10 ✅ / STEP 11 ✅**，并在 STEP 7 之后持续迭代
-（数据刷新、中文界面、微结构因子、增量 IC 因子选择协议、forward holdout
-+ paper live、个人投资终端）。
+STEP 7 ✅ / STEP 9 ✅ / STEP 10 ✅ / STEP 11 ✅ / STEP 12 ✅**
+— **V1.0.0**（`cat VERSION`）。
+📄 发布说明 [docs/V1_RELEASE.md](docs/V1_RELEASE.md) ｜
+🔒 冻结规则 [docs/V1_FREEZE.md](docs/V1_FREEZE.md)
 
 > 📖 **使用说明书：[docs/USER_GUIDE.md](docs/USER_GUIDE.md)** —— 怎么用、
 > 面板每个数字什么意思、板块交易权限、常见问题、系统边界。
@@ -37,8 +38,12 @@ STEP 7 ✅ / STEP 9 ✅ / STEP 10 ✅ / STEP 11 ✅**，并在 STEP 7 之后持�
 ```bash
 source .venv/Scripts/activate
 
-python scripts/quant/refresh_all.py --status   # ① 看数据新鲜度
-python scripts/quant/refresh_all.py            # ② 一键更新（需联网）
+python scripts/run_daily.py --dry-run          # ① 先干跑看检查
+python scripts/run_daily.py                    # ② 每天跑这一条（数据+Paper Live+日报）
+python scripts/system_health.py                # ③ 系统健康
+
+# 其它常用
+python scripts/quant/refresh_all.py --status   # 看数据新鲜度
 python scripts/quant/write_recommendation_note.py --horizon 20 --capital 66000
                                                # ③ 生成交易建议（含费用）
 python scripts/webapp/serve.py                 # ④ 打开界面 127.0.0.1:8765
@@ -262,6 +267,16 @@ python scripts/import_portfolio.py trades.csv        # 导入成交（默认 dry
 python scripts/backup_portfolio.py                   # 备份个人资产数据
 python scripts/verify_step11.py                      # 27 项验收
 
+# --- STEP 12：每日自动化 ---
+python scripts/run_daily.py --dry-run                # 只做检查
+python scripts/run_daily.py                          # 每日流水线（14 步）
+python scripts/run_daily.py --history                # 运行历史
+python scripts/system_health.py                      # 15 项系统健康
+python scripts/check_daily_alerts.py                 # 最近一次运行的告警
+python scripts/freeze_production.py --check          # 生产冻结校验
+python scripts/quarterly_review.py --quarter 2026-Q3 # 季度评审（只出报告）
+python scripts/verify_step12.py                      # 24 项验收
+
 # --- STEP 10：forward holdout + paper live ---
 python scripts/paper_live/freeze.py                  # 冻结策略（只做一次）
 python scripts/paper_live/freeze.py --check          # 校验冻结未被改动
@@ -310,7 +325,7 @@ PersonalQuant/
 ├── wealth/              # 个人财富（STEP 7：SQLite 财富库/收益引擎/决策链）
 ├── services/            # 应用服务层（STEP 11：GUI 唯一接触面，10 个模块）
 ├── app/                 # 个人投资终端（STEP 11：Streamlit，12 个页面）
-├── pipeline/            # 数据刷新管线（job store/新鲜度/信号/预测/调度）
+├── pipeline/            # 数据刷新管线 + 每日流水线（daily/freeze/告警/日报）
 ├── trade_plan/          # 交易计划引擎（入场区间/目标/止损/手数/板块权限）
 ├── webapp/              # 本地 Web GUI（FastAPI，仅 127.0.0.1，零 CDN）
 ├── config/              # 策略/组合/账户档案等运行配置

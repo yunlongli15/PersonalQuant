@@ -124,3 +124,28 @@ def refresh_all() -> dict:
     from pipeline.refresh import run_all
     out = run_all(continue_on_error=True)
     return {"available": True, "jobs": out, "n": len(out)}
+
+
+@safe(label="每日流水线")
+def daily_run() -> dict:
+    """最近一次每日流水线的状态（§39：Dashboard 读它）。
+
+    页面不直接 import pipeline —— 那违反"GUI 只经 services"的纪律
+    （有 AST 测试守着）。
+    """
+    from pipeline.daily_report import load_latest_summary
+    s = load_latest_summary()
+    if not s:
+        return {"available": False, "reason": "还没有跑过每日流水线"}
+    sm = s.get("summary", {}) or {}
+    return {
+        "available": True,
+        "run_id": s.get("run_id"), "date": s.get("date"),
+        "status": s.get("status"), "duration_s": s.get("duration_s"),
+        "forward_observation": bool(sm.get("forward_observation")),
+        "failed": sm.get("failed") or [], "blocked": sm.get("blocked") or [],
+        "alerts": s.get("alerts") or [],
+        "alert_summary": s.get("alert_summary") or {},
+        "paper_live": s.get("paper_live"),
+        "timestamps": s.get("timestamps") or {},
+    }
