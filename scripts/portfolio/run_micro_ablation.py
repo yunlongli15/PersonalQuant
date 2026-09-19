@@ -53,7 +53,13 @@ ANCHOR_S3 = (0.2812, 1.022, -0.2351)
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--variants", default="S3,M,N")
+    ap.add_argument("--variants-file", default=None,
+                    help="JSON {name: [factor,...]} 追加变体定义"
+                         "（独立信息研究用：scripts/research_independent_info.py）")
+    ap.add_argument("--out-dir", default=None,
+                    help=f"产物目录（默认 {OUT}）")
     args = ap.parse_args()
+    out_root = Path(args.out_dir) if args.out_dir else OUT
 
     import yaml
 
@@ -90,6 +96,10 @@ def main() -> int:
         "M": dedup(micro),
         "N": dedup(step4 + news + micro),
     }
+    if args.variants_file:
+        for k, v in json.loads(Path(args.variants_file).read_text(
+                encoding="utf-8")).items():
+            variants[k] = dedup(list(v))
     wanted = [v.strip() for v in args.variants.split(",")]
 
     train_dates = rebalance_dates(ts["train"][0], ts["train"][1])
@@ -145,10 +155,10 @@ def main() -> int:
             pd.DataFrame(columns=["date", "symbol", "label"])
 
     results = {}
-    OUT.mkdir(parents=True, exist_ok=True)
+    out_root.mkdir(parents=True, exist_ok=True)
     for v in wanted:
         names = variants[v]
-        out_dir = OUT / f"variant_{v}"
+        out_dir = out_root / f"variant_{v}"
         out_dir.mkdir(parents=True, exist_ok=True)
         print(f"\n===== 变体 {v}: {len(names)} 个自定义因子 =====", flush=True)
 
@@ -254,7 +264,7 @@ def main() -> int:
                      "valid_rmse": r["fit"]["valid_rmse"],
                      "n_custom": len(r["features"])})
     comp = pd.DataFrame(rows)
-    comp.to_csv(OUT / "comparison.csv", index=False)
+    comp.to_csv(out_root / "comparison.csv", index=False)
     print("\n===== 微结构因子消融（frozen test 2024-2025）=====")
     print(comp.to_string(index=False))
     if "S3" in results:

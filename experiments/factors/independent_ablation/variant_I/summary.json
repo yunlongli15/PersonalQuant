@@ -1,0 +1,58 @@
+{
+  "variant": "I",
+  "features": [
+    "downside_volatility_60",
+    "high_52w_proximity",
+    "parkinson_vol_20",
+    "volatility_60"
+  ],
+  "strategy": {
+    "label": "micro_I",
+    "cumulative_return": 0.23474183198513,
+    "annualized_return": 0.111430460449496,
+    "annualized_volatility": 0.3048907138970552,
+    "sharpe": 0.4455982364004831,
+    "max_drawdown": -0.31975404724014467,
+    "calmar": 0.34848803763790503,
+    "win_rate_monthly": 0.5652173913043478,
+    "n_days": 485,
+    "avg": 0.4140873600726671,
+    "total": 9.524009281671344,
+    "n": 23,
+    "n_trades": 809
+  },
+  "ic": {
+    "valid": {
+      "period": "valid",
+      "n_months": 24,
+      "ic_mean": 0.04095428338049826,
+      "ic_std": 0.06352976087680266,
+      "icir": 0.644647214396369,
+      "ic_positive_ratio": 0.7916666666666666,
+      "rank_ic_mean": 0.038965987360552394,
+      "rank_icir": 0.39134360169100074,
+      "rank_ic_positive_ratio": 0.5833333333333334
+    },
+    "test": {
+      "period": "test",
+      "n_months": 23,
+      "ic_mean": 0.039241770495313466,
+      "ic_std": 0.06206286035220825,
+      "icir": 0.6322907173890384,
+      "ic_positive_ratio": 0.782608695652174,
+      "rank_ic_mean": 0.054615667697531095,
+      "rank_icir": 0.7345025537332225,
+      "rank_ic_positive_ratio": 0.7391304347826086
+    }
+  },
+  "top_bottom_spread": {
+    "spread_mean": 0.009584994603349689,
+    "spread_positive_ratio": 0.6808510638297872,
+    "n_months": 47
+  },
+  "fit": {
+    "best_iteration": 19,
+    "train_rmse": 0.14835933513986496,
+    "valid_rmse": 0.13297104915453808
+  }
+}

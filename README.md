@@ -16,7 +16,8 @@ A股数据 → 数据清洗与本地数据库 → 因子计算与因子挖掘 �
 ## 当前状态
 
 **STEP 1 ✅ / STEP 2 ✅ / STEP 3 ✅ / STEP 4 ✅ / STEP 5 ✅ / STEP 6 ✅ /
-STEP 7 ✅**，并在 STEP 7 之后持续迭代（数据刷新、中文界面、微结构因子）。
+STEP 7 ✅**，并在 STEP 7 之后持续迭代（数据刷新、中文界面、微结构因子、
+独立信息研究）。
 
 > 📖 **使用说明书：[docs/USER_GUIDE.md](docs/USER_GUIDE.md)** —— 怎么用、
 > 面板每个数字什么意思、板块交易权限、常见问题、系统边界。
@@ -107,6 +108,16 @@ python scripts/webapp/serve.py                 # ④ 打开界面 127.0.0.1:8765
     财务因子"出样本即反转"形成对比），但**加入组合未提升策略**（诚实记录，
     research candidate，未进入 strategy_v2）。报告
     `reports/step8_micro_factors.md`
+  - **独立信息研究（STEP 9）**：把候选因子对「Alpha158 + 冻结 pack」做横截面
+    正交投影，残差的 IC 才是它真正新增的信息。结论有两层——
+    **(a) 大部分"有效因子"不携带独立信息**：75 个候选里只有 4 个通过，
+    最强的 `limit_up_count_20` raw ICIR −0.733 → **残差 +0.001**（全部预测力
+    都是既有信息的重新包装）；真正的独立信息集中在波动率家族。
+    **(b) "加入因子反而变差"这个前提统计上不成立**：S3/I/R/M/N 五个变体在
+    24 个月上无法区分（p = 0.15~0.83，各自年化的 bootstrap 95% CI 全部跨零），
+    该样本能可靠检出的最小年化差异是 **41%**。**瓶颈不是因子不够好，而是
+    用 24 个月组合回测检验因子没有分辨力。** 报告
+    `reports/step9_independent_info.md`（并更正了 step8 里"N 明显更差"的表述）
 
 ## 环境要求
 
@@ -196,6 +207,10 @@ python scripts/quant/write_recommendation_note.py --horizon 20 --capital 66000
 python scripts/quant/refresh_live_prices.py --top 30   # 当日实时价（快照未发布时）
 python scripts/research_all_factors.py --run-id micro_run_001   # 75 因子研究
 python scripts/portfolio/run_micro_ablation.py --variants S3,M,N  # 因子消融回测
+python scripts/research_independent_info.py      # 独立信息度量（残差 IC / R²）
+python scripts/portfolio/run_micro_ablation.py --variants S3,I,R \
+    --variants-file experiments/factors/independent_info/variants.json \
+    --out-dir experiments/factors/independent_ablation   # 独立信息消融
 python -m pytest tests/ -q                       # 全部测试（613 个）
 
 # 运行模式：PQ_MODE=offline 只读缓存（历史回测必须用）；PQ_PDF_CACHE=1 开启 PDF 缓存
@@ -246,7 +261,12 @@ PersonalQuant/
 - **严禁实盘交易、券商 API、自动下单**。系统只输出建议，下单全部由用户手动完成。
 - 数据与模型结果仅用于研究，**不构成投资建议**；目标价/止损是模型估计，不是承诺。
 - **时间口径铁律**：因子/信号/回测只用 signal date 之前的数据；
-  frozen test 2024-2025 仅做单次最终评估，绝不用于选参数或选因子。
+  frozen test 2024-2025 只做最终评估，绝不用于选参数或选因子。
+  **snooping 如实记录**：截至 STEP 9，test 集已被评估 3 次。
+- **统计显著性铁律**：任何"某变体更好/更差"的结论都必须给出**样本量与
+  可检出效应**。24 个月组合回测的年化分辨力约 ±41pp（月度超额标准差 5%），
+  低于此量级的差异一律只能说"无法区分"，不得写成"更好"或"更差"。
+  因子层（约 1500 只 × 72 个信号日）才有足够样本支撑结论。
 - **费用口径唯一**：回测、交易计划、财富记账共用同一个成本模型
   （含 5 元最低佣金）。
 - 个人财富数据（`data/wealth/`）按设计**只在本机**，不入库、不上传。

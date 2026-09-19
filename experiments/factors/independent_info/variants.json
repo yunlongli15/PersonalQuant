@@ -1,0 +1,14 @@
+{
+  "I": [
+    "downside_volatility_60",
+    "high_52w_proximity",
+    "parkinson_vol_20",
+    "volatility_60"
+  ],
+  "R": [
+    "limit_up_count_20",
+    "max_return_20",
+    "momentum_20",
+    "price_vs_ma60"
+  ]
+}
