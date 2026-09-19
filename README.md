@@ -10,18 +10,44 @@ A股数据 → 数据清洗与本地数据库 → 因子计算与因子挖掘 �
 → 具体股票与目标持仓数量 → 个人真实持仓管理 → 可视化 GUI
 ```
 
-分阶段推进，**当前处于 STEP 1**，绝不超前开发。
+分阶段推进，每阶段验收通过后才进入下一阶段（详见
+[ROADMAP.md](ROADMAP.md)）。
 
 ## 当前状态
 
 **STEP 1 ✅ / STEP 2 ✅ / STEP 3 ✅ / STEP 4 ✅ / STEP 5 ✅ / STEP 6 ✅ /
-STEP 7 ✅**（详见 [ROADMAP.md](ROADMAP.md)）
+STEP 7 ✅**，并在 STEP 7 之后持续迭代（数据刷新、中文界面、微结构因子）。
 
 > 📖 **使用说明书：[docs/USER_GUIDE.md](docs/USER_GUIDE.md)** —— 怎么用、
 > 面板每个数字什么意思、板块交易权限、常见问题、系统边界。
 >
 > 📦 **数据与模型清单：[DATA.md](DATA.md)** —— 仓库里包含哪些数据、
 > 哪些需要重新生成、怎么生成。
+>
+> 🚀 **五分钟上手**（下面「快速开始」一节）。
+>
+> ⚠️ 当前数据快照：行情 / 因子 / 信号 / 预测 **2026-09-17**，
+> 新闻公告 2026-09-11（官方索引滞后约 5 天，界面会如实标注）。
+> **本系统仅用于研究，不构成投资建议，永不自动下单。**
+
+## 快速开始
+
+```bash
+source .venv/Scripts/activate
+
+python scripts/quant/refresh_all.py --status   # ① 看数据新鲜度
+python scripts/quant/refresh_all.py            # ② 一键更新（需联网）
+python scripts/quant/write_recommendation_note.py --horizon 20 --capital 66000
+                                               # ③ 生成交易建议（含费用）
+python scripts/webapp/serve.py                 # ④ 打开界面 127.0.0.1:8765
+```
+
+界面里最常用的两个页面：
+
+- **每日录入**：填「今日金额 + 今日收益」（基金）或「今日现价」（股票），
+  其余（收益、万份收益、份额、持仓、浮盈）全部由系统推导；
+- **交易计划**：明日买卖清单，含建议买入价 / 可接受区间 / 目标价 / 止损 /
+  股数 / 预估费用，并自动**排除当前买不了的板块**（科创板需 50 万等）。
 
 - STEP 1：Qlib 0.9.7 研究环境 + 官方 LightGBM/Alpha158 workflow 完整回测
   （基线报告 `reports/step1_qlib_baseline.md`）
@@ -63,6 +89,24 @@ STEP 7 ✅**（详见 [ROADMAP.md](ROADMAP.md)）
   预测引擎（1D/5D/20D 条件分布，PIT）、交易计划（入场区间/目标/止损/
   手数/费用/卖出原因）、本地 Web GUI（127.0.0.1、零外部资源）、
   决策链（推荐→接受/修改/拒绝→实际成交滑点）、闭环脚本（9/9 步）
+- **STEP 7 之后**（2026-09-13 起）：
+  - **数据刷新到 2026-09-17** + 可复现快照更新脚本；修复上游快照引入的
+    复权因子重定基准缺陷（7 只标的、23,026 行）
+  - **界面全中文**（14 个页面），零 CDN、仅绑定 127.0.0.1
+  - **板块交易权限**：科创板 50 万 / 创业板 10 万 / 北交所 50 万，
+    交易计划**先按权限过滤再选股**，被排除标的完整列出
+  - **股票专用录入**：名称/代码/买入成本价/买入日期/股数/现价 → 市值与浮盈
+    （与基金「账户里有多少钱」的口径分开）
+  - **交易流水记账**：转入/转出（外部资金流，从收益中剔除）、分红、费用、
+    买入/卖出
+  - **修掉 4 个真实 bug**：特征计算死锁（父进程先初始化 qlib → worker 挂起）、
+    预测日期口径错乱（用旧信号冒充当日）、**部分产品未录入时净资产假暴跌**
+    （forward-fill 修复）、费用低估（最小佣金 5 元未计）
+  - **新因子挖掘（16 个微结构因子）**：涨停次数、彩票效应、偏度、
+    Parkinson 波动、量能趋势等——**frozen test 中预测力延续**（与 STEP 4
+    财务因子"出样本即反转"形成对比），但**加入组合未提升策略**（诚实记录，
+    research candidate，未进入 strategy_v2）。报告
+    `reports/step8_micro_factors.md`
 
 ## 环境要求
 
@@ -142,7 +186,17 @@ python scripts/quant/refresh_all.py --status     # 数据新鲜度面板
 python scripts/quant/run_full_loop.py --demo-wealth   # 闭环端到端
 python scripts/webapp/serve.py                   # GUI -> http://127.0.0.1:8765
 python scripts/verify_step7.py                   # 29 项验收
-python -m pytest tests/ -q                       # 全部测试（566 个）
+
+# --- STEP 7 之后：数据刷新 / 建议 / 因子 ---
+python scripts/quant/update_market_snapshot.py --check   # 查上游有无新快照
+python scripts/quant/update_market_snapshot.py --years 2026   # 更新并重新导入
+python scripts/quant/repair_factor_rebase.py     # 修复复权因子重定基准（如需要）
+python scripts/quant/write_recommendation_note.py --horizon 20 --capital 66000
+                                                 # 生成交易建议（含真实费用）
+python scripts/quant/refresh_live_prices.py --top 30   # 当日实时价（快照未发布时）
+python scripts/research_all_factors.py --run-id micro_run_001   # 75 因子研究
+python scripts/portfolio/run_micro_ablation.py --variants S3,M,N  # 因子消融回测
+python -m pytest tests/ -q                       # 全部测试（613 个）
 
 # 运行模式：PQ_MODE=offline 只读缓存（历史回测必须用）；PQ_PDF_CACHE=1 开启 PDF 缓存
 ```
@@ -166,17 +220,22 @@ PersonalQuant/
 │   ├── ingest/          #   各数据源 → canonical 导入
 │   ├── storage/         #   Parquet + 审计 + 数据源注册
 │   ├── repair/          #   canonical 修复管线（STEP 4 市场缩放校准）
-│   ├── strategy/        #   strategy_v1（STEP 3，冻结基线）
-│   └── quality/         #   16 项质量检查
+│   ├── strategy/        #   strategy_v1（STEP 3，冻结基线）+ 特征/回测/执行引擎
+│   └── quality/         #   质量检查
 ├── factors/             # 因子研究平台（STEP 4/5：注册/评估/选择/挖掘/报告）
+│   └── microstructure.py#   微结构因子（新一批：涨停/彩票/偏度/量价…）
 ├── news/                # 新闻系统（STEP 5：providers/事件/PIT/LLM/聚合）
 ├── portfolio/           # 组合优化（STEP 6：分配/协方差/约束/风险/回测引擎）
-├── config/              # workflow 等运行配置
-├── scripts/             # bootstrap / verify / demo / crosscheck
-├── tests/               # 400 个测试
-├── docs/                # 数据 schema/数据源/PIT/提取/质量文档
-├── data/                # RAW + parquet + duckdb（git 忽略）
-├── qlib_data/           # Qlib 基线数据（git 忽略）
+├── wealth/              # 个人财富（STEP 7：SQLite 财富库/收益引擎/决策链）
+├── pipeline/            # 数据刷新管线（job store/新鲜度/信号/预测/调度）
+├── trade_plan/          # 交易计划引擎（入场区间/目标/止损/手数/板块权限）
+├── webapp/              # 本地 Web GUI（FastAPI，仅 127.0.0.1，零 CDN）
+├── config/              # 策略/组合/账户档案等运行配置
+├── scripts/             # bootstrap / verify / refresh / research / demo
+├── tests/               # 613 个测试
+├── docs/                # 使用说明书 + schema/数据源/PIT/执行模型文档
+├── data/                # canonical parquet + derived（部分入库，见 DATA.md）
+├── qlib_data/           # Qlib 基线数据（git 忽略，可脚本重新下载）
 ├── reports/             # 实验报告
 ├── logs/                # 运行日志
 └── .venv/               # 项目虚拟环境（git 忽略）
@@ -184,6 +243,10 @@ PersonalQuant/
 
 ## 重要约定
 
-- 本阶段（STEP 1）仅使用 Qlib 官方示例数据与官方 workflow，不自行开发策略。
-- 严禁实盘交易、券商 API、自动下单。
-- 数据与模型结果仅用于研究，不构成投资建议。
+- **严禁实盘交易、券商 API、自动下单**。系统只输出建议，下单全部由用户手动完成。
+- 数据与模型结果仅用于研究，**不构成投资建议**；目标价/止损是模型估计，不是承诺。
+- **时间口径铁律**：因子/信号/回测只用 signal date 之前的数据；
+  frozen test 2024-2025 仅做单次最终评估，绝不用于选参数或选因子。
+- **费用口径唯一**：回测、交易计划、财富记账共用同一个成本模型
+  （含 5 元最低佣金）。
+- 个人财富数据（`data/wealth/`）按设计**只在本机**，不入库、不上传。
