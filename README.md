@@ -16,8 +16,9 @@ A股数据 → 数据清洗与本地数据库 → 因子计算与因子挖掘 �
 ## 当前状态
 
 **STEP 1 ✅ / STEP 2 ✅ / STEP 3 ✅ / STEP 4 ✅ / STEP 5 ✅ / STEP 6 ✅ /
-STEP 7 ✅ / STEP 9 ✅ / STEP 10 ✅**，并在 STEP 7 之后持续迭代（数据刷新、
-中文界面、微结构因子、增量 IC 因子选择协议、forward holdout + paper live）。
+STEP 7 ✅ / STEP 9 ✅ / STEP 10 ✅ / STEP 11 ✅**，并在 STEP 7 之后持续迭代
+（数据刷新、中文界面、微结构因子、增量 IC 因子选择协议、forward holdout
++ paper live、个人投资终端）。
 
 > 📖 **使用说明书：[docs/USER_GUIDE.md](docs/USER_GUIDE.md)** —— 怎么用、
 > 面板每个数字什么意思、板块交易权限、常见问题、系统边界。
@@ -146,6 +147,18 @@ python scripts/webapp/serve.py                 # ④ 打开界面 127.0.0.1:8765
       最终 5 个候选是"待观察清单"，不是"已证明有效清单"。报告
       `reports/incremental_factor_selection_v2.md`
 
+  - **STEP 11：个人投资终端（Streamlit）** —— 先审计既有资产代码
+    （`docs/step11_existing_asset_system_audit.md`），确认 `wealth/engine.py`
+    已实现 TWR/XIRR/P&L/持仓重建，于是**扩展而非重写**。
+    新增：`services/`（10 个服务模块，GUI 唯一接触面）、`app/`（12 个页面的
+    Streamlit 终端）、CSV 导入（幂等、不猜值、自动审计）、拆股处理、
+    现金余额与对账、演示账户、备份/恢复 CLI。
+    修掉 4 个真实 bug（详见 `reports/step11_investment_terminal.md`），
+    其中最隐蔽的是**页面文件名遮蔽同名包**——`app/pages/paper_live.py`
+    会挡住 `paper_live/` 包，Streamlit 把页面目录放进 sys.path 后
+    整个 Paper Live 功能失效。
+    验收 `verify_step11.py` 27/27 PASS；`pytest` 922 passed。
+
 ## 环境要求
 
 - Windows 10/11 x64（Linux/macOS 亦可，命令略有差异）
@@ -241,6 +254,14 @@ MPLBACKEND=Agg python scripts/make_incremental_figures.py   # 8 张图
 python scripts/verify_incremental_factor_selection.py        # 12 项验收
 python scripts/monitor_forward_holdout.py            # 前瞻 holdout（只记录，不选择）
 
+# --- STEP 11：个人投资终端 ---
+python scripts/run_app.py                            # 终端 http://127.0.0.1:8501
+python scripts/make_demo_account.py                  # 生成演示账户（独立库）
+PQ_WEALTH_DB=data/wealth/demo.db python scripts/run_app.py   # 用演示库看界面
+python scripts/import_portfolio.py trades.csv        # 导入成交（默认 dry-run）
+python scripts/backup_portfolio.py                   # 备份个人资产数据
+python scripts/verify_step11.py                      # 27 项验收
+
 # --- STEP 10：forward holdout + paper live ---
 python scripts/paper_live/freeze.py                  # 冻结策略（只做一次）
 python scripts/paper_live/freeze.py --check          # 校验冻结未被改动
@@ -287,6 +308,8 @@ PersonalQuant/
 ├── news/                # 新闻系统（STEP 5：providers/事件/PIT/LLM/聚合）
 ├── portfolio/           # 组合优化（STEP 6：分配/协方差/约束/风险/回测引擎）
 ├── wealth/              # 个人财富（STEP 7：SQLite 财富库/收益引擎/决策链）
+├── services/            # 应用服务层（STEP 11：GUI 唯一接触面，10 个模块）
+├── app/                 # 个人投资终端（STEP 11：Streamlit，12 个页面）
 ├── pipeline/            # 数据刷新管线（job store/新鲜度/信号/预测/调度）
 ├── trade_plan/          # 交易计划引擎（入场区间/目标/止损/手数/板块权限）
 ├── webapp/              # 本地 Web GUI（FastAPI，仅 127.0.0.1，零 CDN）

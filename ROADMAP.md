@@ -943,3 +943,83 @@ forward holdout**）：
 **不自动进入 STEP 11。** 本阶段完成后停下汇报。
 
 下一阶段（未开始）：**STEP 11: Build Personal Portfolio / Wealth Management + GUI**。
+
+---
+
+## STEP 11: Personal Investment Terminal (Portfolio + Local GUI)
+
+> 目标：把系统从 Quant Research System 升级为 **Personal Investment Terminal** ——
+> 打开界面就能看到资产、收益、风险、策略状态、建议与新闻。
+>
+> 状态：**COMPLETED**（2026-09-19）
+> 审计：`docs/step11_existing_asset_system_audit.md`
+> 报告：`reports/step11_investment_terminal.md`
+> 使用说明：`docs/investment_terminal.md`
+
+### 11.1 先审计，再动手（spec §2）
+
+审计发现 STEP 7 的 `wealth/` **已经实现**了 TWR / XIRR / P&L（剔除资本流）/
+持仓重建 / 万份收益 / 审计留痕 / 备份。**因此本阶段是扩展，不是重写。**
+
+真缺口只有 10 项：CSV 导入、拆股、现金余额、费用拆分、账本口径估值、
+对账、持仓一致性、demo 账户、备份恢复 CLI、统一服务层。
+
+### 11.2 两个前端共存（冲突与决策）
+
+| | `webapp/`（FastAPI，保留） | `app/`（Streamlit，新增） |
+|---|---|---|
+| 定位 | 录入型 | 终端型 |
+| 页面 | 15 | 12 |
+
+共享同一套引擎，**没有第二套会计**。代价如实记录：两者在流水录入上功能
+重叠，未来应择一合并；本阶段不动 STEP 7 的测试基线。
+
+数据库沿用 `wealth.db`（§46：个人数据与市场数据已物理分开），
+只做**幂等加列迁移**（费用拆分），不新建 portfolio.duckdb。
+
+### 11.3 服务层
+
+```
+app/ (12 页面)  →  services/ (10 模块)  →  wealth/ trade_plan/ pipeline/ …
+```
+
+页面**不允许 import 任何量化引擎**（AST 测试守着），只允许
+`streamlit / pandas / _shared / services`。TWR/XIRR/P&L 全部复用
+既有实现，不另写一套（§49）。
+
+### 11.4 修掉的 4 个真实 bug
+
+1. **页面文件名遮蔽同名包** —— `app/pages/paper_live.py` 挡住 `paper_live/`
+   包；Streamlit 把页面目录放进 `sys.path` 后，`import paper_live` 解析到
+   页面文件，Paper Live 功能整体失效。改名 `paper_live_monitor.py`。
+   这个 bug 静态检查看不出来，只有真跑页面才暴露。
+2. `fetch_df()`（DuckDB API）被用在 **sqlite3** 游标上 → 三个服务全挂。
+3. 演示账户只给现金写快照 → 净值序列失真，TWR 显示 −54%。
+4. 入金当天快照未带 `cash_flow` → 首日 P&L 把 30 万入金算成收益。
+
+另修正两处**测试自身**的错误（`reconciliation_error` 是恒等式残差，
+恒为 0；`app` 不是包不能 import）。
+
+### 11.5 交付
+
+- 包：`services/`（10 模块）、`app/`（入口 + 12 页面 + `_shared`）
+- `wealth/` 扩展：`importer`（CSV）、`cash_balance`、`reconcile`、
+  `position_consistency`、`value_positions`、`split` 真实现、费用拆分迁移
+- CLI：`run_app.py`、`import_portfolio.py`、`backup_portfolio.py`、
+  `make_demo_account.py`、`verify_step11.py`
+- 配置：`config/gui.yaml`（无任何密钥）
+- 测试：`tests/portfolio_account/`（16 文件）、`tests/gui/`（4 文件）
+- 验收：**27/27 PASS**；`pytest` **922 passed**（STEP 1–10 无回归）
+
+### 11.6 边界
+
+不连接券商、不自动下单、不涉及真实资金（建议页只有 Export，无 Submit
+Order）；GUI 不能修改任何冻结策略；不写 forward holdout；API key 只从
+环境变量读。
+
+### 11.7 下一步
+
+**不自动进入 STEP 12。** 本阶段完成后停下汇报。
+
+下一阶段（未开始）：**STEP 12: Automated Daily Research / Data Update /
+Reporting**。

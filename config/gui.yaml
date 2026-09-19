@@ -1,0 +1,54 @@
+# GUI 配置（STEP 11, spec §45）
+# 界面参数一律写在这里，不硬编码在页面里。
+# **绝不放任何 API key / token / password**（spec §47）——
+# 密钥只允许来自环境变量。
+
+gui:
+  version: "1.0"
+  title: "PersonalQuant · 个人投资终端"
+  default_account: null          # null = 全部账户汇总
+  currency: "CNY"
+
+  benchmark:
+    default: "CSI300"
+    options: ["CSI300", "CSI500", "CSI1000", "EW_MARKET"]
+
+  chart:
+    nav_days: 750                # 净值曲线最多展示的天数
+    price_days: 250              # 个股价格图天数
+    heatmap_years: 5
+    height: 320
+    height_small: 200
+
+  dashboard:
+    refresh_seconds: 0           # 0 = 不自动刷新（避免误以为数据是实时的）
+    top_news: 8
+    top_signals: 8
+    top_contributors: 5
+
+  precision:
+    money: 2
+    pct: 2
+    nav: 4
+    units: 2
+
+  theme:
+    # 只用于状态标签；**颜色不是唯一信息载体，必须同时有文字**（spec §57）
+    status_colors:
+      FROZEN: "#009E73"
+      LIVE_PAPER: "#0072B2"
+      RESEARCH_ONLY: "#E69F00"
+      CANDIDATE: "#CC79A7"
+      HISTORICAL_TEST_OBSERVED: "#9E9E9E"
+      WARNING: "#E69F00"
+      INVALID: "#D55E00"
+      PASS: "#009E73"
+      FAIL: "#D55E00"
+
+  export:
+    enabled: true                # 所有核心页面允许 CSV 导出（spec §64）
+    encoding: "utf-8-sig"
+
+  safety:
+    allow_broker: false          # 恒定 false；GUI 没有任何下单路径（spec §65）
+    allow_freeze_change: false   # GUI 不得修改冻结策略（spec §55）

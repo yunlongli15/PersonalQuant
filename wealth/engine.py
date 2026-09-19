@@ -201,8 +201,12 @@ def holdings_from_ledger(txns: Sequence[dict]) -> Holding:
         elif ttype == "fee":
             h.realized_pnl -= fee if fee else amount
         elif ttype == "split":
-            # informational: units adjusted by the caller; never compute
-            pass
+            # 拆股/送股：units 存的是**比例**（2.0 = 2 拆 1，股数翻倍、价格减半）。
+            # 总成本不变，所以均价按比例缩小；不需要额外现金，也不产生损益。
+            # 比例非法（<=0）时忽略并保持原状，绝不把持仓算成 0 或负数。
+            if units > 0:
+                h.units *= units
+                h.avg_cost /= units
     return h
 
 
@@ -580,3 +584,214 @@ def write_positions(conn, as_of: str, navs: Dict[int, float]) -> int:
             "unrealized_pnl": (mv - h.units * h.avg_cost) if nav else 0.0,
         })
     return repo.replace_positions(conn, as_of, rows)
+
+
+# ---------------------------------------------------------------------------
+# 12. cash & reconciliation (STEP 11, spec §14 / §52)
+# ---------------------------------------------------------------------------
+
+def cash_balance(conn, account_id: Optional[int] = None) -> dict:
+    """现金余额的两种口径 —— 都给出，差值本身就是对账信号。
+
+    recorded : 现金类产品（cash / money_market）的最新市值。
+               这是用户实际记录下来的"账户里有多少钱"。
+    implied  : 由**流水**推导的现金净额：
+               外部净流入 − 买入/申购 + 卖出/赎回 + 分红 − 独立费用。
+               如果用户从不记录现金类产品，这个值才是唯一可用的现金口径。
+
+    两者不一致不代表谁错了：券商账户的现金本来就不在产品表里。
+    """
+    from .models import MONEY_MARKET_TYPES
+
+    where, params = "", []
+    if account_id is not None:
+        where = " AND a.account_id = ?"
+        params = [account_id]
+
+    rows = conn.execute(
+        f"""SELECT p.product_type, p.product_id,
+                   COALESCE(s.market_value, 0) AS market_value
+            FROM products p
+            JOIN accounts a ON a.account_id = p.account_id
+            LEFT JOIN daily_snapshots s
+                   ON s.product_id = p.product_id
+                  AND s.snap_date = (SELECT MAX(s2.snap_date)
+                                     FROM daily_snapshots s2
+                                     WHERE s2.product_id = p.product_id)
+            WHERE p.status = 'active'{where}""", params).fetchall()
+    recorded = sum(float(r["market_value"] or 0.0) for r in rows
+                   if r["product_type"] in MONEY_MARKET_TYPES)
+
+    txn_sql = """SELECT t.txn_type, t.amount, t.fee, t.cash_flow
+                 FROM transactions t
+                 JOIN products p ON p.product_id = t.product_id
+                 JOIN accounts a ON a.account_id = p.account_id
+                 WHERE 1=1"""
+    if account_id is not None:
+        txn_sql += " AND a.account_id = ?"
+    inflow = outflow = 0.0
+    for r in conn.execute(txn_sql, params).fetchall():
+        t = r["txn_type"]
+        amt = float(r["amount"] or 0.0)
+        fee = float(r["fee"] or 0.0)
+        if t in ("deposit", "transfer_in"):
+            inflow += amt
+        elif t in ("withdrawal", "transfer_out"):
+            outflow += amt
+        elif t in ("buy", "subscribe"):
+            outflow += amt + fee
+        elif t in ("sell", "redeem"):
+            inflow += amt - fee
+        elif t == "dividend":
+            inflow += amt
+        elif t == "fee":
+            outflow += fee if fee else amt
+    return {
+        "recorded": float(recorded),
+        "implied": float(inflow - outflow),
+        "external_inflow": float(inflow),
+        "external_outflow": float(outflow),
+    }
+
+
+def reconcile(conn, tolerance: float = 1.0) -> dict:
+    """对账（spec §52）：各类资产 + 现金 = 总资产，误差在容差内。
+
+    同时对每个**由流水重建**的持仓做一次一致性检查：
+    账本推导出的股数 与 positions 表里写的 是否一致（§53）。
+    """
+    summary = portfolio_summary(conn)
+    by_cat = summary.get("by_category", {})
+    total = float(summary.get("total_value") or 0.0)
+    parts = {k: float(v or 0.0) for k, v in by_cat.items()}
+    parts_total = sum(parts.values())
+    diff = total - parts_total
+    return {
+        "as_of": summary.get("as_of"),
+        "total_value": total,
+        "by_category": parts,
+        "sum_of_parts": parts_total,
+        "difference": diff,
+        "tolerance": float(tolerance),
+        "ok": abs(diff) <= float(tolerance),
+    }
+
+
+def position_consistency(conn, as_of: Optional[str] = None,
+                         tol: float = 1e-6) -> List[dict]:
+    """positions 表 vs 由 transactions 重建的持仓（spec §53）。
+
+    持仓的唯一真相是流水；positions 只是物化缓存。任何不一致都要报出来，
+    并标明是"手工 override"还是"真的算错了"。
+    """
+    stored = {}
+    for r in conn.execute(
+            "SELECT product_id, units, source FROM positions "
+            "WHERE as_of = (SELECT MAX(as_of) FROM positions)").fetchall():
+        stored[int(r["product_id"])] = (float(r["units"] or 0.0),
+                                        r["source"] or "system")
+    out = []
+    for p in conn.execute("SELECT product_id, name FROM products").fetchall():
+        pid = int(p["product_id"])
+        txns = [dict(r) for r in conn.execute(
+            "SELECT * FROM transactions WHERE product_id = ?", (pid,))]
+        derived = holdings_from_ledger(txns).units
+        if not txns:
+            continue
+        s_units, src = stored.get(pid, (None, "missing"))
+        if s_units is None:
+            out.append({"product_id": pid, "name": p["name"],
+                        "derived_units": derived, "stored_units": None,
+                        "delta": None, "status": "not_materialised",
+                        "source": src})
+            continue
+        delta = s_units - derived
+        ok = abs(delta) <= tol
+        out.append({
+            "product_id": pid, "name": p["name"],
+            "derived_units": derived, "stored_units": s_units,
+            "delta": delta,
+            "status": "ok" if ok else
+                      ("manual_override" if src == "manual" else "MISMATCH"),
+            "source": src,
+        })
+    return out
+
+
+def value_positions(conn, prices: Optional[Dict[str, float]] = None,
+                    account_id: Optional[int] = None) -> dict:
+    """由**流水**重建持仓并按给定价格估值（STEP 11）。
+
+    与 `portfolio_summary` 的区别：
+      - portfolio_summary 读的是 `daily_snapshots`（用户每天报的金额），
+        适合"货币基金/理财"这类用户只报余额的产品；
+      - 本函数读的是 `transactions`（账本真相），适合**券商持仓**这类
+        有明确买卖记录的标的。导入历史成交后还没有任何快照时，
+        只有这个口径能算出市值。
+
+    prices: {symbol: 最新价}。缺价的标的按 avg_cost 计价并在 missing_price
+    里列出 —— **不猜价格，也不静默当成 0**。
+    """
+    from .models import MONEY_MARKET_TYPES
+
+    prices = prices or {}
+    where, params = "", []
+    if account_id is not None:
+        where = " AND p.account_id = ?"
+        params = [account_id]
+
+    rows = conn.execute(
+        f"""SELECT p.product_id, p.name, p.ticker, p.product_type,
+                   p.account_id, a.name AS account
+            FROM products p JOIN accounts a ON a.account_id = p.account_id
+            WHERE p.status = 'active'{where}""", params).fetchall()
+
+    holdings, missing, by_class = [], [], {}
+    invested_total = realized_total = unrealized_total = 0.0
+    market_total = 0.0
+    for r in rows:
+        pid = int(r["product_id"])
+        txns = [dict(x) for x in conn.execute(
+            "SELECT * FROM transactions WHERE product_id = ? ORDER BY "
+            "txn_date, txn_id", (pid,))]
+        if not txns:
+            continue
+        h = holdings_from_ledger(txns)
+        if abs(h.units) < 1e-12 and abs(h.realized_pnl) < 1e-9:
+            continue
+        sym = r["ticker"]
+        px = prices.get(sym) if sym else None
+        if px is None:
+            px = h.avg_cost
+            if sym and r["product_type"] not in MONEY_MARKET_TYPES:
+                missing.append(sym)
+        mv = h.units * float(px or 0.0)
+        unreal = mv - h.units * h.avg_cost
+        holdings.append({
+            "product_id": pid, "account": r["account"], "symbol": sym,
+            "name": r["name"], "asset_class": r["product_type"],
+            "units": h.units, "avg_cost": h.avg_cost, "price": float(px or 0.0),
+            "market_value": mv, "unrealized_pnl": unreal,
+            "realized_pnl": h.realized_pnl, "dividends": h.dividends,
+            "fees_paid": h.fees_paid,
+        })
+        market_total += mv
+        invested_total += h.invested
+        realized_total += h.realized_pnl
+        unrealized_total += unreal
+        by_class[r["product_type"]] = by_class.get(r["product_type"], 0.0) + mv
+
+    cash = cash_balance(conn, account_id)
+    return {
+        "holdings": holdings,
+        "market_value": market_total,
+        "cash_recorded": cash["recorded"],
+        "cash_implied": cash["implied"],
+        "total_value_recorded": market_total + cash["recorded"],
+        "invested": invested_total,
+        "realized_pnl": realized_total,
+        "unrealized_pnl": unrealized_total,
+        "by_asset_class": by_class,
+        "missing_price": missing,
+        "n_positions": len(holdings),
+    }

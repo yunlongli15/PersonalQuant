@@ -33,6 +33,17 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 WEALTH_DIR = PROJECT_ROOT / "data" / "wealth"
 WEALTH_DB = WEALTH_DIR / "wealth.db"
 
+
+def db_path() -> Path:
+    """真实财富库路径。
+
+    环境变量 `PQ_WEALTH_DB` 可覆盖 —— 用于**演示库**或测试隔离，
+    绝不用于"把真实数据挪走"。真实数据始终是 data/wealth/wealth.db。
+    """
+    import os
+    override = os.environ.get("PQ_WEALTH_DB", "").strip()
+    return Path(override) if override else WEALTH_DB
+
 _local = threading.local()
 _lock = threading.Lock()
 
@@ -243,17 +254,13 @@ CREATE VIEW IF NOT EXISTS v_latest_values AS
 """
 
 
-def db_path() -> Path:
-    return WEALTH_DB
-
-
 def connect(path: Optional[Path] = None) -> sqlite3.Connection:
     """Thread-local SQLite connection with the schema applied.
 
     `check_same_thread=False` is safe here because connections are
     thread-local (each thread gets its own).
     """
-    p = Path(path) if path else WEALTH_DB
+    p = Path(path) if path else db_path()
     if path is None:
         conn = getattr(_local, "conn", None)
         if conn is not None:
@@ -262,10 +269,41 @@ def connect(path: Optional[Path] = None) -> sqlite3.Connection:
     conn = sqlite3.connect(str(p), check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.executescript(SCHEMA_SQL)
+    migrate(conn)
     conn.commit()
     if path is None:
         _local.conn = conn
     return conn
+
+
+# --- 迁移（STEP 11）--------------------------------------------------------
+# 原则：只**加列**，不改列、不删列、不动既有不变量。SQLite 的
+# `CREATE TABLE IF NOT EXISTS` 不会给已存在的表补列，所以新列在这里
+# 显式 ALTER 上去。已有行拿默认值，历史数据不受影响。
+MIGRATIONS = {
+    "transactions": [
+        ("commission", "REAL NOT NULL DEFAULT 0"),   # 佣金（含最低 5 元后的值）
+        ("stamp_duty", "REAL NOT NULL DEFAULT 0"),   # 印花税（仅卖出）
+        ("other_fee", "REAL NOT NULL DEFAULT 0"),    # 过户费/其他
+    ],
+}
+
+
+def migrate(conn: sqlite3.Connection) -> list:
+    """幂等加列迁移。返回本次实际新增的 (表, 列) 列表。"""
+    added = []
+    for table, cols in MIGRATIONS.items():
+        have = {r["name"] for r in conn.execute(
+            f"PRAGMA table_info({table})").fetchall()}
+        if not have:
+            continue                                  # 表还没建，跳过
+        for col, decl in cols:
+            if col not in have:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")
+                added.append((table, col))
+    if added:
+        conn.commit()
+    return added
 
 
 def reset(path: Optional[Path] = None) -> None:
