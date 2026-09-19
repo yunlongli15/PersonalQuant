@@ -16,8 +16,8 @@ A股数据 → 数据清洗与本地数据库 → 因子计算与因子挖掘 �
 ## 当前状态
 
 **STEP 1 ✅ / STEP 2 ✅ / STEP 3 ✅ / STEP 4 ✅ / STEP 5 ✅ / STEP 6 ✅ /
-STEP 7 ✅ / STEP 9 ✅**，并在 STEP 7 之后持续迭代（数据刷新、中文界面、
-微结构因子、增量 IC 因子选择协议）。
+STEP 7 ✅ / STEP 9 ✅ / STEP 10 ✅**，并在 STEP 7 之后持续迭代（数据刷新、
+中文界面、微结构因子、增量 IC 因子选择协议、forward holdout + paper live）。
 
 > 📖 **使用说明书：[docs/USER_GUIDE.md](docs/USER_GUIDE.md)** —— 怎么用、
 > 面板每个数字什么意思、板块交易权限、常见问题、系统边界。
@@ -108,6 +108,26 @@ python scripts/webapp/serve.py                 # ④ 打开界面 127.0.0.1:8765
     财务因子"出样本即反转"形成对比），但**加入组合未提升策略**（诚实记录，
     research candidate，未进入 strategy_v2）。报告
     `reports/step8_micro_factors.md`
+  - **STEP 10：Clean Forward Holdout + Paper Live Monitoring**
+    - **2024-2025 正式降级为 `HISTORICAL_TEST_OBSERVED`**（已被评估 3 次：
+      STEP 6 终评、step8、step9），不再声称是 untouched test。
+    - **clean forward holdout 起点 2026-09-18**，`record_only`：只记录 /
+      观察 / 评估，绝不用于选因子、选模型、调参数、调阈值、调成本、
+      调 top_k、调调仓频率、调优化器、调风险限制。
+    - **paper live 引擎**：同一条代码路径既跑历史验证、也跑未来实盘观察。
+      T 日收盘信号 → T+1 开盘成交；100 股手数；涨跌停/停牌 NO_TRADE；
+      挂单机制（T+1 未开盘时挂起，下次运行按 T+1 开盘价成交）；
+      **按日幂等**（重跑不重复交易）。
+    - **append-only + revision_id**：已写下的观测永远不覆盖；确实遇到数据源
+      bug 时必须给理由、写新 revision、保留旧版本。
+    - **冻结可证明**：config / model / feature pack 的 sha256 逐日校验，
+      不一致即 `DRIFT_DETECTED`；config 哈希排除 freeze 块以免自指。
+    - **只监控不反馈**：strategy / model / news / data 漂移与 9 类告警
+      只产生 WARNING，绝不自动修复、绝不自动减仓。
+    - 历史引擎验证：24 个调仓日跑通全部 §46 检查项（T+1、手数、成本、
+      无未来数据、停牌/涨跌停）。报告
+      `reports/step10_forward_holdout.md` /
+      `reports/paper_live_engine_validation.md`
   - **STEP 9：Incremental IC 因子选择协议**（两段，第二段是对第一段的修正）
     - **(9.1 发现)** 把候选因子对「Alpha158 + 冻结 pack」做横截面正交投影，
       残差 IC 才是它新增的信息：75 个候选里只有 4 个通过，最强的
@@ -220,6 +240,19 @@ python scripts/run_incremental_secondary.py          # ADD/REPLACE + 重要性�
 MPLBACKEND=Agg python scripts/make_incremental_figures.py   # 8 张图
 python scripts/verify_incremental_factor_selection.py        # 12 项验收
 python scripts/monitor_forward_holdout.py            # 前瞻 holdout（只记录，不选择）
+
+# --- STEP 10：forward holdout + paper live ---
+python scripts/paper_live/freeze.py                  # 冻结策略（只做一次）
+python scripts/paper_live/freeze.py --check          # 校验冻结未被改动
+python scripts/paper_live/run_daily.py --dry-run     # 每日运行（先干跑）
+python scripts/paper_live/run_daily.py               # 每日运行（写 forward 记录）
+python scripts/paper_live/run_rebalance.py --date 2026-09-30   # 调仓日 + 买卖清单
+python scripts/paper_live/audit.py                   # PIT / 数据完整性审计
+python scripts/paper_live/check_alerts.py            # 告警（只报警）
+python scripts/paper_live/monthly_report.py --month 2026-10    # 月度复盘
+python scripts/paper_live/build_dashboard.py         # dashboard 数据层
+python scripts/paper_live/validate_engine.py --n 24  # 历史引擎验证
+python scripts/verify_step10.py                      # 21 项验收
 python scripts/portfolio/run_micro_ablation.py --variants S3,I,R \
     --variants-file experiments/factors/independent_info/variants.json \
     --out-dir experiments/factors/independent_ablation   # 独立信息消融
@@ -282,6 +315,12 @@ PersonalQuant/
   不是 `IC1`，更不是组合 Sharpe。优先级 incremental IC > stability >
   independence > 可复现 > portfolio 收益；权重全部在
   `config/factor_selection_v2.yaml`。
+- **DISCOVERY / SELECTION / OBSERVATION 不得混淆**：历史研究负责发现，
+  validation（2018-2023）负责选择，**forward holdout（2026-09-18 起）
+  只负责观察**。三者在代码层面各有一条守卫拦截越界
+  （`incremental/windows.py`、`incremental/holdout.py`、
+  `paper_live/config.py::FORWARD_HOLDOUT_READ_ONLY`）。
+  观察结果**不反馈**到任何决策：表现差不改，表现好也不加强。
 - **统计显著性铁律**：任何"某变体更好/更差"的结论都必须给出**样本量与
   可检出效应**。24 个月组合回测的年化分辨力约 ±41pp（月度超额标准差 5%），
   低于此量级的差异一律只能说"无法区分"，不得写成"更好"或"更差"。

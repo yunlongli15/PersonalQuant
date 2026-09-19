@@ -1,0 +1,89 @@
+# Paper Live —— 每天真实地向前走
+
+paper live 是**观察系统**，不是交易系统。它每天产出一个冻结策略在当天会
+做的决定，然后按真实约束模拟成交，把结果原样记下来。
+
+**永不连接券商、永不自动下单、永不碰真实资金。**
+
+## 每天做什么（§5）
+
+```
+读取最新可用交易日
+  → 结掉上一次挂起的订单（T+1 已经开盘的）
+  → 检查数据完整性 + PIT 审计
+  → 计算截至当日可获得的全部 feature
+  → 跑冻结模型 → 生成预测
+  → 非调仓日：HOLD / monitoring snapshot
+  → 调仓日：目标组合 → 下单 → 模拟 T+1 开盘成交 → 更新 paper portfolio
+  → 落盘（append-only）
+```
+
+## 常用命令（§42）
+
+```bash
+# 每日运行（默认最新交易日）
+python scripts/paper_live/run_daily.py
+python scripts/paper_live/run_daily.py --date 2026-09-30
+python scripts/paper_live/run_daily.py --dry-run        # 只检查，不落盘
+
+# 调仓日运行 + 生成买卖清单
+python scripts/paper_live/run_rebalance.py --date 2026-09-30
+
+# PIT / 数据完整性审计（只读）
+python scripts/paper_live/audit.py --date 2026-09-30
+
+# 告警（只报警）
+python scripts/paper_live/check_alerts.py
+
+# 月度复盘
+python scripts/paper_live/monthly_report.py --month 2026-10
+python scripts/paper_live/monthly_report.py --year 2026
+
+# dashboard 数据层（不做 GUI）
+python scripts/paper_live/build_dashboard.py
+```
+
+## Paper 账户
+
+| 项 | 值 |
+|---|---|
+| 初始本金 | 500,000 CNY（`config/paper_live.yaml`，写入后不可变） |
+| 调仓频率 | 月度，last_trading_day |
+| Top-K | 20 |
+| 目标仓位 | 95%（5% 现金缓冲） |
+| 手数 | 100 股整数倍 |
+| 执行 | T 日收盘信号 → **T+1 开盘**成交 |
+| 成本 | 与 strategy_v1 同一模型（禁止第二套费率） |
+
+> **理论权重 ≠ 实际权重。** 手续费与 1 手取整会让实际投入低于 95%。
+> 500k 本金 + 20 只标的时实测现金占比约 9-12%（STEP 6 已记录这一摩擦）。
+
+## 挂单机制
+
+实盘当天收盘后运行时，T+1 还没开盘，成交价不存在。引擎的处理是
+**把订单挂起**（`state/pending_orders.json`），下一次运行时按 T+1 开盘价成交。
+
+不这么做的话，每次调仓信号都会"报出去但永远不成交"。
+
+历史回放时 T+1 数据已经存在，所以立即成交 —— 走的仍然是同一条
+`execute_orders` 路径，只是 T+1 是否就绪不同。
+
+## 幂等
+
+同一天重跑 = 无操作。`run_day` 发现该日已有 observation 就直接返回，
+不重新交易。调度器重复触发、手滑重跑，都不会把账户交易两次。
+
+## 状态含义
+
+| 状态 | 含义 | 后果 |
+|---|---|---|
+| `VALID` | 一切正常 | 写入正式 forward 记录 |
+| `WARNING` | 有告警（数据质量 / 漂移 / 回撤等） | 照写，但标记 |
+| `INVALID` | PIT 违例或冻结不一致 | **不写正式 forward metrics** |
+
+## 不做的事
+
+- 不连接券商 / 不自动下单 / 不碰真实资金（§13）
+- 不因为短期表现改模型、改参数、改阈值（§17）
+- 不在样本不足时强行计算年化（§41，<60 天只给事实，不给 Sharpe）
+- 不做 GUI（§47，本阶段只建 dashboard 数据层）

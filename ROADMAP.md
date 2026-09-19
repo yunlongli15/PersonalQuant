@@ -815,3 +815,131 @@ test_custom_frames_rank_across_stocks_not_across_factors`，并且驱动在构�
 ### 9.7 下一步
 
 **不自动进入**新闻/GUI/portfolio。本阶段完成后停下汇报。
+
+---
+
+## STEP 10: Clean Forward Holdout + Paper Live Monitoring
+
+> 目标：从 **2026-09-18** 起建立一个真正只记录、不参与任何选择的 clean
+> forward holdout，并把当前研究候选策略变成一个可持续运行的 paper-live
+> 观察系统。
+>
+> 这一阶段不是继续优化策略，不是挖因子，不是调参数。核心是
+> **LIVE RESEARCH DISCIPLINE**。
+>
+> 状态：**COMPLETED**（2026-09-19）
+> 配置：`config/paper_live.yaml`｜包：`paper_live/`
+> 报告：`reports/step10_forward_holdout.md`
+
+### 10.1 历史 test 状态：正式降级
+
+2024-2025 已被评估 **3 次**（STEP 6 终评、step8 微结构消融、step9 独立信息
+研究），不再是 untouched test。正式标记为 **`HISTORICAL_TEST_OBSERVED`**，
+只读、只报告。今后任何报告不得再写 "strict untouched test"。
+
+### 10.2 clean forward holdout
+
+- **起点 2026-09-18**（最后一个已被观察日期的次日；2026-01-01~09-17 曾用于
+  paper-live 建议生成，不干净）。
+- **`record_only = true`**：只记录 / 观察 / 评估。绝不用于选因子、选模型、
+  调参数、调 prompt、调阈值、调成本、调 top_k、调调仓频率、调优化器、
+  调风险限制。
+- 表现差**不自动改**，表现好**也不自动加强**。
+
+### 10.3 冻结了什么，为什么是 strategy_v2
+
+依据**已有冻结状态**选择，不重新优化（spec §4）：
+
+1. 只有 `config/strategy_v2.yaml` 带 `paper_live` 块（capital 500000）；
+   `pipeline/signals.py` 也把 S3 称为 "the FROZEN production model"。
+2. alpha = **S3**（Alpha158 + factor_pack_v1 + news）在 STEP 5 通过
+   research+validation 增量检查（D > B）。
+3. allocation = **equal_weight**，由 STEP 6 的研究期 + 验证期选出。
+4. strategy_v2 的 candidate gates 有 **2 项未通过**，但两项都在 frozen test
+   上。spec §4 明令不得依据 test 结果重新选择 —— 用它去否掉与用它去选中
+   同样违规。因此原样保留，作为已知 caveat 带进观察期。
+
+**冻结可证明**：config / model / feature pack 的 sha256 逐日校验。
+`config_sha256()` 排除 freeze 块本身（否则写入 freeze 会改变 config 哈希，
+形成自指，永远报 drift）。
+
+### 10.4 Paper live 引擎（一条路径，两处使用）
+
+同一段代码既跑历史引擎验证、也跑未来实盘观察，唯一差别是 root 与日期。
+
+- **T 日收盘信号 → T+1 开盘成交**（禁止同日成交）。
+- 100 股整数倍；理论股数 ≠ 实际股数，残差现金显式记录。
+- 停牌 / 涨停（买）/ 跌停（卖）/ 无行情 → `NO_TRADE` 并记录原因。
+- **先卖后买**（否则中间现金会变负；现实中卖出资金可立即用于买入）。
+- **现金守卫**：下单按 T 日收盘价算、成交在 T+1 开盘，跳空高开时实际花费
+  会超过计划 —— 钱不够就减量或不下单，绝不透支。
+- **挂单机制**：当天收盘后运行时 T+1 尚未开盘，订单挂起，下次运行按
+  T+1 开盘价成交。不这么做的话每次调仓信号都会"报出去但永远不成交"。
+- **按日幂等**：同一天重跑是无操作（调度器重复触发不会把账户交易两次）。
+
+### 10.5 append-only 与 revision
+
+- 已写下的观测**永不覆盖**（内容不同即 `PermissionError`）。
+- **不可回填**：新写入日期不得早于已记录的最大 forward 日期。
+- 确实遇到数据源 bug 时必须给 `reason`，写新 revision，**旧版本保留**，
+  并在 `revisions.jsonl` 留痕。
+- `created_at` 不参与"是否变了"的比较（否则重跑必然产生 revision）。
+
+### 10.6 监控（只观察，不反馈）
+
+- 漂移四类：strategy（哈希）/ model（预测分布 z）/ news / data。
+- 9 类告警：`PIT_FAILURE`、`STRATEGY_DRIFT`、`MODEL_DRIFT`、
+  `CONCENTRATION_WARNING`、`DRAWDOWN_ALERT`、`ABNORMAL_TURNOVER`、
+  `IC_NEGATIVE_STREAK`、`DATA_QUALITY_WARNING`、`STRATEGY_UNFROZEN`。
+- **告警只报警**：不交易、不减仓、不改参数。告警文本里不得出现下单动作
+  （`tests/forward/test_alerts.py` 有断言守着）。
+- 样本不足时不给结论：窗口未走完记 NA（不填 0）；净值 < 60 天不年化、
+  不算 Sharpe；年度不足 230 个观测日标记 `INCOMPLETE YEAR`。
+
+### 10.7 历史引擎验证（24 个调仓日）
+
+用**完全相同的引擎路径**跑 2024-01 至 2025-12 的 24 个调仓日，
+结果写入 `experiments/paper_live/engine_validation/`（**未写 2026
+forward holdout**）：
+
+- T+1 成立（全部成交日严格晚于信号日）。
+- 手数、成本、停牌/涨跌停 NO_TRADE、无未来数据全部通过。
+- 观察到 2024-09-30 只成交 22/40（当月末 A 股急涨，多只标的涨停买不进），
+  现金一度到 91.7% —— 这是**真实约束的如实记录**，不是 bug。
+
+报告：`reports/paper_live_engine_validation.md`。
+
+### 10.8 本阶段修掉的问题
+
+| # | 问题 | 后果 |
+|---|---|---|
+| 1 | 持仓按上次成交价（成本）估值，而非当日市价 | delta 全错 → 超买超卖 → 现金变负 |
+| 2 | 买卖按代码顺序执行 | 中间现金为负 |
+| 3 | 按 T 收盘价下单、T+1 开盘成交，无现金守卫 | 跳空高开透支账户（实测 2025-04-30 现金 −3.3%） |
+| 4 | T+1 未开盘时订单直接丢失 | 实盘每次调仓都"报出去但不成交" |
+| 5 | 引擎绕过 provider 读全局日历 | 测试与真实日历不一致，T+1 判定错误 |
+| 6 | PIT 审计查"库里有啥"而不是"消费了啥" | 历史回放被误判为 INVALID（price / financial / news 三处） |
+| 7 | `write_freeze` 用 `yaml.safe_dump` 整份重写 config | 抹掉全部注释（"为什么这么冻结"的记录） |
+| 8 | config 哈希包含 freeze 块 | 自指：写入 freeze 即改变哈希，永远 drift |
+| 9 | 告警格式化未防 `None` | 漂移字段缺失时 `TypeError` 崩溃 |
+| 10 | gitignore 被整份重写 | 丢掉 94 行按阶段分层的忽略规则，373 个文件暴露 |
+
+### 10.9 代码与验收
+
+- 新增包 `paper_live/`：`config`（冻结哈希）、`store`（append-only +
+  revision）、`engine`（单日运行）、`execution`（手数/下单/T+1 成交）、
+  `data`（唯一数据接触面）、`metrics`、`audit`（PIT）、`drift`、`alerts`、
+  `report`。
+- 脚本：`scripts/paper_live/{run_daily,run_rebalance,check_alerts,`
+  `monthly_report,audit,freeze,validate_engine,build_dashboard}.py`、
+  `scripts/install_scheduler.ps1`（默认 dry-run）、`scripts/verify_step10.py`。
+- 测试：`tests/forward/` 13 个文件、**94 个测试**。
+- 验收：`verify_step10.py` 21 项。
+- 文档：`docs/{forward_holdout,paper_live,strategy_freeze,`
+  `paper_live_execution,forward_monitoring}.md`。
+
+### 10.10 下一步
+
+**不自动进入 STEP 11。** 本阶段完成后停下汇报。
+
+下一阶段（未开始）：**STEP 11: Build Personal Portfolio / Wealth Management + GUI**。

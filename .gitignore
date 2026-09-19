@@ -92,3 +92,25 @@ experiments/news/strategy/research_predictions_*.parquet
 # --- STEP 7: personal wealth data (user data; never in git) ---
 data/wealth/
 backup/
+
+# --- STEP 10: forward holdout 观测数据（spec §51）---
+# 引擎/配置/测试/文档/报告入库；逐日的 predictions/portfolio/trades/metrics
+# 是可再生成的大 parquet，不入库。reports/forward_holdout/*.md 入库。
+forward_holdout/predictions/
+forward_holdout/portfolio/
+forward_holdout/trades/
+forward_holdout/metrics/
+forward_holdout/manifests/
+forward_holdout/observations/
+forward_holdout/alerts/
+forward_holdout/state/
+forward_holdout/dashboard/
+
+# 历史引擎验证产物（可由 scripts/paper_live/validate_engine.py 重跑）
+experiments/paper_live/
+
+# --- 密钥（绝不入库，绝不出现在日志/报告/database）---
+.env
+.env.*
+*.key
+secrets*

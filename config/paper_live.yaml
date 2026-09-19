@@ -1,0 +1,122 @@
+# Paper Live —— 冻结的观察对象（STEP 10）
+#
+# 这个文件一旦冻结就 **immutable**：改动 = 新 strategy_version + 新 holdout，
+# 不是"调参"。paper_live.drift 每天校验哈希，不一致即 DRIFT_DETECTED，
+# 该日不得作为 clean forward observation。
+#
+# ── 为什么选 strategy_v2（依据已有冻结状态，不重新优化，spec §4）────────────
+# 1. 这是**系统自己的既有指定**：只有 config/strategy_v2.yaml 带 paper_live 块
+#    （capital 500000），pipeline/signals.py 也把 S3 称为 "the FROZEN
+#    production model"。
+# 2. alpha = S3（Alpha158 + factor_pack_v1 + news）在 STEP 5 通过了
+#    research+validation 的增量检查（D > B）。
+# 3. allocation = equal_weight 由 STEP 6 的研究期 + 验证期选出
+#    （没有任何优化器在 research+valid 上超过等权）。
+# 4. strategy_v2 的 candidate gates 有 2 项未通过，但**两项都在 frozen test
+#    2024-2025 上**。spec §4 明令不得依据 test 结果重新选择——用它去否掉
+#    与用它去选中同样违规。因此保留原样，把失败项作为已知 caveat 带进观察期。
+#    （详见 reports/step6_final_candidate.md 与 reports/step10_forward_holdout.md）
+#
+# ── 铁律 ──────────────────────────────────────────────────────────────
+# 2026-09-18 起的数据：只记录 / 观察 / 评估。
+# 绝不用于选因子、选模型、调参数、调 prompt、调阈值、调成本、调 top_k、
+# 调调仓频率、调优化器、调风险限制。
+
+paper_live:
+  version: "1.0"
+  strategy_version: strategy_v2       # 冻结版本号（= config/strategy_v2.yaml）
+  frozen_at: "2026-09-19"
+  frozen_by: "step10"
+
+  # ---------------------------------------------------------------- 时间边界
+  forward_start_date: "2026-09-18"    # CLEAN_FORWARD_HOLDOUT 起点
+  historical_test: ["2024-01-01", "2025-12-31"]   # 已被观察，非 clean OOS
+  # 2026-01-01..2026-09-17 曾用于 paper-live 建议生成（非选择），因此干净
+  # 起点取其次日。
+  record_only: true                   # 唯一允许的行为模式
+
+  # ---------------------------------------------------------------- alpha
+  alpha:
+    signal: s3
+    model: experiments/news/strategy/model.txt
+    feature_packs:
+      - experiments/factors/factor_run_001/factor_pack_v1.json
+      - experiments/news/news_factor_run_001/factor_pack_news_v1.json
+    label_horizon_days: 20
+
+  # ---------------------------------------------------------------- 组合
+  portfolio:
+    allocation_method: equal_weight
+    top_k: 20
+    rebalance:
+      frequency: monthly
+      rule: last_trading_day
+    constraints:
+      cash_buffer: 0.05
+      invest_target: 0.95
+      max_weight: 0.10
+      sector_cap: 0.20
+      lot_size: 100
+
+  # ---------------------------------------------------------------- 执行
+  execution:
+    model: T1_open                    # T 日收盘信号 → T+1 开盘执行
+    limit_threshold: 0.095
+    on_limit: NO_TRADE
+    on_no_bar: NO_TRADE
+    min_trade_value: 0.0              # 低于此值不下单（0 = 只受 1 手约束）
+
+  transaction_costs:                  # 与 strategy_v1 同一模型（禁止第二套费率）
+    commission_rate: 0.00025
+    min_commission: 5.0
+    stamp_duty: 0.0005
+    transfer_fee: 0.00001
+    slippage: 0.0005
+
+  # ---------------------------------------------------------------- 账户
+  capital:
+    initial: 500000.0
+    currency: CNY
+    # 初始本金一旦写入 forward holdout 状态即不可变；改动 = 新 holdout。
+
+  # ---------------------------------------------------------------- 股票池
+  universe:
+    st_filter: true                   # paper live 用当前 ST 快照（历史回测禁用）
+    min_listing_days: 180
+    suspension_max_absent_days: 10
+    liquidity_min_amount: 100000
+
+  # ---------------------------------------------------------------- 基准
+  benchmarks:
+    - {symbol: "000300.SH", label: "CSI300", weighting: "buy_and_hold_index"}
+    - {symbol: "000905.SH", label: "CSI500", weighting: "buy_and_hold_index"}
+    - {symbol: "000852.SH", label: "CSI1000", weighting: "buy_and_hold_index"}
+    - {symbol: "EW_MARKET", label: "等权全市场",
+       weighting: "daily_rebalanced_equal_weight_liquid"}
+  # 每个基准的 weighting convention 必须显式声明，绝不混用。
+
+  # ---------------------------------------------------------------- 告警
+  alerts:
+    drawdown_thresholds: [-0.05, -0.10, -0.15]   # 只报警，绝不自动减仓
+    concentration_top1_z: 3.0          # Top1 预测分相对截面的 z 阈值
+    turnover_warn_multiple: 3.0        # 换手超过历史中位数的倍数
+    ic_negative_months_warn: 2         # 连续 N 个月 IC < 0 → WARNING（不改模型）
+    drift_score_std_multiple: 3.0      # 预测分布漂移阈值
+
+  # ---------------------------------------------------------------- 路径
+  paths:
+    root: forward_holdout              # 观测数据根目录（git 忽略大数据）
+    validation_root: experiments/paper_live/engine_validation
+    model_params: config/strategy_v1.yaml    # LightGBM 参数来源（冻结）
+    universe_config: config/strategy_v1.yaml
+
+  # ---------------------------------------------------------------- 冻结哈希
+  # 由 scripts/paper_live/freeze.py 写入；drift 检查以此为基准。
+  # freeze 块本身不参与 config 哈希（否则自指）；空 dict = 尚未冻结。
+  freeze:
+    paper_live_config: be09bf749bec9fc006d61c64373aa7f211e731b168548145e1de4a19c2897218
+    model: 769f67656a713fef42747070266209e6037ba92595a6fde6601b2a5f2ed737f2
+    model_params: f93df33c9761c0313927652c718f6fa7b49a55c0667a984082f4dbe53e4f5a93
+    universe_config: f93df33c9761c0313927652c718f6fa7b49a55c0667a984082f4dbe53e4f5a93
+    feature_pack_0: e1e1c5efef42687dc7626723bf427fbf2e533bd83c96d318d264244b60e2ed38
+    feature_pack_1: b4decd5c38ee5217ea8fe88b56f598b0263383b15087b42487a859ed425db7ec
