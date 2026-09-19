@@ -77,6 +77,8 @@ PLATFORM_KIND_CN = {
     "fund_platform": "基金平台", "bank": "银行", "broker": "券商",
     "cash": "现金", "other": "其他",
 }
+#: 股票类：录入口径与基金不同（股数 × 现价 + 成本价 → 浮盈）
+STOCK_TYPES = ("stock", "etf")
 
 NAV = [
     ("/", "总览"),
@@ -318,16 +320,18 @@ def daily_update_page(products: List[dict], platforms: List[dict],
             '<h2>① 今日账户</h2>',
             f'<label style="max-width:240px">日期'
             f'<input type="date" name="as_of" value="{esc(as_of)}"></label>']
+    funds = [p for p in products if p["product_type"] not in STOCK_TYPES]
+    stocks = [p for p in products if p["product_type"] in STOCK_TYPES]
     if not products:
         form.append('<div class="note">还没有任何产品 —— 用下面的'
-                    '「② 新建产品」添加第一个。</div>')
-    else:
+                    '「③ 新建产品」添加第一个。</div>')
+    elif funds:
         form.append('<table><thead><tr>'
                     '<th class="l">渠道</th><th class="l">产品</th>'
                     '<th class="l">类型</th><th>上次金额</th>'
                     '<th>今日金额</th><th>今日收益(元)</th>'
                     '</tr></thead><tbody>')
-        for p in products:
+        for p in funds:
             ptype = PRODUCT_TYPE_CN.get(p["product_type"],
                                         p["product_type"])
             form.append(
@@ -342,6 +346,35 @@ def daily_update_page(products: List[dict], platforms: List[dict],
                 f'inputmode="decimal" placeholder="选填" '
                 f'style="width:110px"></td></tr>')
         form.append('</tbody></table>')
+    if stocks:
+        form.append(
+            '<h2 style="margin-top:18px">股票 / ETF 持仓</h2>'
+            '<div class="note">股票不用填「金额」，填<b>今日现价</b>即可；'
+            '股数、成本价、买入日期在首次建仓时录入，之后自动沿用。'
+            '浮盈 = (现价 − 成本价) × 股数。</div>'
+            '<table><thead><tr><th class="l">渠道</th>'
+            '<th class="l">名称</th><th class="l">代码</th>'
+            '<th>股数</th><th>成本价</th><th class="l">买入日期</th>'
+            '<th>现价（今日）</th><th>市值</th><th>浮盈</th>'
+            '</tr></thead><tbody>')
+        for p in stocks:
+            cost = p.get("cost_price")
+            pl = p.get("unrealized")
+            cost_txt = f"{float(cost):.3f}" if cost else "—"
+            pl_txt = money(pl) if pl is not None else "—"
+            form.append(
+                f'<tr><td class="l">{esc(p["platform"])}</td>'
+                f'<td class="l">{esc(p["name"])}</td>'
+                f'<td class="l">{esc(p.get("ticker") or "—")}</td>'
+                f'<td>{esc(p.get("shares") or 0)}</td>'
+                f'<td>{cost_txt}</td>'
+                f'<td class="l">{esc(p.get("buy_date") or "—")}</td>'
+                f'<td><input name="stock_price_{p["product_id"]}" '
+                f'inputmode="decimal" placeholder="今日现价" '
+                f'style="width:110px"></td>'
+                f'<td>{esc(p.get("last_value") or "—")}</td>'
+                f'<td class="{signed_class(pl)}">{pl_txt}</td></tr>')
+        form.append('</tbody></table>')
     form.append('<div style="margin-top:14px">'
                 '<button type="submit">保存今日数据</button></div>'
                 '</div>')
@@ -355,7 +388,7 @@ def daily_update_page(products: List[dict], platforms: List[dict],
         for t in product_types)
     form.append(
         '<div class="card" style="margin-top:16px">'
-        '<h2>② 新建产品（首次录入时用）</h2>'
+        '<h2>③ 新建产品（首次录入时用）</h2>'
         '<table><thead><tr><th class="l">渠道（已有）</th>'
         '<th class="l">或新建渠道</th><th class="l">产品名称</th>'
         '<th class="l">类型</th><th>金额</th><th>今日收益</th>'
@@ -368,12 +401,30 @@ def daily_update_page(products: List[dict], platforms: List[dict],
         f'<td class="l"><select name="new_product_type">{type_opts}</select>'
         '</td>'
         '<td><input name="new_amount" inputmode="decimal" '
-        'placeholder="今日金额" style="width:120px"></td>'
+        'placeholder="基金填金额" style="width:110px"></td>'
         '<td><input name="new_income" inputmode="decimal" '
-        'placeholder="选填" style="width:100px"></td>'
+        'placeholder="选填" style="width:90px"></td>'
         '</tr></tbody></table>'
-        '<div class="note">渠道：下拉里选已有的；若要新建，填右边那格'
+        '<div class="note">渠道：下拉里选已有的；若要新建，填右边的框'
         '（会自动创建该渠道）。</div>'
+        '<h2 style="margin-top:16px">若类型选「股票 / ETF」'
+        '（只填下面这行）</h2>'
+        '<table><thead><tr><th class="l">股票代码</th>'
+        '<th class="l">买入日期</th><th>买入成本价</th><th>股数</th>'
+        '<th>现价</th></tr></thead><tbody><tr>'
+        '<td class="l"><input name="new_ticker" '
+        'placeholder="600519.SH"></td>'
+        '<td class="l"><input type="date" name="new_buy_date"></td>'
+        '<td><input name="new_cost_price" inputmode="decimal" '
+        'placeholder="成本价" style="width:100px"></td>'
+        '<td><input name="new_shares" inputmode="decimal" '
+        'placeholder="股数" style="width:90px"></td>'
+        '<td><input name="new_price" inputmode="decimal" '
+        'placeholder="现价" style="width:90px"></td>'
+        '</tr></tbody></table>'
+        '<div class="note">股票不用填「金额」：市值 = 股数 × 现价，'
+        '浮盈 = (现价 − 成本价) × 股数，由系统算。填了成本价，'
+        '建仓金额会自动记为本金投入（不会把本金算成收益）。</div>'
         '<div style="margin-top:14px">'
         '<button type="submit">保存今日数据</button></div>'
         '</div></form>')

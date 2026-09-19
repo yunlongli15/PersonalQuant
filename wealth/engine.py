@@ -357,9 +357,17 @@ def decompose_change(begin_value: float, end_value: float,
 
 def value_series(conn, start: Optional[str] = None,
                  end: Optional[str] = None) -> pd.DataFrame:
-    """Daily total market value + external flow, from daily_snapshots."""
-    sql = ("SELECT snap_date, SUM(market_value) AS value, "
-           "SUM(cash_flow) AS flow FROM daily_snapshots WHERE 1=1")
+    """Daily total market value + external flow.
+
+    Carry-forward rule: the user rarely updates every product on the same
+    day (they add a fund on Tuesday, another on Wednesday), and a product
+    that was not touched still holds its previous value. So the series is
+    built per product and forward-filled before summing — otherwise the
+    day after a partial update looks like those products vanished, which
+    shows up as a fake crash in net worth and a fake loss in P&L.
+    """
+    sql = ("SELECT snap_date, product_id, market_value, cash_flow "
+           "FROM daily_snapshots WHERE 1=1")
     params: List = []
     if start:
         sql += " AND snap_date >= ?"
@@ -367,11 +375,17 @@ def value_series(conn, start: Optional[str] = None,
     if end:
         sql += " AND snap_date <= ?"
         params.append(end)
-    sql += " GROUP BY snap_date ORDER BY snap_date"
     df = pd.DataFrame([dict(r) for r in conn.execute(sql, params)])
-    if not df.empty:
-        df["snap_date"] = pd.to_datetime(df["snap_date"])
-    return df
+    if df.empty:
+        return df
+    df["snap_date"] = pd.to_datetime(df["snap_date"])
+    wide = df.pivot_table(index="snap_date", columns="product_id",
+                          values="market_value", aggfunc="last")
+    wide = wide.sort_index().ffill()          # 未录入的产品沿用上次的值
+    flow = df.groupby("snap_date")["cash_flow"].sum()
+    out = pd.DataFrame({"value": wide.sum(axis=1)})
+    out["flow"] = flow.reindex(out.index).fillna(0.0)
+    return out.reset_index()
 
 
 def _value_before(conn, date_str: str) -> float:

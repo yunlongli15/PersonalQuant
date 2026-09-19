@@ -381,3 +381,44 @@ def test_daily_return_uses_flow_adjustment(basic):
                          market_value=15001.5, cash_flow=5000.0)
     perf = engine.performance(conn)
     assert perf["daily_return"] == pytest.approx(0.00015, abs=1e-6)
+
+
+def test_partial_daily_updates_carry_forward(basic):
+    """用户在不同日期录入不同产品时，未录入的产品沿用上次的值。
+
+    没有这条规则时，"今天只更新了 3 只"会被算成另外 3 只消失了 →
+    净资产假暴跌、P&L 假巨亏（真实发生过）。"""
+    conn = basic["conn"]
+    from wealth import repository as repo
+
+    fund2 = repo.create_product(conn, basic["acct"], "第二只基金",
+                                "bond_fund")
+    repo.upsert_snapshot(conn, "2026-09-18", basic["fund"],
+                         market_value=10000.0, cash_flow=10000.0)
+    repo.upsert_snapshot(conn, "2026-09-19", fund2,
+                         market_value=5000.0, cash_flow=5000.0)
+
+    vs = engine.value_series(conn)
+    assert list(vs["value"]) == [10000.0, 15000.0]      # 第一只被沿用
+    assert list(vs["flow"]) == [10000.0, 5000.0]
+
+    perf = engine.performance(conn)
+    assert perf["net_worth"] == pytest.approx(15000.0)
+    assert perf["total_pnl"] == pytest.approx(0.0)      # 只是录入，无盈亏
+
+
+def test_value_change_after_carry_forward_is_real_pnl(basic):
+    conn = basic["conn"]
+    from wealth import repository as repo
+
+    fund2 = repo.create_product(conn, basic["acct"], "第二只", "bond_fund")
+    repo.upsert_snapshot(conn, "2026-09-18", basic["fund"],
+                         market_value=10000.0, cash_flow=10000.0)
+    repo.upsert_snapshot(conn, "2026-09-19", fund2,
+                         market_value=5000.0, cash_flow=5000.0)
+    # 次日只更新第二只，且涨了 200 → P&L 应为 +200
+    repo.upsert_snapshot(conn, "2026-09-20", fund2,
+                         market_value=5200.0, cash_flow=0.0)
+    perf = engine.performance(conn)
+    assert perf["net_worth"] == pytest.approx(15200.0)
+    assert perf["total_pnl"] == pytest.approx(200.0)

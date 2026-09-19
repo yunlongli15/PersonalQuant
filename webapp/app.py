@@ -58,20 +58,44 @@ def _render_daily(as_of: str, result: Optional[dict] = None) -> str:
 
 
 def _update_products() -> list:
+    """Rows for the Daily Update page.
+
+    Fund products show 金额/收益; stock products additionally carry the
+    cost basis, share count and buy date (read from the ledger) plus the
+    unrealised P&L, because a stock's holding is 股数 × 现价, not "how
+    much money is in the account".
+    """
     from wealth import db as wdb
-    from wealth import repository as repo
+    from wealth import engine, repository as repo
+    from wealth.models import EXTERNAL_FLOW_TYPES
 
     conn = wdb.connect()
+    platforms = {x["platform_id"]: x["name"]
+                 for x in repo.list_platforms(conn)}
+    accounts = {a["account_id"]: a for a in repo.list_accounts(conn)}
     products = []
     for p in repo.list_products(conn):
-        acct = [a for a in repo.list_accounts(conn, p["account_id"])]
-        plat = [x for x in repo.list_platforms(conn)
-                if acct and x["platform_id"] == acct[0]["platform_id"]]
+        acct = accounts.get(p["account_id"], {})
         snaps = repo.list_snapshots(conn, product_id=p["product_id"])
-        products.append({
-            **p, "platform": plat[0]["name"] if plat else "?",
+        row = {
+            **p,
+            "platform": platforms.get(acct.get("platform_id"), "?"),
             "last_value": snaps[-1]["market_value"] if snaps else "",
-        })
+        }
+        if p["product_type"] in ("stock", "etf"):
+            as_of = snaps[-1]["snap_date"] if snaps else _today()
+            held = engine.positions_at(conn, p["product_id"], as_of)
+            buys = [t for t in repo.list_transactions(
+                conn, product_id=p["product_id"]) if t["txn_type"] == "buy"]
+            mv = float(snaps[-1]["market_value"]) if snaps else 0.0
+            row.update({
+                "shares": int(held.units),
+                "cost_price": held.avg_cost or None,
+                "buy_date": buys[0]["txn_date"] if buys else None,
+                "unrealized": (mv - held.units * held.avg_cost
+                               if held.units else None),
+            })
+        products.append(row)
     return products
 
 
@@ -93,6 +117,7 @@ async def daily_update_submit(request: Request) -> str:
 
     conn = wdb.connect()
     entries = []
+    stock_created = False
 
     # ① 已有产品：amount_<pid> / income_<pid>
     for key, value in form.items():
@@ -110,15 +135,44 @@ async def daily_update_submit(request: Request) -> str:
         entries.append(UpdateEntry(product_id=pid, market_value=amount,
                                    reported_income=income))
 
-    # ② 新建产品（渠道可选已有的，或当场新建）
+    # ② 已有股票/ETF：填今日现价即可（股数/成本从台账读）
+    from wealth.service import StockEntry, record_stock_update
+
+    stock_entries = []
+    for key, value in form.items():
+        if not key.startswith("stock_price_"):
+            continue
+        pid = int(key.split("_")[2])
+        try:
+            price = _num(value)
+        except ValueError:
+            warnings.append(f"股票现价不是数字（{value!r}）")
+            continue
+        if price is None:
+            continue
+        stock_entries.append(StockEntry(product_id=pid, price=price))
+    if stock_entries:
+        try:
+            res = record_stock_update(conn, as_of, stock_entries)
+            warnings.extend(res.warnings)
+        except Exception as e:                               # noqa: BLE001
+            warnings.append(f"股票录入失败：{type(e).__name__}: {e}")
+
+    # ③ 新建产品（渠道可选已有的，或当场新建）
     new_name = str(form.get("new_product_name") or "").strip()
     new_amount = None
     try:
         new_amount = _num(form.get("new_amount"))
         new_income = _num(form.get("new_income"))
+        new_price = _num(form.get("new_price"))
+        new_shares = _num(form.get("new_shares"))
+        new_cost = _num(form.get("new_cost_price"))
     except ValueError:
-        new_income = None
+        new_income = new_price = new_shares = new_cost = None
         warnings.append("新建产品：金额不是数字")
+    if new_name and new_amount is None and new_price is not None and \
+            new_shares is not None:
+        new_amount = new_price * new_shares      # 股票：市值 = 股数 × 现价
     if new_name and new_amount is not None:
         try:
             plat_name = str(form.get("new_platform_name") or "").strip() \
@@ -139,26 +193,46 @@ async def daily_update_submit(request: Request) -> str:
             prod = next((x for x in repo.list_products(conn, include_inactive=True)
                          if x["account_id"] == acct and x["name"] == new_name),
                         None)
+            ptype = str(form.get("new_product_type") or "other")
+            ticker = str(form.get("new_ticker") or "").strip() or None
             if prod is None:
-                ptype = str(form.get("new_product_type") or "other")
-                pid_new = repo.create_product(conn, acct, new_name, ptype)
+                pid_new = repo.create_product(conn, acct, new_name, ptype,
+                                              ticker=ticker)
                 warnings.append(f"已新建产品「{new_name}」")
             else:
                 pid_new = prod["product_id"]
-            entries.append(UpdateEntry(product_id=pid_new,
-                                       market_value=new_amount,
-                                       reported_income=new_income))
+                if ticker and not prod.get("ticker"):
+                    repo.update_product(conn, pid_new, ticker=ticker)
+            if ptype in ("stock", "etf") and new_shares and new_price:
+                sres = record_stock_update(conn, as_of, [StockEntry(
+                    product_id=pid_new, price=new_price,
+                    shares=int(new_shares), cost_price=new_cost,
+                    buy_date=str(form.get("new_buy_date") or "") or None)])
+                warnings.extend(sres.warnings)
+                stock_created = True
+                if not new_cost:
+                    warnings.append(
+                        f"{new_name}：未填成本价 → 只记录了市值，"
+                        f"浮盈无法计算（可在「交易流水」补一笔买入）")
+            else:
+                entries.append(UpdateEntry(product_id=pid_new,
+                                           market_value=new_amount,
+                                           reported_income=new_income))
         except Exception as e:                               # noqa: BLE001
             warnings.append(f"新建产品失败：{type(e).__name__}: {e}")
 
-    if not entries:
+    if not entries and not stock_entries and not stock_created:
         return _render_daily(as_of, {"ok": False,
                                      "error": "没有填写任何金额"})
+    n_saved = len(stock_entries) + (1 if stock_created else 0)
     try:
-        res = record_daily_update(conn, as_of, entries)
+        if entries:
+            res = record_daily_update(conn, as_of, entries)
+            warnings.extend(res.warnings)
+            n_saved += len(res.updated)
         return _render_daily(as_of, {
-            "ok": True, "n": len(res.updated), "as_of": as_of,
-            "warnings": warnings + res.warnings})
+            "ok": True, "n": n_saved, "as_of": as_of,
+            "warnings": warnings})
     except Exception as e:                                   # noqa: BLE001
         return _render_daily(as_of, {
             "ok": False, "error": f"{type(e).__name__}: {e}"})

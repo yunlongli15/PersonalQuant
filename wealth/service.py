@@ -219,6 +219,76 @@ def snapshot_from_amount(conn, snap_date: str, product_id: int,
                      cash_flow=cash_flow, **kw)])
 
 
+@dataclass
+class StockEntry:
+    """股票/ETF 的录入：与基金不同，股票要的是「股数 × 现价」和成本。"""
+    product_id: int
+    price: float                      # 现价（或当日收盘价）
+    shares: Optional[int] = None      # 不填则沿用台账里的持仓
+    cost_price: Optional[float] = None    # 买入成本价（首次录入必填）
+    buy_date: Optional[str] = None    # 买入日期（首次录入用）
+
+
+def record_stock_update(conn, snap_date: str,
+                        entries: Sequence[StockEntry]) -> UpdateResult:
+    """股票/ETF 的每日录入。
+
+    与其他产品分开的理由（用户提出）：
+      - 持仓 = 股数 × 现价，不是「账户里有多少钱」；
+      - 成本价决定了浮盈，必须单独记：首次录入时写一笔 buy 交易
+        （units=股数, price=成本价）建立成本基础，同时补一笔等额
+        deposit 作为外部投入 —— 这样 P&L 从第一天起就等于浮盈，
+        而不是把本金当成收益；
+      - 之后每天只更新现价，股数/成本从台账读，不用重复填。
+    """
+    res = UpdateResult(snap_date=snap_date)
+    for e in entries:
+        product = repo.get_product(conn, e.product_id)
+        held = engine.positions_at(conn, e.product_id, snap_date)
+        if e.shares is None:
+            shares = int(held.units)
+        else:
+            shares = int(e.shares)
+        if shares <= 0:
+            res.warnings.append(f"{product['name']}：股数为 0，已跳过")
+            continue
+
+        first_time = held.units == 0 and e.cost_price is not None
+        if first_time:
+            cost = float(e.cost_price)
+            amount = cost * shares
+            bdate = e.buy_date or snap_date
+            repo.create_transaction(
+                conn, bdate, e.product_id, "buy", units=shares, price=cost,
+                amount=amount, note="建仓（每日录入）", source="user")
+            if _flows_on(conn, e.product_id, bdate) == 0:
+                repo.create_transaction(
+                    conn, bdate, e.product_id, "deposit", amount=amount,
+                    cash_flow=amount, note="建仓资金投入（每日录入）",
+                    source="user")
+            res.warnings.append(
+                f"{product['name']}：建仓 {shares} 股 @ {cost:.3f}，"
+                f"成本 {amount:,.2f} 元已作为本金投入记账")
+        elif held.units == 0:
+            res.warnings.append(
+                f"{product['name']}：首次录入股票需填写买入成本价，"
+                f"否则无法计算浮盈 —— 本次已跳过")
+
+        mv = shares * float(e.price)
+        repo.upsert_snapshot(conn, snap_date, e.product_id, units=shares,
+                             nav=float(e.price), market_value=mv,
+                             cash_flow=0.0, note="股票持仓",
+                             source="manual")
+        cost_basis = (float(e.cost_price) * shares if first_time
+                      else held.avg_cost * shares)
+        res.updated.append({
+            "product_id": e.product_id, "shares": shares,
+            "price": float(e.price), "market_value": mv,
+            "cost_basis": cost_basis,
+            "unrealized": mv - cost_basis})
+    return res
+
+
 def latest_summary(conn, as_of: Optional[str] = None) -> dict:
     """Everything the dashboard needs, in one call (spec §26/§47)."""
     perf = engine.performance(conn, end=as_of)
