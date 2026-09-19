@@ -16,8 +16,8 @@ A股数据 → 数据清洗与本地数据库 → 因子计算与因子挖掘 �
 ## 当前状态
 
 **STEP 1 ✅ / STEP 2 ✅ / STEP 3 ✅ / STEP 4 ✅ / STEP 5 ✅ / STEP 6 ✅ /
-STEP 7 ✅**，并在 STEP 7 之后持续迭代（数据刷新、中文界面、微结构因子、
-独立信息研究）。
+STEP 7 ✅ / STEP 9 ✅**，并在 STEP 7 之后持续迭代（数据刷新、中文界面、
+微结构因子、增量 IC 因子选择协议）。
 
 > 📖 **使用说明书：[docs/USER_GUIDE.md](docs/USER_GUIDE.md)** —— 怎么用、
 > 面板每个数字什么意思、板块交易权限、常见问题、系统边界。
@@ -108,16 +108,23 @@ python scripts/webapp/serve.py                 # ④ 打开界面 127.0.0.1:8765
     财务因子"出样本即反转"形成对比），但**加入组合未提升策略**（诚实记录，
     research candidate，未进入 strategy_v2）。报告
     `reports/step8_micro_factors.md`
-  - **独立信息研究（STEP 9）**：把候选因子对「Alpha158 + 冻结 pack」做横截面
-    正交投影，残差的 IC 才是它真正新增的信息。结论有两层——
-    **(a) 大部分"有效因子"不携带独立信息**：75 个候选里只有 4 个通过，
-    最强的 `limit_up_count_20` raw ICIR −0.733 → **残差 +0.001**（全部预测力
-    都是既有信息的重新包装）；真正的独立信息集中在波动率家族。
-    **(b) "加入因子反而变差"这个前提统计上不成立**：S3/I/R/M/N 五个变体在
-    24 个月上无法区分（p = 0.15~0.83，各自年化的 bootstrap 95% CI 全部跨零），
-    该样本能可靠检出的最小年化差异是 **41%**。**瓶颈不是因子不够好，而是
-    用 24 个月组合回测检验因子没有分辨力。** 报告
-    `reports/step9_independent_info.md`（并更正了 step8 里"N 明显更差"的表述）
+  - **STEP 9：Incremental IC 因子选择协议**（两段，第二段是对第一段的修正）
+    - **(9.1 发现)** 把候选因子对「Alpha158 + 冻结 pack」做横截面正交投影，
+      残差 IC 才是它新增的信息：75 个候选里只有 4 个通过，最强的
+      `limit_up_count_20` raw ICIR −0.733 → **残差 +0.001**（既有信息的
+      重新包装）。同时发现 **"加入因子反而变差"统计上不成立**——S3/I/R/M/N
+      五个变体在 24 个月上无法区分（p = 0.15~0.83，年化 CI 全部跨零），
+      该样本能可靠检出的最小年化差异是 **41%**。报告
+      `reports/step9_independent_info.md`
+    - **(9.2 修正)** 残差方法有偏（R² 越高、残差越像噪声、看起来越"独立"），
+      改成**直接配对比较两个模型**：`M0 = Alpha158 + pack_v1 + news`，
+      `M1 = M0 + F`，评价量是逐日配对的 `ΔIC = IC1 − IC0`。4 折 walk-forward
+      （train 2018-19/20/21/22 → valid 2020/21/22/23）、标签越界保护、
+      关闭早停与子采样、block bootstrap 置信区间、冗余主判据改为**原始因子
+      秩相关**。**诚实结果：0/20 个候选的 ΔIC 置信区间排除 0；置换重要性
+      ≈ 0（模型几乎没用到这些列）；修正后的判据推翻了 9.1 的波动率结论。**
+      最终 5 个候选是"待观察清单"，不是"已证明有效清单"。报告
+      `reports/incremental_factor_selection_v2.md`
 
 ## 环境要求
 
@@ -207,7 +214,12 @@ python scripts/quant/write_recommendation_note.py --horizon 20 --capital 66000
 python scripts/quant/refresh_live_prices.py --top 30   # 当日实时价（快照未发布时）
 python scripts/research_all_factors.py --run-id micro_run_001   # 75 因子研究
 python scripts/portfolio/run_micro_ablation.py --variants S3,M,N  # 因子消融回测
-python scripts/research_independent_info.py      # 独立信息度量（残差 IC / R²）
+python scripts/research_independent_info.py      # 独立信息度量（残差 IC / R²，9.1）
+python scripts/run_incremental_factor_selection.py   # STEP 9 主协议（两阶段 + walk-forward）
+python scripts/run_incremental_secondary.py          # ADD/REPLACE + 重要性（不参与选择）
+MPLBACKEND=Agg python scripts/make_incremental_figures.py   # 8 张图
+python scripts/verify_incremental_factor_selection.py        # 12 项验收
+python scripts/monitor_forward_holdout.py            # 前瞻 holdout（只记录，不选择）
 python scripts/portfolio/run_micro_ablation.py --variants S3,I,R \
     --variants-file experiments/factors/independent_info/variants.json \
     --out-dir experiments/factors/independent_ablation   # 独立信息消融
@@ -260,9 +272,16 @@ PersonalQuant/
 
 - **严禁实盘交易、券商 API、自动下单**。系统只输出建议，下单全部由用户手动完成。
 - 数据与模型结果仅用于研究，**不构成投资建议**；目标价/止损是模型估计，不是承诺。
-- **时间口径铁律**：因子/信号/回测只用 signal date 之前的数据；
-  frozen test 2024-2025 只做最终评估，绝不用于选参数或选因子。
-  **snooping 如实记录**：截至 STEP 9，test 集已被评估 3 次。
+- **时间口径铁律**：因子/信号/回测只用 signal date 之前的数据。
+  **2024-2025 = HISTORICAL TEST**（已被评估 3 次：STEP 6 终评、step8、
+  step9），不再是 untouched test，**禁止**用于选因子/调参/排序/选阈值，
+  代码层面有守卫（`incremental/windows.py`）与静态扫描测试。
+  因子选择只能用 **2018-2023**；干净的样本外证据来自 **2026-09-18 起**的
+  forward holdout（只记录、不选择）。
+- **因子选择只看增量信息**：判据是 `ΔIC = IC1 − IC0`（配对），
+  不是 `IC1`，更不是组合 Sharpe。优先级 incremental IC > stability >
+  independence > 可复现 > portfolio 收益；权重全部在
+  `config/factor_selection_v2.yaml`。
 - **统计显著性铁律**：任何"某变体更好/更差"的结论都必须给出**样本量与
   可检出效应**。24 个月组合回测的年化分辨力约 ±41pp（月度超额标准差 5%），
   低于此量级的差异一律只能说"无法区分"，不得写成"更好"或"更差"。

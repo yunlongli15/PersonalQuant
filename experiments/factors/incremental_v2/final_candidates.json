@@ -1,0 +1,12 @@
+{
+  "candidates": [
+    "gap_count_20",
+    "high_52w_proximity",
+    "overnight_return_20",
+    "skewness_60",
+    "volume_price_corr_20"
+  ],
+  "status": "research_candidate",
+  "note": "research candidate；不得直接进入 strategy_v2",
+  "selected_at": "2026-09-19T09:09:57.887689+00:00"
+}

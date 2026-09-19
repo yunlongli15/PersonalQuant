@@ -1,0 +1,237 @@
+{
+  "protocol": "incremental_ic_v2",
+  "version": "2.0",
+  "selected_at": "2026-09-19T09:09:57.888689+00:00",
+  "git_commit": "30af86efa637705a4879bd62e0d61be28b651b0a",
+  "config_sha256": "06719de4acc98281115c77784ccc83fc003c61cbb1964964db8fa57ad1ecf6c0",
+  "data_snapshot": {
+    "features": "data/derived/features",
+    "label": "data/derived/factors/labels.parquet"
+  },
+  "selection_window": [
+    "2018-01-01",
+    "2023-12-31"
+  ],
+  "forbidden_window": [
+    "2024-01-01",
+    "2025-12-31"
+  ],
+  "model": {
+    "fixed_num_boost_round": 400,
+    "early_stopping": false,
+    "params": {
+      "objective": "regression",
+      "learning_rate": 0.05,
+      "num_leaves": 31,
+      "max_depth": -1,
+      "feature_fraction": 1.0,
+      "bagging_fraction": 1.0,
+      "bagging_freq": 0,
+      "lambda_l1": 1.0,
+      "lambda_l2": 1.0,
+      "min_child_samples": 20,
+      "num_threads": 20
+    },
+    "seed": 42
+  },
+  "folds": [
+    {
+      "name": "fold1",
+      "train": [
+        "2018-01-01",
+        "2019-12-31"
+      ],
+      "valid": [
+        "2020-01-01",
+        "2020-12-31"
+      ],
+      "n_train_dates": 24,
+      "n_valid_dates": 11,
+      "valid_dates": [
+        "2020-01-23",
+        "2020-02-28",
+        "2020-03-31",
+        "2020-04-30",
+        "2020-05-29",
+        "2020-06-30",
+        "2020-07-31",
+        "2020-08-31",
+        "2020-09-30",
+        "2020-10-30",
+        "2020-11-30"
+      ]
+    },
+    {
+      "name": "fold2",
+      "train": [
+        "2018-01-01",
+        "2020-12-31"
+      ],
+      "valid": [
+        "2021-01-01",
+        "2021-12-31"
+      ],
+      "n_train_dates": 36,
+      "n_valid_dates": 11,
+      "valid_dates": [
+        "2021-01-29",
+        "2021-02-26",
+        "2021-03-31",
+        "2021-04-30",
+        "2021-05-31",
+        "2021-06-30",
+        "2021-07-30",
+        "2021-08-31",
+        "2021-09-30",
+        "2021-10-29",
+        "2021-11-30"
+      ]
+    },
+    {
+      "name": "fold3",
+      "train": [
+        "2018-01-01",
+        "2021-12-31"
+      ],
+      "valid": [
+        "2022-01-01",
+        "2022-12-31"
+      ],
+      "n_train_dates": 48,
+      "n_valid_dates": 11,
+      "valid_dates": [
+        "2022-01-28",
+        "2022-02-28",
+        "2022-03-31",
+        "2022-04-29",
+        "2022-05-31",
+        "2022-06-30",
+        "2022-07-29",
+        "2022-08-31",
+        "2022-09-30",
+        "2022-10-31",
+        "2022-11-30"
+      ]
+    },
+    {
+      "name": "fold4",
+      "train": [
+        "2018-01-01",
+        "2022-12-31"
+      ],
+      "valid": [
+        "2023-01-01",
+        "2023-12-31"
+      ],
+      "n_train_dates": 60,
+      "n_valid_dates": 11,
+      "valid_dates": [
+        "2023-01-31",
+        "2023-02-28",
+        "2023-03-31",
+        "2023-04-28",
+        "2023-05-31",
+        "2023-06-30",
+        "2023-07-31",
+        "2023-08-31",
+        "2023-09-28",
+        "2023-10-31",
+        "2023-11-30"
+      ]
+    }
+  ],
+  "m0_features": {
+    "alpha158": "158 列",
+    "custom": [
+      "amount_20",
+      "momentum_60",
+      "price_vs_ma20",
+      "reversal_20",
+      "volatility_20",
+      "volume_ratio_20_60",
+      "volume_ratio_5_20",
+      "announcement_count_20d",
+      "news_risk_20d",
+      "shareholder_change_count_20d"
+    ]
+  },
+  "stage_a_kept": [
+    "limit_up_count_20",
+    "max_return_20",
+    "parkinson_vol_20",
+    "momentum_20",
+    "price_vs_ma60",
+    "volatility_60",
+    "gap_count_20",
+    "price_vs_ma120",
+    "downside_volatility_60",
+    "volume_price_corr_20",
+    "limit_down_count_20",
+    "kurtosis_60",
+    "amihud_20",
+    "momentum_120",
+    "skewness_60",
+    "high_52w_proximity",
+    "amount_60",
+    "overnight_intraday_ratio_20",
+    "overnight_return_20",
+    "intraday_return_20"
+  ],
+  "stage_a_rejected": {
+    "amount_share_20": "turnover 0.91 > 0.9",
+    "announcement_attention_5d": "coverage 0.22 < 0.6",
+    "announcement_count_5d": "coverage 0.41 < 0.6",
+    "buyback_event_count_20d": "coverage 0.41 < 0.6",
+    "debt_to_asset": "coverage 0.06 < 0.6",
+    "earnings_event_count_60d": "coverage 0.41 < 0.6",
+    "earnings_yield": "coverage 0.05 < 0.6",
+    "event_sentiment_shock": "coverage 0.41 < 0.6",
+    "event_shock": "coverage 0.04 < 0.6",
+    "gross_margin": "coverage 0.04 < 0.6",
+    "llm_confidence_20d": "coverage 0.00 < 0.6",
+    "major_event_count_20d": "coverage 0.41 < 0.6",
+    "negative_news_count_5d": "coverage 0.41 < 0.6",
+    "net_margin": "coverage 0.06 < 0.6",
+    "net_profit_growth": "coverage 0.06 < 0.6",
+    "news_attention_1d": "coverage 0.22 < 0.6",
+    "news_attention_20d": "coverage 0.22 < 0.6",
+    "news_attention_5d": "coverage 0.22 < 0.6",
+    "news_count_1d": "coverage 0.41 < 0.6",
+    "news_count_20d": "coverage 0.41 < 0.6",
+    "news_count_5d": "coverage 0.41 < 0.6",
+    "news_importance_5d": "coverage 0.41 < 0.6",
+    "news_novelty_5d": "coverage 0.41 < 0.6",
+    "news_positive_negative_ratio": "coverage 0.41 < 0.6",
+    "news_sentiment_1d": "coverage 0.41 < 0.6",
+    "news_sentiment_20d": "coverage 0.41 < 0.6",
+    "news_sentiment_5d": "coverage 0.41 < 0.6",
+    "news_sentiment_weighted": "coverage 0.41 < 0.6",
+    "novel_news_count_5d": "coverage 0.41 < 0.6",
+    "ocf_to_assets": "coverage 0.06 < 0.6",
+    "ocf_to_net_profit": "coverage 0.06 < 0.6",
+    "operating_cash_flow": "coverage 0.06 < 0.6",
+    "pb": "coverage 0.01 < 0.6",
+    "pe": "coverage 0.05 < 0.6",
+    "positive_news_count_5d": "coverage 0.41 < 0.6",
+    "ps": "coverage 0.00 < 0.6",
+    "regulatory_event_count_20d": "coverage 0.41 < 0.6",
+    "revenue_growth": "coverage 0.06 < 0.6",
+    "reversal_5": "turnover 0.90 > 0.9",
+    "roa": "coverage 0.06 < 0.6",
+    "roe": "coverage 0.05 < 0.6",
+    "turnover_20": "coverage 0.00 < 0.6",
+    "turnover_60": "coverage 0.00 < 0.6",
+    "turnover_volatility_20": "coverage 0.00 < 0.6",
+    "volume_trend_5_60": "turnover 0.91 > 0.9"
+  },
+  "final_candidates": [
+    "gap_count_20",
+    "high_52w_proximity",
+    "overnight_return_20",
+    "skewness_60",
+    "volume_price_corr_20"
+  ],
+  "n_candidates_tested": 20,
+  "historical_test_status": "2024-2025 已被评估多次（STEP 6 终评、step8、step9），降级为 HISTORICAL TEST，本轮未使用其任何数据",
+  "forward_holdout_start": "2026-09-18"
+}

@@ -1,0 +1,145 @@
+# Incremental IC Factor Selection Protocol V2
+#
+# 唯一参数来源。所有阈值/权重都在这里，**不得隐藏进 Python 代码**。
+# 修改本文件 = 修改协议 = 必须新开 run 并在报告中记录，禁止看结果回调。
+#
+# 铁律（§1/§24）：
+#   2024-2025 已是被观察过的 HISTORICAL TEST，**不得**用于任何选择：
+#   不选因子、不选参数、不排因子、不选阈值、不调 prompt、不调 top-k。
+#   因子选择只能用 2018-2023。2026 只做前瞻监控，不参与选择。
+
+factor_selection_v2:
+  version: "2.0"
+  protocol_name: incremental_ic_v2
+
+  # ---------------------------------------------------------------- 时间边界
+  selection_window: ["2018-01-01", "2023-12-31"]   # 允许用于选择的全部数据
+  forbidden_window: ["2024-01-01", "2025-12-31"]   # HISTORICAL TEST：只读、只报告
+  forward_holdout_start: "2026-09-18"            # clean forward evidence 起点
+  # 说明："2026-01-01".."2026-09-17" 用于 paper-live 建议生成（非选择），
+  # 因此干净的前瞻起点取最后一个已被观察日期的次日。
+
+  # ------------------------------------------------------- walk-forward 折
+  # §4：禁止 2018-2023 一次性训练+验证（会对整个 validation 期过拟合）。
+  # 每折 train_end < valid_start，验证年份逐年前推。
+  walk_forward:
+    folds:
+      - {name: fold1, train: ["2018-01-01", "2019-12-31"], valid: ["2020-01-01", "2020-12-31"]}
+      - {name: fold2, train: ["2018-01-01", "2020-12-31"], valid: ["2021-01-01", "2021-12-31"]}
+      - {name: fold3, train: ["2018-01-01", "2021-12-31"], valid: ["2022-01-01", "2022-12-31"]}
+      - {name: fold4, train: ["2018-01-01", "2022-12-31"], valid: ["2023-01-01", "2023-12-31"]}
+    # 标签窗口越界的信号日必须剔除："2023-12-29" 的 20 日前瞻收益落到 2024 年，
+    # 用它就等于把 2024 数据带进选择。剔除后每折约 11 个信号日。
+    drop_labels_crossing_fold_end: true
+
+  # ------------------------------------------------- 模型（配对比较专用）
+  # 协议用的模型与 strategy_v1 生产配置**刻意不同**，原因：
+  #  1) early_stopping 需要验证集，而验证集就是被评估期 → 直接泄漏；
+  #  2) feature_fraction/bagging < 1 会引入与"特征个数"相关的随机性，
+  #     M0 与 M1 的差异会混入抽样噪声，配对比较不再干净。
+  # 因此协议模型固定迭代数、关闭子采样：DeltaIC 完全来自新增的那一列。
+  # 代价：这是该因子可用信息量的**上界**，生产模型（子采样）只会更弱。
+  model:
+    fixed_num_boost_round: 400        # 与 strategy_v1 的 n_estimators 一致
+    early_stopping: false             # 禁用（防泄漏）
+    params:
+      objective: regression
+      learning_rate: 0.05
+      num_leaves: 31
+      max_depth: -1
+      feature_fraction: 1.0           # 关闭子采样 → M0/M1 严格配对
+      bagging_fraction: 1.0
+      bagging_freq: 0
+      lambda_l1: 1.0
+      lambda_l2: 1.0
+      min_child_samples: 20
+      num_threads: 20
+    seed: 42
+
+  # ------------------------------------------------------------ Stage A
+  # 研究期快速排除（2018-2021），只筛数据质量与可用性，不看增量价值。
+  stage_a:
+    window: ["2018-01-01", "2021-12-31"]
+    min_coverage: 0.60               # 股票池-日期覆盖率
+    max_missing_ratio: 0.40          # = 1 - min_coverage，显式记录
+    min_history_days: 250            # 因子需要的最短回看（52 周高点）
+    max_turnover: 0.90               # 横截面 top-20% 集合的平均换手上限
+    min_cross_section_std: 1e-9      # 极端数值：截面标准差不得为 0
+    max_abs_value_z: 50.0            # 极端数值：|值| 超过 50 倍截面 MAD 视为异常
+    max_extreme_ratio: 0.05          # 极端值占比上限
+    pit_check: true                  # 未来数据投毒检验（§32）
+    pit_check_window: ["2021-01-01", "2021-12-31"]
+    max_candidates_to_stage_b: 20    # §13
+
+  # ------------------------------------------------------------ Stage B
+  stage_b:
+    window: ["2018-01-01", "2023-12-31"] # = 全部 fold 的并集
+    min_dates_per_fold: 6            # 一折有效信号日太少则不足为据
+    bootstrap:
+      block_months: 3                # §7：以月为 block，不能当 iid
+      n_resamples: 1000
+      confidence: 0.95
+      seed: 7
+
+  # ------------------------------------------------------- 冗余（§10 修正）
+  # 用**原始因子**秩相关做主判据（上一轮用残差相关是错的：
+  # R² 高的因子残差以噪声为主，残差相关被系统性压低，最冗余的反而最"独立"）。
+  redundancy:
+    method: raw_rank_correlation
+    max_corr_threshold: 0.85         # 与任一既有因子的平均截面 |秩相关|
+    r2_threshold: 0.90               # 对既有特征面板回归的 R²
+    # 只有"两者同时越线"才判 redundant（§10）
+    require_both: true
+
+  # ------------------------------------------------------------- 门槛
+  # §14：不要求"统计显著"作为硬门槛（A 股低频 effect size 本来就小），
+  # 用 evidence score 综合判断。
+  gates:
+    min_positive_fold_ratio: 0.50    # 至少半数 fold 同向
+    min_positive_folds: 2            # 至少 2 个 fold 同向
+    min_positive_month_ratio: 0.50
+    require_bootstrap_not_fully_negative: true   # CI 上界 > 0
+    min_coverage: 0.60
+    require_pit_pass: true
+    max_turnover: 0.90
+    require_not_fully_redundant: true
+    min_evidence_score: 0.0          # 只作参考，不作硬淘汰
+
+  # ------------------------------------------------------- Evidence Score
+  # §15：透明、可复现、权重全在这里。
+  # 每个分量先线性归一到 [0,1]（用 cap / target 裁剪），再加权求和。
+  evidence_score:
+    # 权重顺序必须体现 §16 的优先级：
+    #   incremental IC > stability > independence > 可复现 > portfolio 收益
+    # 注意 stability(0.10) >= independence(0.08) >= turnover(0.03)——
+    # 权重是**协议的一部分**，改动等于改协议。
+    components:
+      incremental_icir:   {weight: 0.25, cap: 0.60}
+      incremental_rankicir: {weight: 0.25, cap: 0.60}
+      positive_fold_ratio: {weight: 0.14}
+      positive_month_ratio: {weight: 0.10}
+      stability:          {weight: 0.10, cv_cap: 3.0}
+      independence:       {weight: 0.08}   # = 1 - r2_existing
+      coverage:           {weight: 0.05, target: 0.95}
+      turnover:           {weight: 0.03, cap: 0.90}
+    # §16 优先级：incremental IC > stability > independence > 可复现 >
+    # portfolio 收益。portfolio 表现**不进** score，只作 secondary evidence。
+
+  # ------------------------------------------------------ 最终候选（§27）
+  final:
+    max_candidates: 5
+    min_candidates: 3
+    status: research_candidate        # 绝不直接进 strategy_v2
+    manifest: experiments/factors/incremental_v2/factor_selection_manifest.json
+
+  # --------------------------------------------------- forward holdout
+  forward_holdout:
+    start: "2026-09-18"
+    mode: record_only                 # 只记录/监控，绝不参与选择
+    registry: experiments/factors/incremental_v2/forward_holdout.json
+
+  output:
+    dir: experiments/factors/incremental_v2
+    candidates_csv: reports/incremental_factor_candidates.csv
+    report: reports/incremental_factor_selection_v2.md
+    figures_dir: reports/figures/incremental_v2

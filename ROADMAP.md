@@ -694,54 +694,124 @@ python -m pytest tests/ -q                         # 全部测试
   （t = −0.87，p = 0.40）；单因子结论不受影响。
 - 报告：`reports/step8_micro_factors.md`。
 
-### 独立信息研究（STEP 9，2026-09-19）
+## STEP 9: Incremental IC Factor Selection
 
-起因：查"为什么把新因子叠加到 S3 上会变差"。结论分两层，第二层更重要。
+> 目标：不再问"这个因子单独强不强"，而是问
+> **"把它加进已有模型后，模型对未来横截面收益的预测信息是否真的增加？"**
+> 并把这件事固化成一套可长期复用的统计协议。
+>
+> 状态：**COMPLETED**（2026-09-19）
+> 协议配置：`config/factor_selection_v2.yaml`
+> 报告：`reports/incremental_factor_selection_v2.md`
 
-**1）"独立信息"可以被精确度量，而且大部分"有效因子"没有它**
+本阶段包含两个部分：**9.1 是一次发现，9.2 是对它的修正**。
 
-在当日横截面上把候选因子对 `Z = rank([Alpha158, S3 的自定义因子])` 做正交投影，
-残差的 IC 才是它真正新增的信息：
+### 9.1 残差信息研究（发现）
 
-- 75 个候选因子里只有 **4 个**通过独立信息门（|resid ICIR| ≥ 0.3 且 valid 同号）：
-  `downside_volatility_60`、`parkinson_vol_20`、`volatility_60`、`high_52w_proximity`。
-- **最强的单因子反而是零独立信息**：`limit_up_count_20` raw ICIR −0.733 →
-  resid **+0.001**（R² = 0.69）；`max_return_20` raw −0.623 → resid +0.232
-  （R² = 0.95）。它们是既有信息的**替代品**，不是**增量**。
-- 波动率家族的残差 ICIR 比原始 ICIR **更强**（−0.56 / −0.50 / −0.46 vs
-  −0.36 / −0.54 / −0.46），且 valid 2022-2023 同向确认。这是唯一一批
-  既有特征确实没覆盖的方向。
+在当日横截面上把候选因子对 `Z = rank([Alpha158, M0 自定义因子])` 做正交
+投影，用残差的 IC 度量"既有信息解释不掉的部分"：
 
-**2）"加入因子反而变差"这个前提在统计上不成立**
+- 75 个候选里只有 4 个通过独立信息门，看起来集中在波动率家族。
+- 最强的单因子 `limit_up_count_20`（raw ICIR −0.733）残差 ICIR ≈ 0
+  → 它是既有信息的**替代品**，不是**增量**。
+- 组合层面：S3 / I / R / M / N 五个变体的差异**全部不显著**
+  （p 0.15~0.83，年化 bootstrap 95% CI 全部跨零）。24 个月、月度超额
+  标准差 4.98% → 80% 功效下**可检出的最小年化差异 41.1%**。
+- 结论：**用 24 个月组合回测检验因子没有分辨力**；因子层（约 1500 只 ×
+  72 个信号日）才有足够样本。
 
-在同一引擎上跑 S3 / I（+独立信息包）/ R（+强但冗余对照包）：
+报告：`reports/step9_independent_info.md`。
 
-| 变体 | 年化 | Sharpe | IC(test) | ICIR | 月均超额 vs S3 | p |
-|---|---|---|---|---|---|---|
-| S3（锚点 drift 0.0000） | 0.2812 | 1.022 | 0.0372 | 0.446 | — | — |
-| I（4 个独立因子） | 0.1114 | 0.446 | **0.0392** | **0.632** | −1.17% | 0.15 |
-| R（4 个冗余因子） | 0.1351 | 0.549 | 0.0203 | 0.263 | −1.02% | 0.25 |
-| M / N（step8） | 0.3053 / 0.1592 | 1.148 / 0.657 | 0.0303 / 0.0287 | | +0.20% / −0.90% | 0.83 / 0.40 |
+### 9.2 协议修正（Incremental IC V2）
 
-- **没有一个差异显著**；各变体自身年化的 bootstrap 95% CI 全部跨零；
-  月度收益与 S3 相关 0.74~0.90（本质是同一策略的不同噪声实现）。
-- 24 个月、月度超额标准差 4.98% → 80% 功效下**可检出的最小年化差异 41.1%**；
-  要检出 5% 的差异需要约 **1,177 个月**。
-- **IC 与组合收益在本样本里无关**：五变体 IC 与年化相关 +0.18，
-  top-20 前瞻收益与年化相关 **−0.14**（ICIR 最高的 I 年化倒数第二）。
+**为什么改**：残差独立信息有两个致命问题——
+(1) R² 越高 → 残差越像噪声 → 残差相关越低 → **最冗余的因子看起来最独立**；
+(2) 残差 IC 高不等于加进模型有用。
 
-**结论：瓶颈不是"因子不够好"，而是"用 24 个月组合回测检验因子"没有分辨力。**
-因子层有约 1500 只 × 72 个信号日，组合层只有 23 个月。下一步应改用因子层/
-边际信息判据（详见报告 §8）。
+**改成什么**：直接配对比较两个模型
 
-**已知缺陷（本轮协议写死，不事后修改）**：G5 用**残差**相关聚类，
-而 R² 高达 0.9 的因子残差以噪声为主 → 残差相关被系统性压低 →
-3 个波动率因子没被合并。下一轮改为在原始因子上聚类 + 加 R² 门槛。
+```
+M0 = Alpha158 + factor_pack_v1 + news        （既有特征集）
+M1 = M0 + F                                  （唯一差别）
+ΔIC(t) = IC1(t) − IC0(t)                     逐日配对差，不是 mean(IC1)
+```
 
-**Snooping 披露**：frozen test 2024-2025 至此已被评估 **3** 次
-（STEP 6 终评、step8、step9）。协议先于结果写死，但反复使用 test 集
-本身必须记录。
+- **walk-forward 4 折**：train 2018–2019/2020/2021/2022 → valid 2020/2021/
+  2022/2023（扩张窗口，train_end < valid_start）。
+- **标签越界保护**：验证年最后一个信号日的 20 日前瞻收益落到下一年，
+  必须剔除（每年 12 → 11 个信号日）。
+- **严格配对**：同数据、同参数、同种子、同股票池；**关闭 early stopping
+  （验证集就是被评估期）与特征子采样**（否则 M0/M1 的差异混入抽样噪声）。
+- **block bootstrap**（按月分块，1000 次）给 ΔIC 置信区间。
+- **冗余主判据改为原始因子秩相关**（残差相关降级为诊断），
+  `require_both`：原始相关与对**完整 M0** 的回归 R² 同时越线才判冗余。
+- **Evidence Score**：权重全部写在 yaml（incremental ICIR 0.25 +
+  incremental RankICIR 0.25 + 正向 fold 0.14 + 正向月份 0.10 +
+  稳定性 0.10 + 独立性 0.08 + 覆盖率 0.05 + 换手 0.03），
+  优先级 incremental IC > stability > independence > portfolio 收益。
+- **两阶段筛选**：Stage A（2018-2021，只筛数据质量 + PIT 投毒检验）
+  65 → 20；Stage B（4 折配对）20 → 最终 5 个 research candidate。
 
-- 报告：`reports/step9_independent_info.md`；脚本
-  `scripts/research_independent_info.py`（本报告的方法与两个实现 bug 的自检）。
+**结果（诚实记录）**：
 
+- **0 / 20 个候选的 ΔIC 置信区间排除 0。** ΔIC 量级只有 0.0001~0.015。
+- **修正后的冗余判据推翻了 9.1 的波动率结论**：`parkinson_vol_20`
+  与既有因子秩相关 0.912、对完整 M0 的 R² 0.954 → 冗余；
+  `amihud_20` 是 `amount_20` 的近似倒数（相关 0.92）→ 冗余。
+- **置换重要性 ≈ 0**：打乱候选列后模型 IC 平均只掉 0.0006。
+  候选改变了模型输出（pred_corr 低至 0.40），却没有改变排序质量——
+  ΔIC 更可能来自"多加一列改变了训练路径"，而非"模型用上了这一列"。
+- 最终 5 个 research candidate：`gap_count_20`、`high_52w_proximity`、
+  `overnight_return_20`、`skewness_60`、`volume_price_corr_20`。
+  **是"待观察清单"，不是"已证明有效清单"。**
+
+### 9.3 Historical test 污染（如实记录）
+
+2024-2025 已被评估 **3 次**（STEP 6 终评、step8 微结构消融、step9 独立信息
+研究）。**不再声称它是 untouched test**，降级为 HISTORICAL TEST。
+
+本阶段在代码层面禁止它进入选择路径：
+`incremental/windows.py` 的两个守卫 + `tests/factors/test_no_test_usage.py`
+的静态扫描（选择路径上的模块不得出现 2024/2025 日期字面量）。
+本阶段全部数字只用 2018-2023，没有在 2024-2025 上跑任何东西。
+
+### 9.4 Forward holdout
+
+- 起点 `2026-09-18`（最后一个已被观察日期的次日），模式 `record_only`。
+- `scripts/monitor_forward_holdout.py` 每月登记冻结预测、回填已实现收益。
+- **当前 0 期**：holdout 尚未开始累积。目标是长期监控，不是现在出结论。
+
+### 9.5 本阶段修掉的实现 bug（都会给出错误答案）
+
+| # | 问题 | 后果 |
+|---|---|---|
+| 1 | 候选列用 `normalize_panel(..., "rank")`，而它是 `rank(axis=1)`；单列框架退化成常数 | **每个 ΔIC 都会精确等于 0**，看起来像"所有因子都没用"，实际是特征没进模型 |
+| 2 | `delta_ic_table` / `prediction_impact` 整表 merge → `label_0`/`label_1` | Stage B 直接 KeyError 崩 |
+| 3 | 冗余 R² 只对 Alpha158 回归，而相关判据用 M0 的 10 个自定义因子 | `require_both` 拿苹果比橘子 → `amihud_20`（相关 0.92）逃过判据并进入最终候选 |
+| 4 | block 与 iid bootstrap 共用同一 RNG 流 | "iid 对照"失去意义 |
+| 5 | Evidence Score 权重违反 §16 优先级 | 打分与声明的优先级不符 |
+
+Bug 1 与 STEP 9 上一轮的 `rank` 轴 bug **是同一类**（第二次出现），
+现已补回归测试 `tests/factors/test_walk_forward_selection.py::
+test_custom_frames_rank_across_stocks_not_across_factors`，并且驱动在构建
+设计矩阵后会显式检查"有没有常数列"并直接报错。
+
+### 9.6 代码与验证
+
+- 新增包 `incremental/`：`windows`（时间边界守卫）、`engine`（walk-forward
+  配对引擎）、`stats`（block bootstrap / Evidence Score / 门槛）、
+  `redundancy`（原始秩相关主判据 + 残差诊断）、`holdout`（前瞻登记）。
+- 脚本：`scripts/run_incremental_factor_selection.py`（主协议）、
+  `scripts/run_incremental_secondary.py`（ADD/REPLACE + 重要性，不参与选择）、
+  `scripts/make_incremental_figures.py`（8 张图）、
+  `scripts/monitor_forward_holdout.py`、`scripts/verify_incremental_factor_selection.py`。
+- 测试：`tests/factors/test_incremental_ic.py`、`test_walk_forward_selection.py`、
+  `test_block_bootstrap.py`、`test_factor_selection_freeze.py`、
+  `test_prediction_impact.py`、`test_redundancy.py`、`test_no_test_usage.py`。
+- 验收：`verify_incremental_factor_selection.py` **12/12 PASS**。
+- 冻结：`factor_selection_manifest.json` 记录候选、折、模型、种子、
+  数据快照、git commit、配置 sha256；配置改动会导致 freeze 校验失败。
+
+### 9.7 下一步
+
+**不自动进入**新闻/GUI/portfolio。本阶段完成后停下汇报。

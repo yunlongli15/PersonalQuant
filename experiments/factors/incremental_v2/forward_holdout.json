@@ -1,0 +1,11 @@
+{
+  "start": "2026-09-18",
+  "mode": "record_only",
+  "note": "holdout 只用于记录/监控/评估，绝不参与因子选择。2024-2025 为 HISTORICAL TEST（已被观察多次）。",
+  "historical_test": [
+    "2024-01-01",
+    "2025-12-31"
+  ],
+  "n_records": 0,
+  "records": []
+}
