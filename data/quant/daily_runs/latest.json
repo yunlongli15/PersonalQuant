@@ -26,13 +26,13 @@
       "production_model": "769f67656a713fef42747070266209e6037ba92595a6fde6601b2a5f2ed737f2"
     }
   },
-  "run_id": "2026-09-18_220943",
+  "run_id": "2026-09-18_222101",
   "date": "2026-09-18",
-  "status": "WARNING",
-  "start_time": "2026-09-19T22:09:43+08:00",
-  "end_time": "2026-09-19T22:11:06+08:00",
-  "duration_s": 82.94,
-  "git_commit": "6241abd2a5ba1afb40ee0ae2a4a3733cf6311dce",
+  "status": "OK",
+  "start_time": "2026-09-20T22:21:01+08:00",
+  "end_time": "2026-09-20T22:21:06+08:00",
+  "duration_s": 4.64,
+  "git_commit": "df2eeef0d75778e14c94801e261161c9dac39c5c",
   "strategy_version": "strategy_v2",
   "model_version": "s3",
   "feature_version": "alpha158+factor_pack_v1",
@@ -49,15 +49,15 @@
       "status": "OK",
       "detail": "Python 3.12.10；冻结状态 一致；DuckDB 可独占打开",
       "error": "",
-      "duration_s": 1.04,
+      "duration_s": 1.03,
       "depends_on": []
     },
     {
       "name": "source_health",
-      "status": "WARNING",
-      "detail": "STALE：['Valuation', 'News']（行情最新 2026-09-18）",
+      "status": "OK",
+      "detail": "全部新鲜；行情最新 2026-09-18",
       "error": "",
-      "duration_s": 0.46,
+      "duration_s": 0.42,
       "depends_on": [
         "environment"
       ]
@@ -67,7 +67,7 @@
       "status": "OK",
       "detail": "行情最新 2026-09-18（日历 2026-09-18 00:00:00），落后 0 天，无需下载新快照",
       "error": "",
-      "duration_s": 0.7,
+      "duration_s": 0.74,
       "depends_on": [
         "source_health"
       ]
@@ -75,9 +75,9 @@
     {
       "name": "news",
       "status": "OK",
-      "detail": "新闻最新 2026-09-11；覆盖 4223 只",
+      "detail": "新闻最新 2026-09-18；覆盖 4630 只",
       "error": "",
-      "duration_s": 52.13,
+      "duration_s": 1.75,
       "depends_on": [
         "environment"
       ]
@@ -105,9 +105,9 @@
     {
       "name": "paper_prediction",
       "status": "OK",
-      "detail": "预测 3016 只；订单挂起等 T+1；写入 forward_holdout（正式前瞻）",
+      "detail": "该日已记录，本次为无操作重跑（未写入任何东西）；存档值：预测 3016 只；订单 20；成交 0；位于 forward_holdout（正式前瞻）",
       "error": "",
-      "duration_s": 27.91,
+      "duration_s": 0.03,
       "depends_on": [
         "data_quality"
       ]
@@ -144,8 +144,8 @@
     },
     {
       "name": "drift",
-      "status": "WARNING",
-      "detail": "paper drift: {'concentration': 'CONCENTRATION_WARNING'}",
+      "status": "OK",
+      "detail": "一致",
       "error": "",
       "duration_s": 0.0,
       "depends_on": [
@@ -154,8 +154,8 @@
     },
     {
       "name": "alerts",
-      "status": "WARNING",
-      "detail": "4 条告警：['DATA_WARNING']",
+      "status": "OK",
+      "detail": "无告警",
       "error": "",
       "duration_s": 0.0,
       "depends_on": [
@@ -167,7 +167,7 @@
       "status": "OK",
       "detail": "C:\\Users\\Administrator\\Desktop\\PersonalQuant\\reports\\daily\\2026-09-18.md",
       "error": "",
-      "duration_s": 0.41,
+      "duration_s": 0.39,
       "depends_on": [
         "alerts"
       ]
@@ -183,15 +183,11 @@
       ]
     }
   ],
-  "warnings": [
-    "source_health: STALE：['Valuation', 'News']（行情最新 2026-09-18）",
-    "drift: paper drift: {'concentration': 'CONCENTRATION_WARNING'}",
-    "alerts: 4 条告警：['DATA_WARNING']"
-  ],
+  "warnings": [],
   "errors": [],
-  "input_fingerprint": "338da9e3b3746e67",
+  "input_fingerprint": "25365900caa1fe34",
   "daily_summary": {
-    "status": "WARNING",
-    "n_alerts": 4
+    "status": "OK",
+    "n_alerts": 0
   }
 }

@@ -53,6 +53,12 @@ def _num(v, nd: int = 4) -> str:
         return "—"
 
 
+def _freeze_git_commit() -> str:
+    """本次运行的 HEAD —— 与 manifest 的 git_commit 同一来源。"""
+    from pipeline import freeze as fz
+    return fz.git_commit()
+
+
 # ---------------------------------------------------------------------------
 # 摘要（§16，GUI 读这个）
 # ---------------------------------------------------------------------------
@@ -108,7 +114,13 @@ def build_summary(ctx) -> dict:
             "mwr_xirr": perf.get("mwr_xirr"),
             "max_drawdown": perf.get("max_drawdown"),
         },
-        "strategy": sd.get("freeze", {}).get("recorded", {}) or {},
+        "strategy": {
+            # 冻结记录里的标量元数据（版本/分配/执行/forward 起点…）
+            **((sd.get("freeze", {}) or {}).get("meta", {}) or {}),
+            # 但 git commit 要用**本次运行**的 HEAD（与 manifest 一致），
+            # 不是冻结那天的 commit —— 否则报告会谎报这次跑在哪个代码上。
+            "git_commit": _freeze_git_commit(),
+        },
         "paper_live": ({
             "status": getattr(paper, "status", None),
             "is_rebalance": bool(sd.get("is_rebalance")),
@@ -119,6 +131,7 @@ def build_summary(ctx) -> dict:
             .get("portfolio_value"),
             "execution_date": getattr(paper, "execution_date", None),
             "pending": getattr(paper, "pending", False),
+            "idempotent": bool(getattr(paper, "idempotent", False)),
         } if paper is not None else None),
         "risk": {
             "nav_based": risk.get("nav_based"),
@@ -189,11 +202,14 @@ def render_markdown(ctx, summary: dict) -> str:
     if not paper or paper.get("status") is None:
         L.append("- 本日未运行 paper live")
     else:
+        _idem = paper.get("idempotent")
         L += [
             f"- 状态：**{paper['status']}** ｜ "
-            f"{'调仓日' if paper['is_rebalance'] else '监控日'}",
+            f"{'调仓日' if paper['is_rebalance'] else '监控日'}"
+            + ("｜ **该日已记录，本次未写入任何东西**" if _idem else ""),
             f"- 预测 {paper['n_predictions']} 只 ｜ 订单 {paper['n_orders']} ｜ "
-            f"成交 {paper['n_fills']}",
+            f"成交 {paper['n_fills']}"
+            + ("（以上为存档值，非本次计算）" if _idem else ""),
             f"- 成交日：{paper.get('execution_date') or '—'}"
             + ("（订单挂起，等 T+1）" if paper.get("pending") else ""),
             f"- Paper 组合市值：{_money(paper.get('portfolio_value'))}",
@@ -389,18 +405,17 @@ def build_manifest(ctx) -> dict:
     from pipeline import freeze as fz
 
     run, sd = ctx.run, ctx.store_data
-    rec = (sd.get("freeze", {}) or {}).get("recorded", {}) or {}
+    rec = (sd.get("freeze", {}) or {}).get("meta", {}) or {}
     payload = dict(run.manifest)
     payload.update({
         "run_id": run.run_id, "date": run.date, "status": run.status,
         "start_time": run.started, "end_time": run.ended,
         "duration_s": round(run.duration_s, 2),
         "git_commit": fz.git_commit(),
-        "strategy_version": rec.get("strategy_version", "strategy_v2"),
-        "model_version": rec.get("model_version", "s3"),
-        "feature_version": rec.get("feature_version", "alpha158+factor_pack_v1"),
-        "news_version": rec.get("news_feature_version",
-                                "factor_pack_news_v1"),
+        "strategy_version": rec.get("strategy_version"),
+        "model_version": rec.get("model_version"),
+        "feature_version": rec.get("feature_version"),
+        "news_version": rec.get("news_feature_version"),
         "data_snapshot_id": sd.get("market_latest"),
         "is_rebalance": bool(sd.get("is_rebalance")),
         "forward_observation": run.forward_observation,

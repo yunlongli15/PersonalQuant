@@ -106,11 +106,16 @@ def financial_update(**kw) -> str:
 
 def valuation_update(**kw) -> str:
     """Daily valuation snapshot (PE/PB/market cap) via the existing
-    ingest entry point (Tencent rank snapshot, raw response cached)."""
+    ingest entry point (Tencent rank snapshot, raw response cached).
+
+    `use_cache=False` on purpose: with the default the "update" returned
+    the raw cache and just re-wrote the old rows — a job named *update*
+    that could never update.
+    """
     _maybe_offline()
     from personal_quant.ingest import market_online
 
-    df = market_online.ingest_valuation()
+    df = market_online.ingest_valuation(use_cache=False)
     d = df["trade_date"].iloc[0] if len(df) else "?"
     return f"{len(df)} rows @ {d}"
 

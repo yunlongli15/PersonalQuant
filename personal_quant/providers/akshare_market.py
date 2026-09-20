@@ -74,8 +74,15 @@ class AkShareMarketProvider:
     # ------------------------------------------------------------------
     # Valuation snapshot (Tencent rank API, ~24 pages for the full market)
     # ------------------------------------------------------------------
-    def fetch_valuation_snapshot(self, use_cache: bool = True) -> pd.DataFrame:
-        """Full-market snapshot: pe/pb/market caps/turnover (+names, is_st)."""
+    def fetch_valuation_snapshot(self, use_cache: bool = True,
+                                 trade_date=None) -> pd.DataFrame:
+        """Full-market snapshot: pe/pb/market caps/turnover (+names, is_st).
+
+        `trade_date` = the session the snapshot represents. Defaults to
+        today, but on a weekend/holiday the caller must pass the last
+        trading day — otherwise the snapshot invents a session that does
+        not exist.
+        """
         if use_cache:
             cached = _load_cache("valuation_snapshot")
             if cached is not None and not cached.empty:
@@ -135,7 +142,9 @@ class AkShareMarketProvider:
             }
         )
         out["is_st"] = out["name"].str.contains("ST", na=False)
-        out["trade_date"] = pd.Timestamp.now().normalize()
+        out["trade_date"] = (pd.Timestamp(trade_date).normalize()
+                             if trade_date is not None
+                             else pd.Timestamp.now().normalize())
         out["source"] = "tencent_rank"
         out = out.drop_duplicates(subset=["symbol"])
         _save_cache("valuation_snapshot", out)

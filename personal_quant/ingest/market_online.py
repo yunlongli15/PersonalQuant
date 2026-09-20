@@ -98,9 +98,32 @@ def ingest_securities(provider: AkShareMarketProvider | None = None) -> pd.DataF
     return out
 
 
-def ingest_valuation(provider: AkShareMarketProvider | None = None) -> pd.DataFrame:
+def last_open_trading_day(ref=None) -> pd.Timestamp:
+    """最近一个已收盘的交易日（trading_calendar 是交易日历的权威）。"""
+    ref = (pd.Timestamp(ref) if ref is not None
+           else pd.Timestamp.today().normalize())
+    df = db.connect().execute(
+        "SELECT MAX(trade_date) d FROM trading_calendar "
+        "WHERE is_open AND trade_date <= ?", [ref]).fetch_df()
+    d = df["d"].iloc[0] if len(df) else None
+    return pd.Timestamp(d) if d is not None else ref
+
+
+def ingest_valuation(provider: AkShareMarketProvider | None = None,
+                     use_cache: bool = True,
+                     trade_date=None) -> pd.DataFrame:
+    """Valuation snapshot.
+
+    `use_cache=True` returns the raw cache as-is (a re-parse, not an
+    update). Callers whose job is to **update** must pass
+    `use_cache=False` — otherwise the job rewrites yesterday's snapshot
+    and reports success.
+    """
     provider = provider or AkShareMarketProvider()
-    snap = provider.fetch_valuation_snapshot()
+    td = (pd.Timestamp(trade_date) if trade_date is not None
+          else last_open_trading_day())
+    snap = provider.fetch_valuation_snapshot(use_cache=use_cache,
+                                             trade_date=td)
     out = pd.DataFrame(
         {
             "symbol": snap["symbol"],

@@ -525,6 +525,13 @@ def task_paper_prediction(ctx: Ctx) -> Tuple[str, str]:
         return INVALID, f"PIT/冻结未通过：{result.audit.get('status')}"
     where = "forward_holdout（正式前瞻）" if ctx.store_data.get(
         "paper_is_forward") else "pre_forward（起点前，不污染 holdout）"
+    if result.idempotent:
+        # 该日早已记录：引擎按 append-only 直接返回存档，**一个字节都没写**。
+        # 这时说"写入 forward_holdout"是谎报，数字也全是存档里的旧值。
+        return OK, (f"该日已记录，本次为无操作重跑（未写入任何东西）；"
+                    f"存档值：预测 {result.n_predictions} 只；"
+                    f"订单 {result.n_orders}；成交 {result.n_fills}；"
+                    f"位于 {where}")
     if result.pending:
         return OK, f"预测 {result.n_predictions} 只；订单挂起等 T+1；写入 {where}"
     return OK, (f"预测 {result.n_predictions} 只；订单 {result.n_orders}；"
@@ -596,7 +603,12 @@ def task_drift(ctx: Ctx) -> Tuple[str, str]:
     """§15：冻结漂移 + paper live 自身漂移（只报，不改）。"""
     from pipeline import freeze as fz
     st = fz.verify()
-    ctx.store_data["freeze"] = st.as_dict()
+    d = st.as_dict()
+    # verify() 的 recorded 只有**哈希**；日报/manifest 要展示的版本号、分配
+    # 方法、forward 起点这些标量在冻结记录本身。不分开取的话报告会回退成
+    # 硬编码默认值 —— 那就等于拿常量冒充生产状态。
+    d["meta"] = (fz.load_freeze().get("production_freeze") or {})
+    ctx.store_data["freeze"] = d
     if st.drift:
         ctx.run.warnings.append(f"PRODUCTION_DRIFT: {st.detail}")
         return INVALID, st.detail

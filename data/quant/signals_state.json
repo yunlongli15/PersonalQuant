@@ -1,7 +1,7 @@
 {
-  "as_of": "2026-09-17",
-  "computed_at": "2026-09-17T22:11:24",
-  "n_symbols": 3013,
+  "as_of": "2026-09-18",
+  "computed_at": "2026-09-20T22:16:54",
+  "n_symbols": 3016,
   "model": "experiments\\news\\strategy\\model.txt",
   "model_version": "strategy_v2/S3",
   "feature_version": "alpha158+factor_pack_v1+factor_pack_news_v1"

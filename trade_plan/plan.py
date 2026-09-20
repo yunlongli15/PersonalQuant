@@ -181,7 +181,13 @@ def account_profile() -> dict:
            "experience_months": None,     # None = unknown (warn, not block)
            "auto_detect_capital": True}
     if p.exists():
-        cfg.update(yaml.safe_load(p.read_text(encoding="utf-8")) or {})
+        raw = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+        cfg.update(raw)
+        # 配置现在把字段写在 `account:` 下面（旧版是平铺的）。不合并这一层
+        # 的话 cfg["capital"] 会停在默认 10 万、auto_detect 停在 True ——
+        # 用户手写的"可投资金 6.6 万 / 不做自动探测"被**静默忽略**，
+        # 交易计划会按"财富库总资产"下单（2026-09-20 实际发生）。
+        cfg.update(raw.get("account") or {})
     if cfg.get("auto_detect_capital"):
         try:
             from wealth import db as wdb

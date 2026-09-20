@@ -12,6 +12,24 @@ CONFIG = yaml.safe_load(
 )
 
 
+@pytest.fixture
+def sandbox_features(monkeypatch, tmp_path):
+    """Feature cache MUST NOT be written into the real DERIVED layer.
+
+    These tests run Alpha158 for 2 symbols, and the worker writes the
+    whole month file: without isolation `compute_features(cache=False)`
+    overwrites `data/derived/features/2024-01.parquet` with a 2-row
+    frame (observed 2026-09-20 — the real file had 4,943 rows). Every
+    later reader of that cache then silently gets wrong data.
+    """
+    import personal_quant.strategy.features as fmod
+
+    cache = tmp_path / "features"
+    cache.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(fmod, "FEATURE_CACHE", cache)
+    return cache
+
+
 def test_label_uses_only_future_rows():
     """Label at t is built from close/factor at t and t+20 only."""
     from personal_quant.strategy.features import compute_labels
@@ -49,7 +67,7 @@ def test_label_date_is_future_relative_to_signal():
         assert days[i + 20] > t
 
 
-def test_feature_columns_have_no_future_refs():
+def test_feature_columns_have_no_future_refs(sandbox_features):
     """Alpha158 columns are fixed formulas with no t+k (k>0) references."""
     from personal_quant.strategy.features import compute_features
     from personal_quant.strategy.rebalance import trading_days
@@ -66,7 +84,7 @@ def test_feature_columns_have_no_future_refs():
     assert "LABEL" not in [n.upper() for n in names]
 
 
-def test_no_label_column_in_features():
+def test_no_label_column_in_features(sandbox_features):
     """The qlib handler's label column (Ref($close,-2)/Ref($close,-1): a
     2-day FORWARD return in qlib semantics) must never enter features."""
     import pandas as pd
