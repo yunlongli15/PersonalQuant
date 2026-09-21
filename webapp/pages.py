@@ -672,7 +672,7 @@ def trade_plan_page(vm: dict) -> str:
     # 日期必须写清楚：信号日是"数据到哪一天"，生成时间是"什么时候算的"。
     # 只显示其中一个会让人以为计划是旧的（2026-09-21 实际反馈）。
     _asof = esc(vm.get("as_of"))
-    _gen = esc(str(vm.get("generated_at") or "—")[:16])
+    _gen = esc(str(vm.get("generated_at") or "—")[:16].replace("T", " "))
     body.append(f'<div class="note">信号日（数据截至） <b>{_asof}</b> · '
                 f'生成于 {_gen} · allocation = '
                 f'{esc(vm["allocation_method"])} '
