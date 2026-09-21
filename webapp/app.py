@@ -54,7 +54,35 @@ def _render_daily(as_of: str, result: Optional[dict] = None) -> str:
     conn = wdb.connect()
     return pages.daily_update_page(
         _update_products(), repo.list_platforms(conn), list(PRODUCT_TYPES),
-        as_of, result)
+        as_of, result, pending=_pending_flows(conn))
+
+
+def _pending_flows(conn) -> list:
+    """上次录入日之后的资金流 —— 它们还没反映到任何「金额」里。
+
+    `daily_snapshots` = 那天账户里有多少钱；`transactions` = 那天发生了什么。
+    两者分开是**设计**：系统不替用户推算余额（可能转账还没到账，也可能有
+    市场波动）。但流水记了、金额没更新，用户会以为"数据没刷新" —— 所以
+    这里把它显式列出来，并说清楚下一步该做什么。
+    """
+    from wealth import repository as repo
+
+    snaps = repo.list_snapshots(conn)
+    last = max((s["snap_date"] for s in snaps), default=None)
+    names = {p["product_id"]: p["name"]
+             for p in repo.list_products(conn, include_inactive=True)}
+    out = []
+    for t in repo.list_transactions(conn):
+        if not t["cash_flow"]:
+            continue
+        if last and str(t["txn_date"]) <= str(last):
+            continue
+        out.append({"txn_date": t["txn_date"],
+                    "name": names.get(t["product_id"], "?"),
+                    "txn_type": t["txn_type"],
+                    "label": TXN_LABEL.get(t["txn_type"], t["txn_type"]),
+                    "cash_flow": float(t["cash_flow"])})
+    return out
 
 
 def _update_products() -> list:
@@ -317,8 +345,14 @@ async def add_transaction(request: Request) -> str:
             repo.create_transaction(conn, txn_date, pid, ttype,
                                     amount=abs(amount), cash_flow=signed,
                                     note=note, source="user")
+            # 流水只回答"发生了什么"，不回答"账户里现在有多少钱" ——
+            # 后者来自「每日录入」。不说清楚的话，用户会以为资产总览该变
+            # 却没变（2026-09-21 实际反馈）。
             msg = (f"已记录：{TXN_LABEL[ttype]} {abs(amount):,.2f} 元"
-                   f"（外部资金流 {signed:+,.2f}，已从收益中剔除）")
+                   f"（{signed:+,.2f}，已从该产品的收益计算中剔除）。"
+                   f"注意：流水只影响收益口径，不改变"
+                   f"「账户里有多少钱」—— 该产品的当前金额请到"
+                   f"「每日录入」更新。")
         return _render_transactions({"ok": True, "msg": msg}, txn_date)
     except Exception as e:                                   # noqa: BLE001
         return _render_transactions(
@@ -326,7 +360,12 @@ async def add_transaction(request: Request) -> str:
 
 
 TXN_LABEL = {"deposit": "转入", "withdrawal": "转出",
-             "transfer_in": "内部转入", "transfer_out": "内部转出",
+             # 产品之间互转：对**整个组合**是内部搬家，对这个**产品**是外部
+             # 进出（P&L 必须把它剔除，否则转出会被当成亏损）。旧标签写
+             # "内部转入/转出"，和 P&L 口径的"外部资金流"直接打架，也没
+             # 法和"从银行卡转入"区分开。
+             "transfer_in": "从其他产品转入",
+             "transfer_out": "转出到其他产品",
              "dividend": "分红", "fee": "费用",
              "buy": "买入", "sell": "卖出"}
 

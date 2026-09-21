@@ -292,7 +292,8 @@ def wealth_overview(vm: dict) -> str:
 
 def daily_update_page(products: List[dict], platforms: List[dict],
                       product_types: List[str], as_of: str,
-                      result: Optional[dict] = None) -> str:
+                      result: Optional[dict] = None,
+                      pending: Optional[List[dict]] = None) -> str:
     """每日录入：日期 + 渠道 + 今日金额 + 今日收益。
 
     用户只做两件事：选渠道（已有的选，没有的当场新建）、抄平台上显示的
@@ -310,12 +311,27 @@ def daily_update_page(products: List[dict], platforms: List[dict],
         else:
             body.append(f'<div class="banner bad">'
                         f'{esc(result.get("error"))}</div>')
+    if pending:
+        # 流水记了、金额还没更新的那段空档：不列出来的话，用户看到"上次金额"
+        # 是旧的会以为数据没刷新（2026-09-21 实际反馈）。
+        rows = "".join(
+            f'<div class="note">· {esc(str(p["txn_date"]))} '
+            f'{esc(p["name"])} {esc(p.get("label") or p["txn_type"])} '
+            f'<b>{p["cash_flow"]:+,.2f}</b> 元</div>' for p in pending)
+        body.append(
+            f'<div class="banner warn">{len(pending)} 笔资金流还没有反映到'
+            f'「金额」里（流水只记"发生了什么"，不改变"账户里有多少钱"）：'
+            f'{rows}'
+            f'<div class="note">请按平台 App 上显示的<b>实际金额</b>填写下面的'
+            f'「今日金额」—— 系统不会替你推算余额。</div></div>')
     body.append('<div class="note">只需填两个数字：<b>今日金额</b>'
                 '（账户里现在有多少钱）和 <b>今日收益</b>（平台 App 上显示的'
                 '当日收益，选填）。收益、万份收益、份额、持仓由系统推导。<br>'
-                '<b>从银行卡转入 / 转出到银行卡</b>这类外部资金进出，请到 '
+                '<b>从银行卡转入 / 转出到银行卡</b>、<b>产品之间互转</b>'
+                '这类资金进出，请到 '
                 '<a href="/wealth/transactions">交易流水</a> 记一笔'
-                '（记了才会从收益里剔除，否则会被当成赚了钱）；'
+                '（记了才会从该产品的收益里剔除，否则转出会被当成亏损）；'
+                '记完流水记得回到本页填今日金额 —— 流水不改变余额。'
                 '股票请用下面的股票表单独填。</div>')
 
     form = ['<form method="post" action="/wealth/daily-update">',
