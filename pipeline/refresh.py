@@ -20,6 +20,7 @@ from __future__ import annotations
 import contextlib
 import os
 import sys
+import time
 from typing import Callable, Dict, List, Optional
 
 from . import jobs as jobstore
@@ -175,24 +176,41 @@ def run_all(only: Optional[List[str]] = None,
     """
     table = jobs or dict(REFRESH_JOBS)
     results = []
-    for name, fn in table.items():
-        if only and name not in only:
-            continue
+    todo = [(n, f) for n, f in table.items() if not only or n in only]
+    # 上次被强杀的作业会永远停在 'running'，先如实标记，免得看着像"还在跑"
+    try:
+        stale = jobstore.mark_interrupted(conn=conn)
+        if stale:
+            print(f"（标记了 {stale} 个上次中断的作业）", flush=True)
+    except Exception:                                          # noqa: BLE001
+        pass
+
+    n = len(todo)
+    for i, (name, fn) in enumerate(todo, 1):
+        # 每个作业开始/结束都打印：整条链子可能跑十几分钟，
+        # 没有输出的话用户分不清是在下载还是卡死了（§20 实际反馈）。
+        print(f"[{i}/{n}] {name} ... 运行中", flush=True)
+        t0 = time.time()
         try:
             run = jobstore.run_job(name, fn, conn=conn)
             results.append({"job": name, "status": run.status,
                             "detail": run.detail, "error": run.error,
                             "duration_s": run.duration_s})
+            print(f"[{i}/{n}] {name} -> {run.status} "
+                  f"({time.time() - t0:.0f}s)", flush=True)
         except OfflineMode as e:
             jobstore.skip_job(name, f"SKIPPED_OFFLINE: {e}", conn=conn)
             results.append({"job": name, "status": "SKIPPED_OFFLINE",
                             "detail": str(e), "error": None,
                             "duration_s": 0.0})
+            print(f"[{i}/{n}] {name} -> 离线跳过", flush=True)
         except Exception as e:                       # noqa: BLE001
             results.append({"job": name, "status": "FAILED",
                             "detail": None,
                             "error": f"{type(e).__name__}: {e}",
                             "duration_s": None})
+            print(f"[{i}/{n}] {name} -> FAILED "
+                  f"{type(e).__name__}: {e}", flush=True)
             if not continue_on_error:
                 raise
     return results

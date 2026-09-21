@@ -1,9 +1,9 @@
 {
-  "run_id": "2026-09-18_222101",
+  "run_id": "2026-09-18_212310",
   "date": "2026-09-18",
   "status": "OK",
-  "generated_at": "2026-09-20T22:21:06+08:00",
-  "duration_s": 4.64,
+  "generated_at": "2026-09-21T21:23:16+08:00",
+  "duration_s": 5.36,
   "dry_run": false,
   "backfill": false,
   "summary": {
@@ -27,7 +27,7 @@
   "strategy": {
     "version": "1.0.0",
     "freeze_date": "2026-09-19",
-    "git_commit": "df2eeef0d75778e14c94801e261161c9dac39c5c",
+    "git_commit": "1ebe51a7619158b50191ae3635575dfb40b71015",
     "production_enabled": true,
     "strategy_version": "strategy_v2",
     "feature_version": "alpha158+factor_pack_v1",
@@ -97,7 +97,7 @@
       "status": "OK",
       "detail": "新闻最新 2026-09-18；覆盖 4630 只",
       "error": "",
-      "duration_s": 1.75,
+      "duration_s": 1.72,
       "depends_on": [
         "environment"
       ]
@@ -132,40 +132,40 @@
         "domain": "Financial Reports",
         "status": "OK",
         "latest": "2026-04-30",
-        "expected": "2026-09-20",
-        "age_days": 143,
+        "expected": "2026-09-21",
+        "age_days": 144,
         "detail": "fiscal availability date (announcement)"
       },
       {
         "domain": "News",
         "status": "OK",
         "latest": "2026-09-18",
-        "expected": "2026-09-20",
-        "age_days": 2,
+        "expected": "2026-09-21",
+        "age_days": 3,
         "detail": null
       },
       {
         "domain": "Factors",
         "status": "OK",
         "latest": "2026-09-19",
-        "expected": "2026-09-20",
-        "age_days": 1,
+        "expected": "2026-09-21",
+        "age_days": 2,
         "detail": null
       },
       {
         "domain": "Forecast",
         "status": "OK",
         "latest": "2026-09-18",
-        "expected": "2026-09-20",
-        "age_days": 2,
+        "expected": "2026-09-21",
+        "age_days": 3,
         "detail": null
       },
       {
         "domain": "Portfolio",
         "status": "OK",
         "latest": "2026-09-18",
-        "expected": "2026-09-20",
-        "age_days": 2,
+        "expected": "2026-09-21",
+        "age_days": 3,
         "detail": null
       }
     ]
@@ -510,8 +510,8 @@
     ]
   },
   "timestamps": {
-    "started": "2026-09-20T22:21:01+08:00",
-    "ended": "2026-09-20T22:21:06+08:00",
+    "started": "2026-09-21T21:23:10+08:00",
+    "ended": "2026-09-21T21:23:16+08:00",
     "market_latest": "2026-09-18",
     "signal": "2026-09-18"
   }

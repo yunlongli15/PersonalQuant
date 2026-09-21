@@ -353,6 +353,15 @@ def _snapshot_check() -> Optional[str]:
     return (r.stdout or "").strip()
 
 
+def _upstream_data_date(info: Optional[str]) -> Optional[str]:
+    """从 `--check` 的输出里取上游真实数据日（target_trade_date）。"""
+    for line in (info or "").splitlines():
+        if "upstream data ends:" in line:
+            v = line.split(":", 1)[1].strip()
+            return v if v and v != "未知" else None
+    return None
+
+
 def task_market_data(ctx: Ctx) -> Tuple[str, str]:
     from pipeline.freshness import last_trading_day, market_latest
 
@@ -364,13 +373,27 @@ def task_market_data(ctx: Ctx) -> Tuple[str, str]:
         # §23：dry-run 只做检查。整份快照是几百 MB，绝不能在"看一眼"的模式下下载。
         return SKIPPED, f"dry-run 不下载；行情最新 {ml}"
 
-    # §38：普通日必须快。先问上游有没有新快照（一次 HTTP），
-    # 只有确实落后才下载 —— 否则每天下 500MB 是不可接受的。
+    # §38：普通日必须快。先问上游有没有新快照（一次 HTTP + 一个 511 字节的
+    # manifest），只有确实落后才下载 —— 否则每天下 500MB 是不可接受的。
+    #
+    # 注意 behind 是**本地数据 vs 本地日历**，两个都来自同一份快照，
+    # 所以它永远是 0，不能用来判断"上游有没有更新"。真正的判据是上游
+    # manifest 里的 target_trade_date（release 名字只是标签：名为
+    # 2026-09-20 的 release，数据仍然停在 2026-09-18）。
     behind = (pd.Timestamp(lt) - pd.Timestamp(ml)).days
     info = _snapshot_check()
     ctx.store_data["snapshot_check"] = info
+    up_to = _upstream_data_date(info)
+    ctx.store_data["upstream_data_date"] = up_to
 
     if behind <= SNAPSHOT_LAG_DAYS and info is not None:
+        if up_to is not None and str(up_to) <= str(ml):
+            return OK, (f"行情最新 {ml}；上游最新数据日 {up_to} —— "
+                        f"已是最新，没有更新的数据可下载")
+        if up_to is not None:
+            return WARNING, (f"行情最新 {ml}，上游已有 {up_to} —— "
+                             f"有新数据未下载；跑 "
+                             f"`python scripts/quant/refresh_all.py` 更新")
         return OK, (f"行情最新 {ml}（日历 {lt}），落后 {behind} 天，"
                     f"无需下载新快照")
 

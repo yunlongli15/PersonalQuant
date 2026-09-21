@@ -48,15 +48,54 @@ def current_version() -> str:
     return lines[-1] if lines else "empty"
 
 
+def manifest_info(rel: dict) -> dict:
+    """The release's own 511-byte manifest — it carries the REAL data date.
+
+    The release tag is a label (a release named 2026-09-20 can still hold
+    data ending 2026-09-18). `target_trade_date` is the truth, so the
+    download can be skipped when there is nothing newer.
+    """
+    url = next((a["browser_download_url"] for a in rel.get("assets", [])
+                if a["name"].endswith("manifest.json")), None)
+    if not url:
+        return {}
+    for attempt in (1, 2):
+        try:
+            req = urllib.request.Request(url,
+                                         headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=60) as r:
+                return json.loads(r.read())
+        except Exception:                                      # noqa: BLE001
+            if attempt == 2:
+                return {}
+            time.sleep(2)
+    return {}
+
+
 def download(url: str, dest: Path) -> Path:
+    """Chunked download with progress — 500+ MB with no output looks hung."""
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = dest.with_suffix(".part")
     with urllib.request.urlopen(
             urllib.request.Request(url,
                                    headers={"User-Agent": "Mozilla/5.0"}),
             timeout=120) as r, open(tmp, "wb") as f:
-        shutil.copyfileobj(r, f, length=1024 * 1024)
+        total = int(r.headers.get("Content-Length") or 0)
+        done, last = 0, 0.0
+        while True:
+            chunk = r.read(1024 * 1024)
+            if not chunk:
+                break
+            f.write(chunk)
+            done += len(chunk)
+            now = time.time()
+            if now - last >= 3.0:
+                last = now
+                pct = f"{done / total:5.1%}" if total else "  ?  "
+                print(f"  下载中 {pct}  {done/1e6:6.1f} / "
+                      f"{total/1e6:.0f} MB", flush=True)
     tmp.replace(dest)
+    print(f"  下载完成 {done/1e6:.1f} MB", flush=True)
     return dest
 
 
@@ -71,9 +110,22 @@ def main() -> int:
 
     rel = latest_release()
     tag = rel["tag_name"]
+    man = manifest_info(rel)
+    up_to = man.get("target_trade_date")
+    local = current_version()
     print(f"upstream release: {tag}  (published {rel['published_at'][:10]})")
-    print(f"local calendar ends: {current_version()}")
+    print(f"upstream data ends: {up_to or '未知'}")
+    print(f"local calendar ends: {local}")
     if args.check:
+        return 0
+
+    # 上游"数据日"没有超过本地 → 这份快照里没有任何新东西，别下 500 MB。
+    # 只看 release 名字会误判：名为 2026-09-20 的 release 数据仍然停在
+    # 2026-09-18（实测两者逐字节相同）。
+    if up_to and local not in ("missing", "empty") and up_to <= local:
+        print(f"\n本地已有 {local} 的数据，上游没有更新的内容 —— "
+              f"跳过下载（这份快照约 "
+              f"{next(a['size'] for a in rel['assets'] if a['name'].endswith('tar.gz'))/1e6:.0f} MB）。")
         return 0
 
     asset = next(a for a in rel["assets"] if a["name"] == "qlib_bin.tar.gz")

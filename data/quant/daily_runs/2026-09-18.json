@@ -26,13 +26,13 @@
       "production_model": "769f67656a713fef42747070266209e6037ba92595a6fde6601b2a5f2ed737f2"
     }
   },
-  "run_id": "2026-09-18_222101",
+  "run_id": "2026-09-18_212310",
   "date": "2026-09-18",
   "status": "OK",
-  "start_time": "2026-09-20T22:21:01+08:00",
-  "end_time": "2026-09-20T22:21:06+08:00",
-  "duration_s": 4.64,
-  "git_commit": "df2eeef0d75778e14c94801e261161c9dac39c5c",
+  "start_time": "2026-09-21T21:23:10+08:00",
+  "end_time": "2026-09-21T21:23:16+08:00",
+  "duration_s": 5.36,
+  "git_commit": "1ebe51a7619158b50191ae3635575dfb40b71015",
   "strategy_version": "strategy_v2",
   "model_version": "s3",
   "feature_version": "alpha158+factor_pack_v1",
@@ -49,7 +49,7 @@
       "status": "OK",
       "detail": "Python 3.12.10；冻结状态 一致；DuckDB 可独占打开",
       "error": "",
-      "duration_s": 1.03,
+      "duration_s": 1.04,
       "depends_on": []
     },
     {
@@ -57,7 +57,7 @@
       "status": "OK",
       "detail": "全部新鲜；行情最新 2026-09-18",
       "error": "",
-      "duration_s": 0.42,
+      "duration_s": 0.46,
       "depends_on": [
         "environment"
       ]
@@ -65,9 +65,9 @@
     {
       "name": "market_data",
       "status": "OK",
-      "detail": "行情最新 2026-09-18（日历 2026-09-18 00:00:00），落后 0 天，无需下载新快照",
+      "detail": "行情最新 2026-09-18；上游最新数据日 2026-09-18 —— 已是最新，没有更新的数据可下载",
       "error": "",
-      "duration_s": 0.74,
+      "duration_s": 1.45,
       "depends_on": [
         "source_health"
       ]
@@ -77,7 +77,7 @@
       "status": "OK",
       "detail": "新闻最新 2026-09-18；覆盖 4630 只",
       "error": "",
-      "duration_s": 1.75,
+      "duration_s": 1.72,
       "depends_on": [
         "environment"
       ]
@@ -97,7 +97,7 @@
       "status": "OK",
       "detail": "价格 5558 只全部正常",
       "error": "",
-      "duration_s": 0.19,
+      "duration_s": 0.17,
       "depends_on": [
         "market_data"
       ]
@@ -107,7 +107,7 @@
       "status": "OK",
       "detail": "该日已记录，本次为无操作重跑（未写入任何东西）；存档值：预测 3016 只；订单 20；成交 0；位于 forward_holdout（正式前瞻）",
       "error": "",
-      "duration_s": 0.03,
+      "duration_s": 0.02,
       "depends_on": [
         "data_quality"
       ]
@@ -185,7 +185,7 @@
   ],
   "warnings": [],
   "errors": [],
-  "input_fingerprint": "25365900caa1fe34",
+  "input_fingerprint": "94d1e7ae0808740e",
   "daily_summary": {
     "status": "OK",
     "n_alerts": 0

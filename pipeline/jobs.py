@@ -102,6 +102,21 @@ def run_job(name: str, fn: Callable[[], object],
                    time.time() - t0)
 
 
+def mark_interrupted(conn: Optional[sqlite3.Connection] = None) -> int:
+    """把上次被强杀的作业从 'running' 改成 'INTERRUPTED'。
+
+    进程一被杀，那行记录就永远停在 'running'，看起来像"还在跑"，
+    实际上什么都没在跑（2026-09-21 用户就是这样被误导的）。
+    """
+    c = conn or connect()
+    cur = c.execute(
+        "UPDATE jobs SET status='INTERRUPTED', finished_at=datetime('now'), "
+        "detail='进程中断，未正常结束（不是失败，是没有跑完）' "
+        "WHERE status='running'")
+    c.commit()
+    return int(cur.rowcount)
+
+
 def skip_job(name: str, reason: str,
              conn: Optional[sqlite3.Connection] = None) -> JobRun:
     """Record a job that was deliberately not run (e.g. offline mode)."""
