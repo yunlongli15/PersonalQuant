@@ -1,9 +1,9 @@
 {
-  "run_id": "2026-09-18_212310",
+  "run_id": "2026-09-18_221338",
   "date": "2026-09-18",
   "status": "OK",
-  "generated_at": "2026-09-21T21:23:16+08:00",
-  "duration_s": 5.36,
+  "generated_at": "2026-09-21T22:14:20+08:00",
+  "duration_s": 41.82,
   "dry_run": false,
   "backfill": false,
   "summary": {
@@ -16,18 +16,18 @@
   },
   "portfolio": {
     "market_value": 9750.0,
-    "cash": 124277.8,
-    "total_value": 134027.8,
+    "cash": 123450.84,
+    "total_value": 133200.84,
     "n_positions": 1,
     "cumulative_return": null,
-    "twr": 0.06546127945178482,
+    "twr": 0.06426143832544295,
     "mwr_xirr": null,
     "max_drawdown": null
   },
   "strategy": {
     "version": "1.0.0",
     "freeze_date": "2026-09-19",
-    "git_commit": "1ebe51a7619158b50191ae3635575dfb40b71015",
+    "git_commit": "92d6a881a6bbd81fa618524a2e3f8e7019193a76",
     "production_enabled": true,
     "strategy_version": "strategy_v2",
     "feature_version": "alpha158+factor_pack_v1",
@@ -72,12 +72,12 @@
   },
   "risk": {
     "nav_based": {
-      "volatility": NaN,
-      "max_drawdown": 0.0,
-      "worst_day": 0.819252343564159,
+      "volatility": 9.208725455210384,
+      "max_drawdown": -0.0011261236325351698,
+      "worst_day": -0.0011261236325351698,
       "var_95_1d": null,
       "cvar_95_1d": null,
-      "n_days": 1
+      "n_days": 2
     },
     "holdings_based": {
       "n_positions": 1,
@@ -86,7 +86,7 @@
       "effective_n": 1.0,
       "top_weight": 1.0,
       "top5_weight": 1.0,
-      "cash_ratio": 0.9272538980718926,
+      "cash_ratio": 0.9268022634091496,
       "basis": "已投资权重（不含现金）；现金见 cash_ratio"
     }
   },
@@ -97,7 +97,7 @@
       "status": "OK",
       "detail": "新闻最新 2026-09-18；覆盖 4630 只",
       "error": "",
-      "duration_s": 1.72,
+      "duration_s": 1.75,
       "depends_on": [
         "environment"
       ]
@@ -510,8 +510,8 @@
     ]
   },
   "timestamps": {
-    "started": "2026-09-21T21:23:10+08:00",
-    "ended": "2026-09-21T21:23:16+08:00",
+    "started": "2026-09-21T22:13:38+08:00",
+    "ended": "2026-09-21T22:14:20+08:00",
     "market_latest": "2026-09-18",
     "signal": "2026-09-18"
   }

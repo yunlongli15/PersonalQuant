@@ -43,9 +43,12 @@ def main() -> int:
 
     if args.dry_run:
         only = args.only.split(",") if args.only else None
+        default_jobs = [n for n in refresh.JOB_NAMES
+                        if n not in refresh.OPT_IN_JOBS]
         print(json.dumps({"offline": refresh._is_offline(),
                           "jobs": refresh.JOB_NAMES,
-                          "selected": only or refresh.JOB_NAMES},
+                          "opt_in": list(refresh.OPT_IN_JOBS),
+                          "selected": only or default_jobs},
                          ensure_ascii=False, indent=2))
         return 0
 

@@ -194,6 +194,17 @@ def main() -> int:
                  f"**排序基于 {st.get('as_of')}，价格基于 {live_date}**；"
                  f"上游快照尚未发布 {live_date} 的完整数据，"
                  f"因此排序比价格旧一个交易日。")
+    else:
+        # 没有实时价 = 用的是信号日收盘。若信号日不是今天，入场区间多半
+        # 已经不是能成交的价格了，必须说出来（2026-09-22 用户实际反馈）。
+        _age = (datetime.now().date() - datetime.strptime(
+            str(plan["as_of"]), "%Y-%m-%d").date()).days
+        if _age >= 1:
+            L.append(
+                f"- ⚠ **价格是 {plan['as_of']} 的收盘价（{_age} 天前）**，"
+                f"入场区间可能已经失效。先跑 "
+                f"`python scripts/quant/refresh_live_prices.py` 取当前价、"
+                f"再重新生成计划；或直接以实际盘口为准。")
     L.append(f"- 分配方法：{plan['allocation_method']}"
              f"（{plan['optimizer_status']}）")
     L.append(f"- 数据新鲜度：" + "，".join(

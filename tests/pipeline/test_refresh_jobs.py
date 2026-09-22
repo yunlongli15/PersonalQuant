@@ -136,3 +136,52 @@ def test_freshness_reads_signal_state(fake_data_tree, monkeypatch, tmp_path):
     # Forecast is stamped by forecast_state.json (7D); signals stamp is
     # reported through the same freshness family
     assert f["Forecast"].status in (freshness.OK, freshness.UNKNOWN)
+
+
+# ---------------------------------------------------------------------------
+# 默认作业集合（2026-09-21/22 用户反馈）
+# ---------------------------------------------------------------------------
+
+def test_financial_update_is_opt_in():
+    """财务是 lazy/按需的：一次全量抓取实测 2 小时以上（7904 秒），
+    而 S3 特征集根本不含财务因子。它必须留在列表里（--only 可用），
+    但**默认不跑**。"""
+    assert "financial_update" in refresh.JOB_NAMES
+    assert "financial_update" in refresh.OPT_IN_JOBS
+
+
+def test_live_price_runs_between_signals_and_portfolio():
+    """实时价要在信号之后取（要按排名选标的）、在组合之前用。"""
+    names = [n for n, _ in refresh.REFRESH_JOBS]
+    assert "live_price_refresh" in names
+    assert names.index("signal_refresh") < names.index("live_price_refresh")
+    assert names.index("live_price_refresh") < names.index("portfolio_refresh")
+
+
+def test_run_all_skips_opt_in_jobs_by_default(jobstore):
+    calls = []
+
+    def make(name):
+        def _fn(**kw):
+            calls.append(name)
+            return f"{name} ok"
+        return _fn
+
+    table = {n: make(n) for n in ("market_update", "financial_update")}
+    refresh.run_all(conn=jobstore, jobs=table)
+    assert "market_update" in calls
+    assert "financial_update" not in calls
+
+
+def test_run_all_runs_opt_in_when_explicitly_asked(jobstore):
+    calls = []
+
+    def make(name):
+        def _fn(**kw):
+            calls.append(name)
+            return f"{name} ok"
+        return _fn
+
+    table = {n: make(n) for n in ("market_update", "financial_update")}
+    refresh.run_all(only=["financial_update"], conn=jobstore, jobs=table)
+    assert calls == ["financial_update"]

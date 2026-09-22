@@ -1,14 +1,14 @@
 {
   "as_of": "2026-09-18",
-  "computed_at": "2026-09-20T22:21:01",
-  "generated_at": "2026-09-20T22:20:51",
-  "capital": 66000.0,
+  "computed_at": "2026-09-22T00:30:30",
+  "generated_at": "2026-09-22T00:30:30",
+  "capital": 500000.0,
   "frequency": "monthly",
   "risk_profile": "balanced",
   "allocation_method": "equal_weight",
   "optimizer_status": "optimal",
   "fallback_reason": null,
-  "top_k": 10,
+  "top_k": 20,
   "horizon": 20,
   "horizon_validated": true,
   "max_weight": 0.1,
@@ -16,15 +16,15 @@
   "account_capital": 66000.0,
   "sector_cap": 0.2,
   "cash_buffer": 0.05,
-  "total_buy_value": 49145.47,
-  "estimated_fees": 70.06,
-  "remaining_cash": 16784.47,
-  "cash_residual_pct": 0.2543,
-  "expected_gross_return_value": 845.87,
-  "expected_net_return_value": 681.8,
-  "expected_net_return_pct": 0.0103,
-  "expected_volatility": 0.0258,
-  "n_positions": 9,
+  "total_buy_value": 416723.19,
+  "estimated_fees": 317.24,
+  "remaining_cash": 82959.57,
+  "cash_residual_pct": 0.1659,
+  "expected_gross_return_value": 4491.29,
+  "expected_net_return_value": 3649.16,
+  "expected_net_return_pct": 0.0073,
+  "expected_volatility": 0.0188,
+  "n_positions": 19,
   "exclude_restricted": true,
   "excluded_restricted": [
     {
@@ -486,55 +486,5 @@
     "unit_buy_rate": 0.00076,
     "unit_sell_rate": 0.00126,
     "round_trip_rate": 0.00202
-  },
-  "holding_period": "monthly (20 trading days)",
-  "validated": true,
-  "small_capital_rule": {
-    "rule": "largest K with holdings>=5 and invested>=60%",
-    "chosen_top_k": 10,
-    "scans": [
-      {
-        "top_k": 3,
-        "invested": 0.8473509090909092,
-        "n_positions": 3,
-        "expected_net_return_pct": 0.0228
-      },
-      {
-        "top_k": 4,
-        "invested": 0.6149186363636363,
-        "n_positions": 3,
-        "expected_net_return_pct": 0.0164
-      },
-      {
-        "top_k": 5,
-        "invested": 0.6497398484848486,
-        "n_positions": 4,
-        "expected_net_return_pct": 0.0149
-      },
-      {
-        "top_k": 6,
-        "invested": 0.6780112121212121,
-        "n_positions": 5,
-        "expected_net_return_pct": 0.0139
-      },
-      {
-        "top_k": 7,
-        "invested": 0.545355303030303,
-        "n_positions": 6,
-        "expected_net_return_pct": 0.0097
-      },
-      {
-        "top_k": 8,
-        "invested": 0.5819875757575758,
-        "n_positions": 7,
-        "expected_net_return_pct": 0.0096
-      },
-      {
-        "top_k": 10,
-        "invested": 0.7446283333333333,
-        "n_positions": 9,
-        "expected_net_return_pct": 0.0103
-      }
-    ]
   }
 }

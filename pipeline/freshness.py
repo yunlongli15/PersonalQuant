@@ -250,18 +250,23 @@ def data_status(now: Optional[str] = None,
                  detail="fiscal availability date (announcement)"),
         _compare("News", news_latest(), ref, news_tolerance_days),
         _compare("Factors", factors_latest(), ref, 3),
-        _compare("Forecast", forecast_latest(), ref, 3, missing_status=UNKNOWN,
+        # Forecast / Portfolio 的 as_of 是**信号日**（最后一个有数据的交易
+        # 日），不是"什么时候算的"。拿它和今天比，会在上游还没发布新数据
+        # 时必然判 STALE —— 明明刚重算过。按文档（本文件开头）它们应当和
+        # Market/Valuation 一样对齐"最后一个交易日"。
+        _compare("Forecast", forecast_latest(), ltd, 0,
+                 missing_status=UNKNOWN,
                  detail="not computed yet" if forecast_latest() is None
-                 else None),
-        _compare("Portfolio", portfolio_latest(), ref, 3,
+                 else "as_of = 信号日"),
+        _compare("Portfolio", portfolio_latest(), ltd, 0,
                  missing_status=UNKNOWN,
                  detail="not computed yet" if portfolio_latest() is None
-                 else None),
+                 else "as_of = 信号日"),
     ]
     if calendar_stale:
         for f in out:
-            if f.domain in ("Market Data", "Valuation") and \
-                    f.status == OK:
+            if f.domain in ("Market Data", "Valuation", "Forecast",
+                            "Portfolio") and f.status == OK:
                 f.status = STALE
                 f.age_days = int((ref - pd.Timestamp(f.latest)).days) \
                     if f.latest else cal_lag

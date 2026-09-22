@@ -239,3 +239,50 @@ python scripts/backup_portfolio.py --export     # 额外导出 CSV
 测试：`tests/webapp/test_pending_flows_hint.py`（5 例）覆盖待处理流水的
 显示/不显示、内部买卖不算资金流、以及标签不得与口径矛盾。
 
+---
+
+## 16. v1.0.4 修订（2026-09-22）
+
+用户 `refresh_all.py` 跑了**两个多小时**，且给出的建议里价格已经失效。
+**不含策略 / 模型 / 因子变更。**
+
+### 1. 跑 2 小时的原因：`financial_update` 不该默认跑
+
+日志里 `financial_update -> SUCCESS (7904s)` = **2 小时 11 分**，其余作业合计
+不到 5 分钟。它抓了 812 份年报 PDF、扫了 2,699 个标的。
+
+这直接违反 spec §38「财务 lazy/按需，绝不为每天重新下载年报」，而
+**S3 生产特征集根本不含财务因子**（每日流水线一直把它标为 SKIPPED）。
+
+修复：`financial_update` 改为**按需作业**（`OPT_IN_JOBS`），默认不跑，
+`--only financial_update` 仍可用。`--dry-run` 的预览同步显示 `opt_in`。
+
+### 2. 建议里的价格失效
+
+交易计划的价格取的是**信号日收盘**（2026-09-18），而信号日会停在上游最后
+发布的那天不动 —— 于是过了两天，入场区间早就不是能成交的价格了。项目里
+**本来就有** `refresh_live_prices.py`（按信号排名抓当天真实收盘价，
+`price_overrides` 覆盖价格输入、排序仍停在信号日），但它**不在刷新链里**，
+`live_prices.json` 停在 2026-09-14。
+
+修复：
+
+- 新增 `live_price_refresh` 作业，插在 `signal_refresh` 与 `portfolio_refresh`
+  之间。实测抓到 **60 只 @ 2026-09-22**（102 秒），计划价随之更新。
+- 抓不到（休市/断网）**不算失败**：计划照出，但报告里显式警告
+  `⚠ 价格是 2026-09-18 的收盘价（4 天前），入场区间可能已经失效`。
+- USER_GUIDE §6 增加「先看价格的日期」，说明**信号日**与**价格日期**的区别。
+
+### 3. `data status after refresh` 里的 Forecast / Portfolio STALE 是误报
+
+刚 `SUCCESS` 重算完却显示 STALE，自相矛盾。原因：这两个域的 `as_of` 是
+**信号日**，而 `data_status()` 拿它和**墙上时钟**比（容差 3 天）。上游一滞后，
+它们必然"过期"。本文件开头的注释其实早就写明它们应当和 Market/Valuation
+一样对齐**最后一个交易日** —— 代码没照做。
+
+修复：改与 `last_trading_day()` 比较（容差 0），并纳入 `calendar_stale`
+守卫 —— 日历本身滞后 >5 天时，Market/Valuation/Forecast/Portfolio 一律 STALE
+（管线停摆不能显示成新鲜）。
+
+测试：`tests/pipeline/test_data_freshness.py`（+3）、`test_refresh_jobs.py`（+4）。
+

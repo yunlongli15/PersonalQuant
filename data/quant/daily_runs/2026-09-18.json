@@ -26,13 +26,13 @@
       "production_model": "769f67656a713fef42747070266209e6037ba92595a6fde6601b2a5f2ed737f2"
     }
   },
-  "run_id": "2026-09-18_212310",
+  "run_id": "2026-09-18_221338",
   "date": "2026-09-18",
   "status": "OK",
-  "start_time": "2026-09-21T21:23:10+08:00",
-  "end_time": "2026-09-21T21:23:16+08:00",
-  "duration_s": 5.36,
-  "git_commit": "1ebe51a7619158b50191ae3635575dfb40b71015",
+  "start_time": "2026-09-21T22:13:38+08:00",
+  "end_time": "2026-09-21T22:14:20+08:00",
+  "duration_s": 41.82,
+  "git_commit": "92d6a881a6bbd81fa618524a2e3f8e7019193a76",
   "strategy_version": "strategy_v2",
   "model_version": "s3",
   "feature_version": "alpha158+factor_pack_v1",
@@ -49,7 +49,7 @@
       "status": "OK",
       "detail": "Python 3.12.10；冻结状态 一致；DuckDB 可独占打开",
       "error": "",
-      "duration_s": 1.04,
+      "duration_s": 0.96,
       "depends_on": []
     },
     {
@@ -57,7 +57,7 @@
       "status": "OK",
       "detail": "全部新鲜；行情最新 2026-09-18",
       "error": "",
-      "duration_s": 0.46,
+      "duration_s": 0.43,
       "depends_on": [
         "environment"
       ]
@@ -67,7 +67,7 @@
       "status": "OK",
       "detail": "行情最新 2026-09-18；上游最新数据日 2026-09-18 —— 已是最新，没有更新的数据可下载",
       "error": "",
-      "duration_s": 1.45,
+      "duration_s": 38.0,
       "depends_on": [
         "source_health"
       ]
@@ -77,7 +77,7 @@
       "status": "OK",
       "detail": "新闻最新 2026-09-18；覆盖 4630 只",
       "error": "",
-      "duration_s": 1.72,
+      "duration_s": 1.75,
       "depends_on": [
         "environment"
       ]
@@ -97,7 +97,7 @@
       "status": "OK",
       "detail": "价格 5558 只全部正常",
       "error": "",
-      "duration_s": 0.17,
+      "duration_s": 0.18,
       "depends_on": [
         "market_data"
       ]
@@ -135,7 +135,7 @@
     {
       "name": "risk",
       "status": "OK",
-      "detail": "HHI 1.0000；有效持仓 1.0；最大单只 100.00%；现金 92.73%",
+      "detail": "HHI 1.0000；有效持仓 1.0；最大单只 100.00%；现金 92.68%",
       "error": "",
       "duration_s": 0.04,
       "depends_on": [
@@ -167,7 +167,7 @@
       "status": "OK",
       "detail": "C:\\Users\\Administrator\\Desktop\\PersonalQuant\\reports\\daily\\2026-09-18.md",
       "error": "",
-      "duration_s": 0.39,
+      "duration_s": 0.38,
       "depends_on": [
         "alerts"
       ]
@@ -185,7 +185,7 @@
   ],
   "warnings": [],
   "errors": [],
-  "input_fingerprint": "94d1e7ae0808740e",
+  "input_fingerprint": "bb4890a1f7c44736",
   "daily_summary": {
     "status": "OK",
     "n_alerts": 0

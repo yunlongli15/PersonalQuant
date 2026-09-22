@@ -137,6 +137,36 @@ def signal_refresh(**kw) -> str:
     return str(refresh_signals(**kw))
 
 
+def live_price_refresh(**kw) -> str:
+    """抓当日收盘价，让交易计划的价格是**现在**的价格。
+
+    上游快照通常滞后 1~2 天：信号日的收盘价到第二天就不再是能成交的价格，
+    按它算出来的入场区间会失效（2026-09-22 用户实际反馈）。这里按最新信号
+    的前 N 名抓一次真实收盘价，计划用它覆盖价格输入 —— **排序仍然停在信号
+    日**，两种口径在计划与报告里分别标注。
+
+    抓不到**不算失败**：可能今天还没收盘，也可能没网络。计划照常生成，
+    但报告里会写明价格是哪一天的。
+    """
+    _maybe_offline()
+    import json
+
+    from scripts.quant import refresh_live_prices  # type: ignore
+
+    with _own_argv():
+        refresh_live_prices.main()
+    p = PROJECT_ROOT / "data" / "quant" / "live_prices.json"
+    try:
+        d = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:                                          # noqa: BLE001
+        return "无实时价格文件（计划将沿用信号日收盘价）"
+    n = int(d.get("n") or 0)
+    if not n:
+        return (f"0 只（{d.get('price_date')} 可能还没收盘）"
+                f"—— 计划将沿用信号日收盘价")
+    return f"{n} 只 @ {d.get('price_date')}"
+
+
 def forecast_refresh(**kw) -> str:
     from pipeline.forecast import refresh_forecasts
 
@@ -157,9 +187,16 @@ REFRESH_JOBS: List[tuple] = [
     ("valuation_update", valuation_update),
     ("factor_refresh", factor_refresh),
     ("signal_refresh", signal_refresh),
+    ("live_price_refresh", live_price_refresh),
     ("forecast_refresh", forecast_refresh),
     ("portfolio_refresh", portfolio_refresh),
 ]
+
+#: 默认**不跑**的作业。财务是 lazy/按需的（spec §38：绝不为每天重新
+#: 下载年报），一次全量抓取实测要 **2 小时以上**（2026-09-21 用户实际
+#: 跑了 7904 秒），而 S3 特征集根本不含财务因子。需要时显式
+#: `--only financial_update`。
+OPT_IN_JOBS = ("financial_update",)
 
 JOB_NAMES = [n for n, _ in REFRESH_JOBS]
 
@@ -176,7 +213,17 @@ def run_all(only: Optional[List[str]] = None,
     """
     table = jobs or dict(REFRESH_JOBS)
     results = []
-    todo = [(n, f) for n, f in table.items() if not only or n in only]
+    todo = []
+    for n, f in table.items():
+        if only:
+            if n in only:
+                todo.append((n, f))
+            continue
+        if n in OPT_IN_JOBS:
+            print(f"[--] {n} ... 跳过（按需作业，默认不跑；"
+                  f"需要时 `--only {n}`）", flush=True)
+            continue
+        todo.append((n, f))
     # 上次被强杀的作业会永远停在 'running'，先如实标记，免得看着像"还在跑"
     try:
         stale = jobstore.mark_interrupted(conn=conn)

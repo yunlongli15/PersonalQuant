@@ -74,3 +74,51 @@ def test_calendar_empty_is_safe(tmp_path):
     p = tmp_path / "cal.parquet"
     pd.DataFrame({"trade_date": []}).to_parquet(p, index=False)
     assert freshness.last_trading_day("2026-09-10") is None or True
+
+
+# ---------------------------------------------------------------------------
+# Forecast / Portfolio 对齐的是**交易日历**，不是墙上时钟
+# （2026-09-22 用户反馈：刚重算完却报 STALE）
+# ---------------------------------------------------------------------------
+
+def _write_state(fake_data_tree, name: str, as_of: str) -> None:
+    q = fake_data_tree / "quant"
+    q.mkdir(parents=True, exist_ok=True)
+    (q / f"{name}_state.json").write_text(
+        '{"as_of": "%s"}' % as_of, encoding="utf-8")
+
+
+def test_forecast_follows_the_calendar_not_wall_clock(fake_data_tree):
+    """fixture 的数据/日历都停在 2026-09-10。
+
+    预测与组合的 as_of 就是信号日：只要等于最后一个交易日就是新鲜的，
+    哪怕"今天"已经过去 4 天 —— 上游还没发布新数据，重算也只能算到这天。
+    """
+    _write_state(fake_data_tree, "forecast", "2026-09-10")
+    _write_state(fake_data_tree, "portfolio", "2026-09-10")
+
+    f = {x.domain: x for x in freshness.data_status(now="2026-09-14")}
+    assert f["Forecast"].status == freshness.OK
+    assert f["Portfolio"].status == freshness.OK
+    assert f["Market Data"].status == freshness.OK
+
+
+def test_forecast_behind_the_last_trading_day_is_stale(fake_data_tree):
+    """但比最后一个交易日还旧，就是真的旧了。"""
+    _write_state(fake_data_tree, "forecast", "2026-09-08")
+    _write_state(fake_data_tree, "portfolio", "2026-09-08")
+
+    f = {x.domain: x for x in freshness.data_status(now="2026-09-14")}
+    assert f["Forecast"].status == freshness.STALE
+    assert f["Portfolio"].status == freshness.STALE
+
+
+def test_lagging_calendar_marks_derived_domains_stale(fake_data_tree):
+    """日历本身滞后 >5 天 = 数据管线没在跑，那么**所有**依赖它的域
+    都不能显示为新鲜（否则停摆的管线看起来一切正常）。"""
+    _write_state(fake_data_tree, "forecast", "2026-09-10")
+    _write_state(fake_data_tree, "portfolio", "2026-09-10")
+
+    f = {x.domain: x for x in freshness.data_status(now="2026-10-30")}
+    for domain in ("Market Data", "Valuation", "Forecast", "Portfolio"):
+        assert f[domain].status == freshness.STALE, domain
