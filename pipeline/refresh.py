@@ -76,15 +76,42 @@ def market_update(**kw) -> str:
 
     script = PROJECT_ROOT / "scripts" / "quant" / \
         "update_market_snapshot.py"
+    # encoding 必须显式写：text=True 默认用系统区域编码（本机 GBK），
+    # 子进程输出里的中文会让读取线程抛 UnicodeDecodeError 而**静默丢掉
+    # 全部输出**（2026-09-27 实际发生）。
     r = subprocess.run([sys.executable, str(script),
                         "--years", kw.get("years", "")],
                        cwd=str(PROJECT_ROOT), capture_output=True, text=True,
+                       encoding="utf-8", errors="replace",
                        timeout=7200)
     tail = (r.stdout or "").strip().splitlines()[-1:] or [""]
     if r.returncode != 0:
         raise RuntimeError(f"market snapshot update failed: "
                            f"{(r.stderr or r.stdout)[-400:]}")
     return tail[0]
+
+
+def factor_rebase_repair(**kw) -> str:
+    """修复源侧复权因子"重定基准"（**每次换快照都会被带回来**）。
+
+    症状：原始价连续、复权因子却在某一天跳 2~15 倍 → 复权价序列在跳变点
+    断裂，任何用复权价算的特征都被污染。
+
+    为什么必须自动跑：上游快照每次重新发布都会把同样的缺陷带回来 ——
+    2026-09-19、09-22、09-27 三次换快照，三次都是同样的 48 处 / 31,240 行。
+    漏跑一次，信号就可能吃到跳变的复权价。
+
+    没有跳变时它**是纯读操作**，立即返回（不会动数据）；有跳变才重标定，
+    并写 source_registry 留痕。
+    """
+    from scripts.quant import repair_factor_rebase  # type: ignore
+
+    with _own_argv():
+        rc = repair_factor_rebase.main()
+    if rc not in (0, None):
+        raise RuntimeError(
+            "repair_factor_rebase 报告仍有未修复的跳变 —— 不继续往下跑")
+    return "复权因子连续性已检查（有跳变则已重标定并留痕）"
 
 
 def news_update(**kw) -> str:
@@ -94,6 +121,49 @@ def news_update(**kw) -> str:
 
     with _own_argv():
         return str(update_news.main())
+
+
+def news_events_refresh(**kw) -> str:
+    """canonical 公告 → 派生事件层（news_events / news_coverage）。
+
+    **生产新闻因子读的就是派生层**（`factors/news_factors.py` 声明
+    `required_fields=["news_events", "news_coverage"]`），而 `news_update`
+    只写 canonical。少了这一步，公告抓回来了、信号却还在用旧事件 ——
+    2026-09-27 实际发生：canonical 已到 09-22，派生层停在 09-18，
+    于是 09-24 的信号**缺了 09-21/09-22 两天共 1,192 份公告**。
+    """
+    _maybe_offline()
+    import json
+
+    from pipeline.freshness import news_latest
+    from personal_quant import db
+
+    # canonical 没变就别重建：全量重建 18 万条文档要 ~8 分钟，是整条链上
+    # 最慢的一步，而绝大多数运行根本没有新公告。
+    stamp_path = PROJECT_ROOT / "data" / "derived" / "news" / ".build_stamp.json"
+    row = db.connect().execute(
+        "SELECT COUNT(*) n, CAST(MAX(published_at) AS VARCHAR) m "
+        "FROM news_documents WHERE status != 'failed'").fetchone()
+    want = {"n": int(row[0] or 0), "max": str(row[1] or "")}
+    if stamp_path.exists():
+        try:
+            have = json.loads(stamp_path.read_text(encoding="utf-8"))
+        except Exception:                                      # noqa: BLE001
+            have = {}
+        if have.get("n") == want["n"] and have.get("max") == want["max"]:
+            return (f"canonical 未变（{want['n']} 份），跳过重建；"
+                    f"派生层最新 {news_latest()}")
+
+    from scripts.news import build_events  # type: ignore
+
+    with _own_argv():
+        rc = build_events.main()
+    if rc not in (0, None):
+        raise RuntimeError(f"build_events exited {rc}")
+    stamp_path.write_text(json.dumps(want, ensure_ascii=False),
+                          encoding="utf-8")
+    return (f"派生事件层已重建（{want['n']} 份文档）；"
+            f"最新 {news_latest()}")
 
 
 def financial_update(**kw) -> str:
@@ -161,10 +231,13 @@ def live_price_refresh(**kw) -> str:
     except Exception:                                          # noqa: BLE001
         return "无实时价格文件（计划将沿用信号日收盘价）"
     n = int(d.get("n") or 0)
-    if not n:
-        return (f"0 只（{d.get('price_date')} 可能还没收盘）"
-                f"—— 计划将沿用信号日收盘价")
-    return f"{n} 只 @ {d.get('price_date')}"
+    if n:
+        return f"{n} 只 @ {d.get('price_date')}"
+    if d.get("not_newer"):
+        return (f"无更新：最新 bar {d.get('latest_bar_date')} 不晚于信号日 "
+                f"{d.get('signal_date')} —— 计划沿用信号日收盘价")
+    return (f"0 只（failed {len(d.get('failed') or [])}）"
+            f"—— 计划将沿用信号日收盘价")
 
 
 def forecast_refresh(**kw) -> str:
@@ -174,15 +247,41 @@ def forecast_refresh(**kw) -> str:
 
 
 def portfolio_refresh(**kw) -> str:
-    from pipeline.signals import refresh_portfolio_state
+    """交易计划（**账户口径**）+ 建议 note + portfolio_state。
 
-    return str(refresh_portfolio_state(**kw))
+    这里以前直接调 `refresh_portfolio_state(capital=500_000, top_k=20)`：
+    那是**回测口径**，不是这个账户的口径。后果有三层 ——
+    按 50 万下单却按 6.6 万判板块权限（自相矛盾）、不用实时价（入场区间
+    按信号日收盘算）、而且会**覆盖**掉 write_recommendation_note 生成的
+    账户口径计划。现在统一走 write_recommendation_note（它一处处理账户
+    资金、小资金 K 规则、实时价覆盖），再把 portfolio_state 盖成同一个
+    计划，两个入口不会再打架。
+    """
+    from scripts.quant import write_recommendation_note  # type: ignore
+    from trade_plan.plan import load_plan
+
+    from pipeline.signals import save_portfolio_state
+
+    with _own_argv():
+        rc = write_recommendation_note.main()
+    if rc != 0:
+        raise RuntimeError(f"write_recommendation_note exited {rc}")
+    plan = load_plan()
+    if not plan:
+        raise RuntimeError("没有生成交易计划")
+    save_portfolio_state(plan["as_of"], plan)
+    n_buy = len([r for r in plan.get("rows", []) if r.get("shares")])
+    return (f"信号日 {plan['as_of']}；买入 {n_buy} 只 / "
+            f"{plan.get('total_buy_value', 0):,.0f} 元 "
+            f"（资金 {plan.get('capital', 0):,.0f}）")
 
 
 #: dependency order (spec §20) — later jobs consume earlier outputs
 REFRESH_JOBS: List[tuple] = [
     ("market_update", market_update),
+    ("factor_rebase_repair", factor_rebase_repair),
     ("news_update", news_update),
+    ("news_events_refresh", news_events_refresh),
     ("financial_update", financial_update),
     ("valuation_update", valuation_update),
     ("factor_refresh", factor_refresh),

@@ -52,20 +52,39 @@ python scripts/wealth/init_wealth_db.py      # 建财富库（含默认平台）
 python scripts/quant/run_full_loop.py --demo-wealth
 ```
 
-**每天使用**：
+### 每天运行：**两条命令，先 A 后 B**（本节是唯一权威说法）
+
+| | **A. `python scripts/quant/refresh_all.py`** | **B. `python scripts/run_daily.py`** |
+|---|---|---|
+| **职责** | 更新**数据与信号** | **记账与观察** |
+| 具体做什么 | 行情快照、新闻、估值、因子缓存、全市场信号、当天实时价、预测、**交易计划** | 数据健康检查、Paper Live 前瞻记录、个人账户快照、收益 / 风险、冻结校验、告警、**日报** |
+| 耗时 | 5~7 分钟（上游有新行情时再加下载约 5 分钟） | 约 5 秒 |
+| 产出给谁看 | 界面「交易计划」「今日信号」「价格预测」 | 界面顶部状态条、`reports/daily/<日期>.md`、forward holdout 记录 |
+| 会推进「信号日」吗 | **会** —— 只有它会下载新行情 | **不会** —— 它只读现有数据 |
 
 ```bash
-python scripts/quant/refresh_all.py          # 一键更新数据（有网时）
+python scripts/quant/refresh_all.py   # ① 先更新数据与信号
+python scripts/run_daily.py           # ② 再跑每日流水线
 # 然后在 GUI「Daily Update」输入今天的金额
 ```
 
-`refresh_all.py` 会逐个作业打印进度（`[3/8] news_update ... 运行中`），
-**不会静默卡住**。正常耗时：
+**顺序不能反。** `run_daily.py` 不下载行情，它的"今天"来自本地已有数据；
+先跑 B 的话它会对着**旧的一天**做记录（这就是之前"怎么还是 18 日"的原因）。
+等 A 把数据推进后，B 才会记录到新的一天。
 
-| 情况 | 耗时 |
-|---|---|
-| 普通一天（上游无新数据） | **约 5~7 分钟**（主要是 `signal_refresh` 重算 3 分钟、`live_price_refresh` 抓当前价 2 分钟） |
-| 上游有新数据 | 再加下载行情快照（约 566 MB）+ 重新入库 |
+**只跑一条会怎样**：
+
+- **只跑 A**：数据和交易计划是新的，但没有日报、没有 forward holdout 记录、没有告警。
+- **只跑 B**：日报和前瞻记录会一直停在旧的一天，并且 `market_data` 步骤会报
+  `WARNING：上游已有 X —— 有新数据未下载`，提示你去跑 A。
+
+**两条都不要在开着界面时跑**：DuckDB 单进程独占。
+
+`refresh_all.py` 会逐个作业打印进度（`[3/10] news_update ... 运行中`），
+共 10 个作业：行情 → 复权因子修复 → 公告 → 新闻事件层 → 估值 → 因子缓存
+→ 信号 → 实时价 → 预测 → 交易计划。
+**不会静默卡住**。上游有新数据时才需要下载行情快照（约 566 MB；没有新数据
+会自动跳过，不会白下）。
 
 **`financial_update` 默认不跑**：财报全量抓取实测**要 2 小时以上**，
 而生产特征集不含财务因子。需要时显式：
@@ -83,11 +102,12 @@ python scripts/quant/refresh_all.py --only financial_update
 
 | 步骤 | 在哪做 | 说明 |
 |---|---|---|
-| 1. 刷新数据 | 命令行 `python scripts/quant/refresh_all.py` | 市场/新闻/估值/因子/信号/预测/计划 |
-| 2. 录入资产 | GUI → **Daily Update** | 只填"今日金额"，收益自动算 |
-| 3. 看推荐 | GUI → **Trade Plan** | 明日买卖清单（见第 6 节） |
-| 4. 执行后回填 | GUI → **Transactions** | 真实成交价/股数/费用 |
-| 5. 月末复盘 | GUI → **Performance** | 收益归因：多少来自本金、多少来自投资 |
+| 1. 刷新数据与信号 | 命令行 `python scripts/quant/refresh_all.py` | 市场/新闻/估值/因子/信号/实时价/预测/交易计划 |
+| 2. 跑每日流水线 | 命令行 `python scripts/run_daily.py` | 前瞻记录 + 日报 + 告警（几秒） |
+| 3. 录入资产 | GUI → **Daily Update** | 只填"今日金额"，收益自动算 |
+| 4. 看推荐 | GUI → **Trade Plan** | 明日买卖清单（见第 6 节） |
+| 5. 执行后回填 | GUI → **Transactions** | 真实成交价/股数/费用 |
+| 6. 月末复盘 | GUI → **Performance** | 收益归因：多少来自本金、多少来自投资 |
 
 ### ⚠️ 有资金进出时，要做**两件事**
 

@@ -1,0 +1,953 @@
+{
+  "as_of": "2026-09-24",
+  "generated_at": "2026-09-27T20:32:15",
+  "capital": 66000.0,
+  "frequency": "monthly",
+  "risk_profile": "balanced",
+  "allocation_method": "equal_weight",
+  "optimizer_status": "optimal",
+  "fallback_reason": null,
+  "top_k": 10,
+  "horizon": 20,
+  "horizon_validated": true,
+  "max_weight": 0.1,
+  "max_weight_derived": false,
+  "account_capital": 66000.0,
+  "sector_cap": 0.2,
+  "cash_buffer": 0.05,
+  "total_buy_value": 51451.43,
+  "estimated_fees": 71.24,
+  "remaining_cash": 14477.33,
+  "cash_residual_pct": 0.2194,
+  "expected_gross_return_value": 1020.36,
+  "expected_net_return_value": 852.72,
+  "expected_net_return_pct": 0.0129,
+  "expected_volatility": 0.0246,
+  "n_positions": 9,
+  "exclude_restricted": true,
+  "excluded_restricted": [
+    {
+      "symbol": "300752.SZ",
+      "name": "隆利科技",
+      "raw_rank": 1,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "301201.SZ",
+      "name": "诚达药业",
+      "raw_rank": 5,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "300843.SZ",
+      "name": "胜蓝股份",
+      "raw_rank": 8,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "688717.SH",
+      "name": "艾罗能源",
+      "raw_rank": 10,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "301252.SZ",
+      "name": "同星科技",
+      "raw_rank": 11,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "300720.SZ",
+      "name": "海川智能",
+      "raw_rank": 12,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "300558.SZ",
+      "name": "贝达药业",
+      "raw_rank": 13,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "300932.SZ",
+      "name": "三友联众",
+      "raw_rank": 14,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "688521.SH",
+      "name": "芯原股份",
+      "raw_rank": 16,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "301209.SZ",
+      "name": "联合化学",
+      "raw_rank": 18,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "301399.SZ",
+      "name": "英特科技",
+      "raw_rank": 19,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "301528.SZ",
+      "name": "多浦乐",
+      "raw_rank": 23,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "300668.SZ",
+      "name": "杰恩股份",
+      "raw_rank": 25,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "300749.SZ",
+      "name": "顶固集创",
+      "raw_rank": 27,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "301392.SZ",
+      "name": "汇成真空",
+      "raw_rank": 28,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "688559.SH",
+      "name": "海目星",
+      "raw_rank": 33,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "688279.SH",
+      "name": "峰岹科技",
+      "raw_rank": 35,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "688172.SH",
+      "name": "燕东微",
+      "raw_rank": 37,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "300438.SZ",
+      "name": "鹏辉能源",
+      "raw_rank": 40,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "300214.SZ",
+      "name": "日科化学",
+      "raw_rank": 42,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "300570.SZ",
+      "name": "太辰光",
+      "raw_rank": 43,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "301305.SZ",
+      "name": "朗坤科技",
+      "raw_rank": 44,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "301106.SZ",
+      "name": "骏成科技",
+      "raw_rank": 53,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "300727.SZ",
+      "name": "润禾材料",
+      "raw_rank": 54,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "688686.SH",
+      "name": "奥普特",
+      "raw_rank": 55,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "301111.SZ",
+      "name": "粤万年青",
+      "raw_rank": 56,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "301489.SZ",
+      "name": "思泉新材",
+      "raw_rank": 58,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "688775.SH",
+      "name": "影石创新",
+      "raw_rank": 65,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "301379.SZ",
+      "name": "天山电子",
+      "raw_rank": 67,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "301282.SZ",
+      "name": "金禄电子",
+      "raw_rank": 69,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "300499.SZ",
+      "name": "高澜股份",
+      "raw_rank": 71,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "301550.SZ",
+      "name": "斯菱智驱",
+      "raw_rank": 72,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "300429.SZ",
+      "name": "强力新材",
+      "raw_rank": 73,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "300782.SZ",
+      "name": "卓胜微",
+      "raw_rank": 74,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "688239.SH",
+      "name": "航宇科技",
+      "raw_rank": 80,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "688795.SH",
+      "name": "摩尔线程",
+      "raw_rank": 85,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "688209.SH",
+      "name": "英集芯",
+      "raw_rank": 89,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "301526.SZ",
+      "name": "国际复材",
+      "raw_rank": 92,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "301591.SZ",
+      "name": "肯特股份",
+      "raw_rank": 94,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "301042.SZ",
+      "name": "安联锐视",
+      "raw_rank": 97,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "688275.SH",
+      "name": "万润新能",
+      "raw_rank": 98,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "300390.SZ",
+      "name": "天华新能",
+      "raw_rank": 101,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "300508.SZ",
+      "name": "维宏股份",
+      "raw_rank": 102,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "300786.SZ",
+      "name": "国林科技",
+      "raw_rank": 103,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "300976.SZ",
+      "name": "达瑞电子",
+      "raw_rank": 105,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "301046.SZ",
+      "name": "能辉科技",
+      "raw_rank": 106,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "301183.SZ",
+      "name": "东田微",
+      "raw_rank": 108,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "300751.SZ",
+      "name": "迈为股份",
+      "raw_rank": 113,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "300547.SZ",
+      "name": "川环科技",
+      "raw_rank": 114,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "300154.SZ",
+      "name": "瑞凌股份",
+      "raw_rank": 118,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    }
+  ],
+  "signal_version": "strategy_v2/S3",
+  "price_source": "canonical, same date as the signal",
+  "live_prices": {},
+  "forecast_version": "forecast_v1",
+  "cost_model": {
+    "unit_buy_rate": 0.00076,
+    "unit_sell_rate": 0.00126,
+    "round_trip_rate": 0.00202
+  },
+  "rows": [
+    {
+      "symbol": "605198.SH",
+      "name": "安德利",
+      "action": "SKIP",
+      "current_price": 63.91,
+      "recommended_entry_price": 63.431,
+      "entry_low": 61.993,
+      "entry_high": 64.869,
+      "entry_rationale": "band = ±3.00% of last close (4.87% daily vol x 1.0 profile multiplier, capped at 3%)",
+      "shares": 0,
+      "lot_size": 100,
+      "buy_value": 0.0,
+      "weight": 0.0,
+      "target_weight": 0.095,
+      "target_price": 65.267,
+      "expected_return": 0.0289,
+      "expected_net_return": 0.0269,
+      "expected_holding_days": 20,
+      "stop_loss": 57.256,
+      "time_stop_days": 40,
+      "forecast": {
+        "expected_return_20d": 0.02894378305029254,
+        "p_up_20d": 0.554986576513871,
+        "q05": -0.12848319329760666,
+        "q95": 0.23879036407959808,
+        "trend": "up"
+      },
+      "risk": {
+        "vol_60d": 0.0487,
+        "risk_share": 0.09283792479859537
+      },
+      "reasons": [
+        "SKIP: target value below one 100-share lot"
+      ],
+      "raw_rank": 2,
+      "signal_prediction": 0.035531104659714534,
+      "board": "MAIN",
+      "board_name": "主板",
+      "capital_required": 0.0,
+      "experience_months": 0,
+      "can_buy": true,
+      "restriction_reason": ""
+    },
+    {
+      "symbol": "603226.SH",
+      "name": "菲林格尔",
+      "action": "BUY",
+      "current_price": 31.0,
+      "recommended_entry_price": 30.767,
+      "entry_low": 30.07,
+      "entry_high": 31.465,
+      "entry_rationale": "band = ±3.00% of last close (4.54% daily vol x 1.0 profile multiplier, capped at 3%)",
+      "shares": 200,
+      "lot_size": 100,
+      "buy_value": 6153.5,
+      "weight": 0.0932,
+      "target_weight": 0.095,
+      "target_price": 31.658,
+      "expected_return": 0.0289,
+      "expected_net_return": 0.0258,
+      "expected_holding_days": 20,
+      "stop_loss": 27.971,
+      "time_stop_days": 40,
+      "forecast": {
+        "expected_return_20d": 0.02894378305029254,
+        "p_up_20d": 0.554986576513871,
+        "q05": -0.12848319329760666,
+        "q95": 0.23879036407959808,
+        "trend": "up"
+      },
+      "risk": {
+        "vol_60d": 0.0454,
+        "risk_share": 0.07798724965443395
+      },
+      "reasons": [],
+      "raw_rank": 3,
+      "signal_prediction": 0.03417898472339697,
+      "board": "MAIN",
+      "board_name": "主板",
+      "capital_required": 0.0,
+      "experience_months": 0,
+      "can_buy": true,
+      "restriction_reason": ""
+    },
+    {
+      "symbol": "603211.SH",
+      "name": "晋拓股份",
+      "action": "BUY",
+      "current_price": 19.78,
+      "recommended_entry_price": 19.632,
+      "entry_low": 19.187,
+      "entry_high": 20.077,
+      "entry_rationale": "band = ±3.00% of last close (4.94% daily vol x 1.0 profile multiplier, capped at 3%)",
+      "shares": 300,
+      "lot_size": 100,
+      "buy_value": 5889.5,
+      "weight": 0.0892,
+      "target_weight": 0.095,
+      "target_price": 20.2,
+      "expected_return": 0.0289,
+      "expected_net_return": 0.0257,
+      "expected_holding_days": 20,
+      "stop_loss": 17.692,
+      "time_stop_days": 40,
+      "forecast": {
+        "expected_return_20d": 0.02894378305029254,
+        "p_up_20d": 0.554986576513871,
+        "q05": -0.12848319329760666,
+        "q95": 0.23879036407959808,
+        "trend": "up"
+      },
+      "risk": {
+        "vol_60d": 0.0494,
+        "risk_share": 0.128038451363496
+      },
+      "reasons": [],
+      "raw_rank": 4,
+      "signal_prediction": 0.030008697609622957,
+      "board": "MAIN",
+      "board_name": "主板",
+      "capital_required": 0.0,
+      "experience_months": 0,
+      "can_buy": true,
+      "restriction_reason": ""
+    },
+    {
+      "symbol": "600330.SH",
+      "name": "天通股份",
+      "action": "BUY",
+      "current_price": 28.6,
+      "recommended_entry_price": 28.386,
+      "entry_low": 27.742,
+      "entry_high": 29.029,
+      "entry_rationale": "band = ±3.00% of last close (5.81% daily vol x 1.0 profile multiplier, capped at 3%)",
+      "shares": 200,
+      "lot_size": 100,
+      "buy_value": 5677.1,
+      "weight": 0.086,
+      "target_weight": 0.095,
+      "target_price": 29.207,
+      "expected_return": 0.0289,
+      "expected_net_return": 0.0256,
+      "expected_holding_days": 20,
+      "stop_loss": 25.088,
+      "time_stop_days": 40,
+      "forecast": {
+        "expected_return_20d": 0.02894378305029254,
+        "p_up_20d": 0.554986576513871,
+        "q05": -0.12848319329760666,
+        "q95": 0.23879036407959808,
+        "trend": "up"
+      },
+      "risk": {
+        "vol_60d": 0.0581,
+        "risk_share": 0.17459372413232463
+      },
+      "reasons": [],
+      "raw_rank": 6,
+      "signal_prediction": 0.026641839715684568,
+      "board": "MAIN",
+      "board_name": "主板",
+      "capital_required": 0.0,
+      "experience_months": 0,
+      "can_buy": true,
+      "restriction_reason": ""
+    },
+    {
+      "symbol": "001210.SZ",
+      "name": "金房能源",
+      "action": "BUY",
+      "current_price": 28.77,
+      "recommended_entry_price": 28.554,
+      "entry_low": 27.907,
+      "entry_high": 29.202,
+      "entry_rationale": "band = ±3.00% of last close (4.36% daily vol x 1.0 profile multiplier, capped at 3%)",
+      "shares": 200,
+      "lot_size": 100,
+      "buy_value": 5710.84,
+      "weight": 0.0865,
+      "target_weight": 0.095,
+      "target_price": 29.33,
+      "expected_return": 0.0272,
+      "expected_net_return": 0.0239,
+      "expected_holding_days": 20,
+      "stop_loss": 26.062,
+      "time_stop_days": 40,
+      "forecast": {
+        "expected_return_20d": 0.027165380707719664,
+        "p_up_20d": 0.5487297027833311,
+        "q05": -0.1310058454064936,
+        "q95": 0.2362244364563868,
+        "trend": "up"
+      },
+      "risk": {
+        "vol_60d": 0.0436,
+        "risk_share": 0.11468863386249581
+      },
+      "reasons": [],
+      "raw_rank": 7,
+      "signal_prediction": 0.026463800358848405,
+      "board": "MAIN",
+      "board_name": "主板",
+      "capital_required": 0.0,
+      "experience_months": 0,
+      "can_buy": true,
+      "restriction_reason": ""
+    },
+    {
+      "symbol": "603217.SH",
+      "name": "元利科技",
+      "action": "BUY",
+      "current_price": 28.11,
+      "recommended_entry_price": 27.899,
+      "entry_low": 27.267,
+      "entry_high": 28.532,
+      "entry_rationale": "band = ±3.00% of last close (3.55% daily vol x 1.0 profile multiplier, capped at 3%)",
+      "shares": 200,
+      "lot_size": 100,
+      "buy_value": 5579.84,
+      "weight": 0.0845,
+      "target_weight": 0.095,
+      "target_price": 28.558,
+      "expected_return": 0.0236,
+      "expected_net_return": 0.0203,
+      "expected_holding_days": 20,
+      "stop_loss": 25.92,
+      "time_stop_days": 40,
+      "forecast": {
+        "expected_return_20d": 0.023608576022573893,
+        "p_up_20d": 0.5362159553222513,
+        "q05": -0.13605114962426745,
+        "q95": 0.23109258120996423,
+        "trend": "up"
+      },
+      "risk": {
+        "vol_60d": 0.0355,
+        "risk_share": 0.09762184981643207
+      },
+      "reasons": [],
+      "raw_rank": 9,
+      "signal_prediction": 0.02590737061352695,
+      "board": "MAIN",
+      "board_name": "主板",
+      "capital_required": 0.0,
+      "experience_months": 0,
+      "can_buy": true,
+      "restriction_reason": ""
+    },
+    {
+      "symbol": "600363.SH",
+      "name": "联创光电",
+      "action": "BUY",
+      "current_price": 14.55,
+      "recommended_entry_price": 14.441,
+      "entry_low": 14.113,
+      "entry_high": 14.768,
+      "entry_rationale": "band = ±3.00% of last close (4.22% daily vol x 1.0 profile multiplier, capped at 3%)",
+      "shares": 400,
+      "lot_size": 100,
+      "buy_value": 5776.35,
+      "weight": 0.0875,
+      "target_weight": 0.095,
+      "target_price": 14.628,
+      "expected_return": 0.0129,
+      "expected_net_return": 0.0097,
+      "expected_holding_days": 20,
+      "stop_loss": 13.223,
+      "time_stop_days": 40,
+      "forecast": {
+        "expected_return_20d": 0.012938161967136631,
+        "p_up_20d": 0.49867471293901205,
+        "q05": -0.15118706227758896,
+        "q95": 0.21569701547069656,
+        "trend": "flat"
+      },
+      "risk": {
+        "vol_60d": 0.0422,
+        "risk_share": 0.07905564034415248
+      },
+      "reasons": [],
+      "raw_rank": 15,
+      "signal_prediction": 0.022262198725958658,
+      "board": "MAIN",
+      "board_name": "主板",
+      "capital_required": 0.0,
+      "experience_months": 0,
+      "can_buy": true,
+      "restriction_reason": ""
+    },
+    {
+      "symbol": "603010.SH",
+      "name": "万盛股份",
+      "action": "BUY",
+      "current_price": 12.63,
+      "recommended_entry_price": 12.535,
+      "entry_low": 12.251,
+      "entry_high": 12.819,
+      "entry_rationale": "band = ±3.00% of last close (3.45% daily vol x 1.0 profile multiplier, capped at 3%)",
+      "shares": 400,
+      "lot_size": 100,
+      "buy_value": 5014.11,
+      "weight": 0.076,
+      "target_weight": 0.095,
+      "target_price": 12.667,
+      "expected_return": 0.0105,
+      "expected_net_return": 0.0069,
+      "expected_holding_days": 20,
+      "stop_loss": 11.669,
+      "time_stop_days": 40,
+      "forecast": {
+        "expected_return_20d": 0.010473482388625268,
+        "p_up_20d": 0.48906677273405263,
+        "q05": -0.1541344426083055,
+        "q95": 0.21285623929494554,
+        "trend": "flat"
+      },
+      "risk": {
+        "vol_60d": 0.0345,
+        "risk_share": 0.08958793585816342
+      },
+      "reasons": [],
+      "raw_rank": 17,
+      "signal_prediction": 0.020976446025061816,
+      "board": "MAIN",
+      "board_name": "主板",
+      "capital_required": 0.0,
+      "experience_months": 0,
+      "can_buy": true,
+      "restriction_reason": ""
+    },
+    {
+      "symbol": "002486.SZ",
+      "name": "嘉麟杰",
+      "action": "BUY",
+      "current_price": 2.73,
+      "recommended_entry_price": 2.711,
+      "entry_low": 2.655,
+      "entry_high": 2.767,
+      "entry_rationale": "band = ±2.73% of last close (2.73% daily vol x 1.0 profile multiplier, capped at 3%)",
+      "shares": 2300,
+      "lot_size": 100,
+      "buy_value": 6236.1,
+      "weight": 0.0945,
+      "target_weight": 0.095,
+      "target_price": 2.734,
+      "expected_return": 0.0084,
+      "expected_net_return": 0.0053,
+      "expected_holding_days": 20,
+      "stop_loss": 2.563,
+      "time_stop_days": 40,
+      "forecast": {
+        "expected_return_20d": 0.00841465068080983,
+        "p_up_20d": 0.479013573310794,
+        "q05": -0.1554086272737943,
+        "q95": 0.21203169363732635,
+        "trend": "flat"
+      },
+      "risk": {
+        "vol_60d": 0.0273,
+        "risk_share": 0.05437733316233453
+      },
+      "reasons": [],
+      "raw_rank": 20,
+      "signal_prediction": 0.019306871876210573,
+      "board": "MAIN",
+      "board_name": "主板",
+      "capital_required": 0.0,
+      "experience_months": 0,
+      "can_buy": true,
+      "restriction_reason": ""
+    },
+    {
+      "symbol": "603758.SH",
+      "name": "秦安股份",
+      "action": "BUY",
+      "current_price": 10.91,
+      "recommended_entry_price": 10.828,
+      "entry_low": 10.583,
+      "entry_high": 11.074,
+      "entry_rationale": "band = ±3.00% of last close (4.91% daily vol x 1.0 profile multiplier, capped at 3%)",
+      "shares": 500,
+      "lot_size": 100,
+      "buy_value": 5414.09,
+      "weight": 0.082,
+      "target_weight": 0.095,
+      "target_price": 10.912,
+      "expected_return": 0.0077,
+      "expected_net_return": 0.0044,
+      "expected_holding_days": 20,
+      "stop_loss": 9.765,
+      "time_stop_days": 40,
+      "forecast": {
+        "expected_return_20d": 0.00772837344487135,
+        "p_up_20d": 0.47566250683637445,
+        "q05": -0.15583335549562388,
+        "q95": 0.21175684508478662,
+        "trend": "flat"
+      },
+      "risk": {
+        "vol_60d": 0.0491,
+        "risk_share": 0.09121125700757178
+      },
+      "reasons": [],
+      "raw_rank": 21,
+      "signal_prediction": 0.019291000907019802,
+      "board": "MAIN",
+      "board_name": "主板",
+      "capital_required": 0.0,
+      "experience_months": 0,
+      "can_buy": true,
+      "restriction_reason": ""
+    }
+  ],
+  "holding_period": "monthly (20 trading days)",
+  "validated": true,
+  "small_capital_rule": {
+    "rule": "largest K with holdings>=5 and invested>=60%",
+    "chosen_top_k": 10,
+    "scans": [
+      {
+        "top_k": 3,
+        "invested": 0.865475,
+        "n_positions": 3,
+        "expected_net_return_pct": 0.0233
+      },
+      {
+        "top_k": 4,
+        "invested": 0.8485574242424243,
+        "n_positions": 4,
+        "expected_net_return_pct": 0.0226
+      },
+      {
+        "top_k": 5,
+        "invested": 0.806135606060606,
+        "n_positions": 5,
+        "expected_net_return_pct": 0.021
+      },
+      {
+        "top_k": 6,
+        "invested": 0.7703154545454546,
+        "n_positions": 6,
+        "expected_net_return_pct": 0.0193
+      },
+      {
+        "top_k": 7,
+        "invested": 0.8252336363636363,
+        "n_positions": 7,
+        "expected_net_return_pct": 0.0186
+      },
+      {
+        "top_k": 8,
+        "invested": 0.7590221212121212,
+        "n_positions": 8,
+        "expected_net_return_pct": 0.0151
+      },
+      {
+        "top_k": 10,
+        "invested": 0.7795671212121212,
+        "n_positions": 9,
+        "expected_net_return_pct": 0.0129
+      }
+    ]
+  }
+}

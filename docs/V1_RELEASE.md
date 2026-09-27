@@ -64,13 +64,22 @@ python scripts/webapp/serve.py # FastAPI 录入界面 http://127.0.0.1:8765
 
 ## 6. 每日运行
 
+**两条命令，先 A 后 B**（完整说明见 `docs/USER_GUIDE.md` 第 1 节）：
+
 ```bash
-python scripts/run_daily.py            # 每天跑这一条
+python scripts/quant/refresh_all.py    # A. 更新数据与信号 → 交易计划（5~7 分钟）
+python scripts/run_daily.py            # B. 每日流水线 → 前瞻记录 + 日报（约 5 秒）
 python scripts/run_daily.py --dry-run  # 只看检查，不写任何东西
 python scripts/system_health.py        # 系统健康
 ```
 
-14 个步骤，普通日约 30 秒 ~ 2 分钟。
+| | A. `refresh_all.py` | B. `run_daily.py` |
+|---|---|---|
+| 职责 | 更新**数据与信号** | **记账与观察** |
+| 会推进「信号日」吗 | **会**（只有它下载新行情） | **不会**（只读现有数据） |
+
+**顺序不能反**：B 不下载行情，先跑 B 会对着旧的一天做记录。
+B 共 14 个步骤，普通日几秒到两分钟。
 
 ---
 
@@ -87,7 +96,7 @@ python scripts/system_health.py        # 系统健康
 6. **LLM 层未启用**（无 `DEEPSEEK_API_KEY`），系统按 RULE_BASED_ONLY 运行。
 7. **DuckDB 单进程独占**：GUI 打开时无法跑每日流水线，需先关界面。
 8. **计划任务未注册**（本机 PowerShell 策略禁止运行脚本，**未修改系统策略**）；
-   手动跑 `run_daily.py` 即可，状态记 `SCHEDULER_NOT_INSTALLED`。
+   手动跑第 6 节那两条命令即可，状态记 `SCHEDULER_NOT_INSTALLED`。
 9. 北交所（.BJ）标的**不在股票池**；其数据存在上游侧的复权因子跳变，
    已用 `repair_factor_rebase.py` 修正（影响为零，已记录）。
 10. 两个前端在"流水录入"上功能重叠，未合并。
@@ -109,9 +118,9 @@ python scripts/system_health.py        # 系统健康
 source .venv/Scripts/activate
 
 python scripts/system_health.py        # ① 先看健康
-python scripts/run_daily.py --dry-run  # ② 干跑一遍
-python scripts/run_daily.py            # ③ 正式跑
-python scripts/run_app.py              # ④ 看界面
+python scripts/quant/refresh_all.py    # ② 更新数据与信号 → 交易计划
+python scripts/run_daily.py            # ③ 每日流水线 → 前瞻记录 + 日报
+python scripts/run_app.py              # ④ 看界面（或 webapp/serve.py）
 ```
 
 ## 10. 如何备份
@@ -285,4 +294,79 @@ python scripts/backup_portfolio.py --export     # 额外导出 CSV
 （管线停摆不能显示成新鲜）。
 
 测试：`tests/pipeline/test_data_freshness.py`（+3）、`test_refresh_jobs.py`（+4）。
+
+---
+
+## 17. v1.0.5 修订（2026-09-27）
+
+`refresh_all.py` 实测跑了 **40 分钟**，而且日报里有一处会误导人的失败。
+**不含策略 / 模型 / 因子变更。**
+
+### 整链耗时 40 分钟 → 5.3 分钟
+
+| 作业 | 修前 | 修后 |
+|---|---|---|
+| `signal_refresh` | **1736s** | **222s** |
+| `news_events_refresh` | （缺这一步） | **0s**（跳过） |
+| `factor_rebase_repair` | （缺这一步） | 1s |
+| `live_price_refresh` | 96s | 25s |
+| 合计 | ≈ 40 分钟 | **5.3 分钟** |
+
+### 1. 根因：每个特征 worker 提交 4.2 GB（BLAS 线程）
+
+20 核机器上，qlib 的每个 joblib worker 会让 OpenBLAS 各开 **67 个线程**，
+单进程提交 **4.2 GB**；`kernels=10` 就是 **42 GB commit**。物理内存还剩
+15 GB 也没用 —— **提交上限（65.8 GB）被打穿**，40 秒内所有进程 CPU 增量为
+0，日志里只剩 `OpenBLAS error: Memory allocation still failed after 10
+retries`。这也解释了更早那些 "Unable to allocate 13 MB" 的诡异报错。
+
+修复：worker 环境里把 `OPENBLAS_NUM_THREADS` / `OMP_NUM_THREADS` /
+`MKL_NUM_THREADS` / `NUMEXPR_NUM_THREADS` 全部压到 1。并行度本来就由
+10 个 joblib worker 提供，BLAS 再各自开线程纯属浪费。
+
+结果：`kernels=10` **一次跑通 193 秒**（修前：卡死 → 超时 1200s → 降级
+4 并发 501s）。
+
+### 2. 新增降级重试阶梯
+
+超时 / MemoryError 这类**暂时性**失败，按
+`kernels=10/1200s → 4/1800s → 1/2700s` 逐级降并发重试；真正的错误立刻抛出，
+不靠重试掩盖。最后一档退到单进程，不依赖 joblib 池。
+
+### 3. 新闻派生层接进刷新链（新增 `news_events_refresh`）
+
+`news_update` 只写 canonical，而**生产新闻因子读的是派生层**
+（`factors/news_factors.py` 声明 `required_fields=["news_events",
+"news_coverage"]`）。少了这一步，公告抓回来了、信号却还在用旧事件 ——
+实测 canonical 已到 09-22、派生层停在 09-18，**09-24 的信号因此缺了
+09-21/09-22 两天共 1,192 份公告**。
+
+同一作业加了"canonical 没变就跳过"（用文档数 + 最新发布时间做指纹）：
+全量重建 18 万条要 476 秒，而绝大多数运行没有新公告 —— 直接降到 0 秒。
+
+### 4. 复权因子修复接进刷新链（新增 `factor_rebase_repair`）
+
+上游快照**每次重新发布都会把 factor rebase 缺陷带回来**：原始价连续、
+复权因子却跳 2~15 倍。2026-09-19、09-22、09-27 三次换快照，三次都是
+同样的 48 处 / 31,240 行，其中 7 只是**股票池内**的主板/创业板标的。
+
+现在它紧跟 `market_update`：没有跳变时是纯读操作（1 秒返回），
+有跳变才重标定并写 `source_registry`；修完仍有残留就**抛错终止整条链**。
+
+### 5. `live_price_refresh` 不再谎报失败
+
+判据从"最后一条 bar 的日期 **== 今天**"改成"**比信号日新**"。周日运行时，
+市场最后一个交易日是 09-24，旧逻辑把 60 个标的全部记成 `failed`，看着像
+网络故障，其实只是没有更新的数据。现在如实说：
+`无更新：最新 bar 2026-09-24 不晚于信号日 2026-09-24`。
+
+### 6. 顺带修掉的
+
+- `market_update` 的 `subprocess.run(text=True)` 没写 `encoding` → 子进程的
+  中文输出触发 GBK 解码错误，**静默丢掉全部输出**。
+- `portfolio_refresh` 改用账户口径（原先写死 `capital=500_000, top_k=20`
+  的回测口径：按 50 万下单却按 6.6 万判板块权限，还会覆盖账户口径的计划）。
+
+测试：`tests/strategy/test_quarter_worker_retry.py`（+6）、
+`tests/pipeline/test_refresh_jobs.py`（+5）。`verify_step12.py` 24/24 PASS。
 

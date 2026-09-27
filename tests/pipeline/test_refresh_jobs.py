@@ -185,3 +185,78 @@ def test_run_all_runs_opt_in_when_explicitly_asked(jobstore):
     table = {n: make(n) for n in ("market_update", "financial_update")}
     refresh.run_all(only=["financial_update"], conn=jobstore, jobs=table)
     assert calls == ["financial_update"]
+
+
+# ---------------------------------------------------------------------------
+# 复权因子修复 + 新闻派生层跳过（2026-09-27）
+# ---------------------------------------------------------------------------
+
+def test_factor_rebase_repair_runs_right_after_market_update():
+    """每次换快照都会把上游的因子跳变带回来，所以修复必须紧跟
+    market_update、早于 factor_refresh —— 漏跑一次，信号就可能吃到
+    跳变的复权价。"""
+    names = [n for n, _ in refresh.REFRESH_JOBS]
+    assert "factor_rebase_repair" in names
+    assert names.index("market_update") < names.index("factor_rebase_repair")
+    assert names.index("factor_rebase_repair") < names.index("factor_refresh")
+
+
+def test_factor_rebase_repair_raises_when_jumps_remain(monkeypatch):
+    """还有未修复的跳变就抛出去，不能带着坏数据继续往下跑。"""
+    from scripts.quant import repair_factor_rebase
+
+    monkeypatch.setattr(repair_factor_rebase, "main", lambda: 1)
+    with pytest.raises(RuntimeError):
+        refresh.factor_rebase_repair()
+
+
+class _FakeConn:
+    def __init__(self, n, m):
+        self._r = (n, m)
+
+    def execute(self, *a, **k):
+        return self
+
+    def fetchone(self):
+        return self._r
+
+
+def _stamp(tmp_path, payload):
+    p = tmp_path / "data" / "derived" / "news" / ".build_stamp.json"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(payload, encoding="utf-8")
+    return p
+
+
+def test_news_events_skips_rebuild_when_canonical_unchanged(monkeypatch,
+                                                            tmp_path):
+    """全量重建 18 万条文档要 ~8 分钟，canonical 没变就不该重建。"""
+    from personal_quant import db as pqdb
+    from scripts.news import build_events
+
+    monkeypatch.setattr(refresh, "PROJECT_ROOT", tmp_path)
+    _stamp(tmp_path, '{"n": 10, "max": "2026-09-24 10:00:00"}')
+    monkeypatch.setattr(pqdb, "connect",
+                        lambda: _FakeConn(10, "2026-09-24 10:00:00"))
+    called = []
+    monkeypatch.setattr(build_events, "main", lambda: called.append(1) or 0)
+
+    detail = refresh.news_events_refresh()
+    assert called == [], "canonical 没变却重建了"
+    assert "跳过重建" in detail
+
+
+def test_news_events_rebuilds_when_new_documents_arrive(monkeypatch, tmp_path):
+    from personal_quant import db as pqdb
+    from scripts.news import build_events
+
+    monkeypatch.setattr(refresh, "PROJECT_ROOT", tmp_path)
+    _stamp(tmp_path, '{"n": 10, "max": "2026-09-24 10:00:00"}')
+    monkeypatch.setattr(pqdb, "connect",
+                        lambda: _FakeConn(12, "2026-09-25 09:00:00"))
+    called = []
+    monkeypatch.setattr(build_events, "main", lambda: called.append(1) or 0)
+
+    detail = refresh.news_events_refresh()
+    assert called == [1], "有新文档却没有重建"
+    assert "已重建" in detail

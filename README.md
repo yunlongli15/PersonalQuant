@@ -38,16 +38,28 @@ STEP 7 ✅ / STEP 9 ✅ / STEP 10 ✅ / STEP 11 ✅ / STEP 12 ✅**
 ```bash
 source .venv/Scripts/activate
 
-python scripts/run_daily.py --dry-run          # ① 先干跑看检查
-python scripts/run_daily.py                    # ② 每天跑这一条（数据+Paper Live+日报）
-python scripts/system_health.py                # ③ 系统健康
+# ---- 每天就这两条，顺序不能反 ----
+python scripts/quant/refresh_all.py            # ① 更新数据与信号（5~7 分钟）
+                                               #    产出「交易计划」「今日信号」「价格预测」
+python scripts/run_daily.py                    # ② 每日流水线（约 5 秒）
+                                               #    前瞻记录 + 日报 + 告警
+
+python scripts/run_daily.py --dry-run          # 只想先看检查，用这个
+python scripts/system_health.py                # 系统健康
+python scripts/webapp/serve.py                 # 打开界面 127.0.0.1:8765
 
 # 其它常用
 python scripts/quant/refresh_all.py --status   # 看数据新鲜度
-python scripts/quant/write_recommendation_note.py --horizon 20 --capital 66000
-                                               # ③ 生成交易建议（含费用）
-python scripts/webapp/serve.py                 # ④ 打开界面 127.0.0.1:8765
+python scripts/quant/write_recommendation_note.py --capital 66000
+                                               # 单独重出建议（改资金时用）
 ```
+
+**为什么要两条、为什么先 ① 后 ②**：`refresh_all.py` 更新数据与信号，
+`run_daily.py` 只**读**这些数据做记录与报告 —— **它不下载行情**。先跑 ② 的话，
+它会对着旧的一天做记录（这就是"日期怎么没更新"的原因）。
+分工与产出详见 **[docs/USER_GUIDE.md](docs/USER_GUIDE.md) 第 1 节**（唯一权威说法）。
+
+两者都别在开着界面时跑（DuckDB 单进程独占）。
 
 界面里最常用的两个页面：
 
@@ -280,8 +292,10 @@ python scripts/verify_step12.py                      # 24 项验收
 # --- STEP 10：forward holdout + paper live ---
 python scripts/paper_live/freeze.py                  # 冻结策略（只做一次）
 python scripts/paper_live/freeze.py --check          # 校验冻结未被改动
-python scripts/paper_live/run_daily.py --dry-run     # 每日运行（先干跑）
-python scripts/paper_live/run_daily.py               # 每日运行（写 forward 记录）
+# 注意：下面是 STEP 10 的**底层**引擎，日常不要直接跑 ——
+# scripts/run_daily.py（STEP 12）已经把它 + 另外 13 步一起跑了
+python scripts/paper_live/run_daily.py --dry-run     # 只跑 paper live 引擎（不落盘）
+python scripts/paper_live/run_daily.py               # 只跑 paper live 引擎（写 forward 记录）
 python scripts/paper_live/run_rebalance.py --date 2026-09-30   # 调仓日 + 买卖清单
 python scripts/paper_live/audit.py                   # PIT / 数据完整性审计
 python scripts/paper_live/check_alerts.py            # 告警（只报警）

@@ -26,18 +26,18 @@
       "production_model": "769f67656a713fef42747070266209e6037ba92595a6fde6601b2a5f2ed737f2"
     }
   },
-  "run_id": "2026-09-18_221338",
-  "date": "2026-09-18",
-  "status": "OK",
-  "start_time": "2026-09-21T22:13:38+08:00",
-  "end_time": "2026-09-21T22:14:20+08:00",
-  "duration_s": 41.82,
-  "git_commit": "92d6a881a6bbd81fa618524a2e3f8e7019193a76",
+  "run_id": "2026-09-24_195040",
+  "date": "2026-09-24",
+  "status": "WARNING",
+  "start_time": "2026-09-27T19:50:40+08:00",
+  "end_time": "2026-09-27T19:51:16+08:00",
+  "duration_s": 35.74,
+  "git_commit": "32766482fafa9372b7b594cbb0147dbeb1bb93a7",
   "strategy_version": "strategy_v2",
   "model_version": "s3",
   "feature_version": "alpha158+factor_pack_v1",
   "news_version": "factor_pack_news_v1",
-  "data_snapshot_id": "2026-09-18",
+  "data_snapshot_id": "2026-09-24",
   "is_rebalance": true,
   "forward_observation": true,
   "paper_root": "C:\\Users\\Administrator\\Desktop\\PersonalQuant\\forward_holdout",
@@ -49,15 +49,15 @@
       "status": "OK",
       "detail": "Python 3.12.10；冻结状态 一致；DuckDB 可独占打开",
       "error": "",
-      "duration_s": 0.96,
+      "duration_s": 1.28,
       "depends_on": []
     },
     {
       "name": "source_health",
       "status": "OK",
-      "detail": "全部新鲜；行情最新 2026-09-18",
+      "detail": "全部新鲜；行情最新 2026-09-24",
       "error": "",
-      "duration_s": 0.43,
+      "duration_s": 0.47,
       "depends_on": [
         "environment"
       ]
@@ -65,9 +65,9 @@
     {
       "name": "market_data",
       "status": "OK",
-      "detail": "行情最新 2026-09-18；上游最新数据日 2026-09-18 —— 已是最新，没有更新的数据可下载",
+      "detail": "行情最新 2026-09-24；上游最新数据日 2026-09-24 —— 已是最新，没有更新的数据可下载",
       "error": "",
-      "duration_s": 38.0,
+      "duration_s": 1.95,
       "depends_on": [
         "source_health"
       ]
@@ -75,9 +75,9 @@
     {
       "name": "news",
       "status": "OK",
-      "detail": "新闻最新 2026-09-18；覆盖 4630 只",
+      "detail": "新闻最新 2026-09-24；覆盖 4818 只",
       "error": "",
-      "duration_s": 1.75,
+      "duration_s": 2.72,
       "depends_on": [
         "environment"
       ]
@@ -87,7 +87,7 @@
       "status": "SKIPPED",
       "detail": "按需加载：当前最新 2026-04-30；S3 特征集不含财务因子，未触发抓取（需要时加 --with-financial）",
       "error": "",
-      "duration_s": 0.0,
+      "duration_s": 0.01,
       "depends_on": [
         "environment"
       ]
@@ -95,9 +95,9 @@
     {
       "name": "data_quality",
       "status": "OK",
-      "detail": "价格 5558 只全部正常",
+      "detail": "价格 5562 只全部正常",
       "error": "",
-      "duration_s": 0.18,
+      "duration_s": 0.22,
       "depends_on": [
         "market_data"
       ]
@@ -105,9 +105,9 @@
     {
       "name": "paper_prediction",
       "status": "OK",
-      "detail": "该日已记录，本次为无操作重跑（未写入任何东西）；存档值：预测 3016 只；订单 20；成交 0；位于 forward_holdout（正式前瞻）",
+      "detail": "预测 3024 只；订单挂起等 T+1；写入 forward_holdout（正式前瞻）",
       "error": "",
-      "duration_s": 0.02,
+      "duration_s": 28.58,
       "depends_on": [
         "data_quality"
       ]
@@ -115,7 +115,7 @@
     {
       "name": "personal_snapshot",
       "status": "OK",
-      "detail": "个人账户 1 只，市值 9,750",
+      "detail": "个人账户 1 只，市值 10,491",
       "error": "",
       "duration_s": 0.03,
       "depends_on": [
@@ -135,17 +135,17 @@
     {
       "name": "risk",
       "status": "OK",
-      "detail": "HHI 1.0000；有效持仓 1.0；最大单只 100.00%；现金 92.68%",
+      "detail": "HHI 1.0000；有效持仓 1.0；最大单只 100.00%；现金 92.03%",
       "error": "",
-      "duration_s": 0.04,
+      "duration_s": 0.05,
       "depends_on": [
         "performance"
       ]
     },
     {
       "name": "drift",
-      "status": "OK",
-      "detail": "一致",
+      "status": "WARNING",
+      "detail": "paper drift: {'concentration': 'CONCENTRATION_WARNING'}",
       "error": "",
       "duration_s": 0.0,
       "depends_on": [
@@ -154,8 +154,8 @@
     },
     {
       "name": "alerts",
-      "status": "OK",
-      "detail": "无告警",
+      "status": "WARNING",
+      "detail": "2 条告警：['DATA_WARNING']",
       "error": "",
       "duration_s": 0.0,
       "depends_on": [
@@ -165,9 +165,9 @@
     {
       "name": "report",
       "status": "OK",
-      "detail": "C:\\Users\\Administrator\\Desktop\\PersonalQuant\\reports\\daily\\2026-09-18.md",
+      "detail": "C:\\Users\\Administrator\\Desktop\\PersonalQuant\\reports\\daily\\2026-09-24.md",
       "error": "",
-      "duration_s": 0.38,
+      "duration_s": 0.41,
       "depends_on": [
         "alerts"
       ]
@@ -175,7 +175,7 @@
     {
       "name": "manifest",
       "status": "OK",
-      "detail": "C:\\Users\\Administrator\\Desktop\\PersonalQuant\\data\\quant\\daily_runs\\2026-09-18.json",
+      "detail": "C:\\Users\\Administrator\\Desktop\\PersonalQuant\\data\\quant\\daily_runs\\2026-09-24.json",
       "error": "",
       "duration_s": 0.02,
       "depends_on": [
@@ -183,11 +183,14 @@
       ]
     }
   ],
-  "warnings": [],
+  "warnings": [
+    "drift: paper drift: {'concentration': 'CONCENTRATION_WARNING'}",
+    "alerts: 2 条告警：['DATA_WARNING']"
+  ],
   "errors": [],
-  "input_fingerprint": "bb4890a1f7c44736",
+  "input_fingerprint": "b5216b9b3d96266d",
   "daily_summary": {
-    "status": "OK",
-    "n_alerts": 0
+    "status": "WARNING",
+    "n_alerts": 2
   }
 }

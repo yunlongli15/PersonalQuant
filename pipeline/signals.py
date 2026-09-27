@@ -196,7 +196,13 @@ def portfolio_state() -> dict:
 def refresh_portfolio_state(capital: float = 500_000.0,
                             top_k: int = 20,
                             **kwargs) -> dict:
-    """Job entry point: build the trade plan and stamp the state file."""
+    """Build the trade plan with EXPLICIT sizing and stamp the state file.
+
+    这里的 500_000 / 20 是**回测口径**。面向用户的每日计划不要用这些
+    默认值 —— 它不知道账户资金、套用小资金 K 规则、也不做实时价覆盖。
+    刷新链的 portfolio_refresh 已经改走 `write_recommendation_note`
+    （账户口径）；直接调用本函数时请显式传 capital/top_k。
+    """
     from trade_plan.plan import build_trade_plan, save_plan
 
     plan = build_trade_plan(capital=capital, top_k=top_k, **kwargs)

@@ -90,6 +90,43 @@ if __name__ == "__main__":
 """
 
 
+#: 季度 worker 的降级阶梯：(kernels, 超时秒数)。
+#:
+#: 这两种失败都是**暂时性**的，降并发重跑一次通常就过：
+#:   * 超时 —— qlib 的 joblib 池在 Windows 上会偶发死锁（CPU 归零、
+#:     一直不返回），并发越高越容易撞上；
+#:   * MemoryError —— 并发 worker 的内存峰值超了可用量。
+#: 直接抛出去会让整条刷新链断在中途（2026-09-22 实际发生：signal_refresh
+#: 超时 1800s，后面的实时价/预测/交易计划全都没跑）。
+#: 健康的一次是 156~400s，所以第一档留了 3 倍以上余量。
+WORKER_LADDER = ((10, 1200), (4, 1800), (1, 2700))
+
+
+def _worker_attempts(kernels: int) -> List[tuple]:
+    """首档用调用方给的并发，之后只降不升。"""
+    lower = [(k, t) for k, t in WORKER_LADDER if k < kernels]
+    return [(kernels, WORKER_LADDER[0][1])] + lower
+
+
+def _worker_env() -> dict:
+    """worker 的环境变量：把 BLAS 线程压到 1。
+
+    并行度已经由 qlib 的 `kernels` 个 joblib worker 提供了，BLAS 再按
+    核数各自开线程纯属浪费，而且代价直接体现在**提交内存**上：20 核机器
+    上每个 worker 会开 67 个线程、提交 4.2 GB，10 个 worker 要 42 GB
+    commit —— 超过 65.8 GB 的提交上限就整体卡死（2026-09-27 实际发生：
+    40 秒内所有进程 CPU 增量为 0，日志里只剩 OpenBLAS 分配失败）。
+    这些变量必须在 worker 导入 numpy 之前生效，所以走 subprocess 环境。
+    """
+    import os
+
+    env = dict(os.environ)
+    for k in ("OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS",
+              "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
+        env[k] = "1"
+    return env
+
+
 def _compute_quarter_subprocess(
     instruments: List[str],
     dates: List[pd.Timestamp],
@@ -103,40 +140,60 @@ def _compute_quarter_subprocess(
     each pool a brand-new interpreter (deterministic, no reuse). The worker
     code is written to a temp .py file: Windows CreateProcess rejects long
     command lines (WinError 206) with thousands of inline instruments.
+
+    Failures that are known to be transient (timeout / MemoryError) are
+    retried down `WORKER_LADDER`; a genuine error raises immediately.
     """
     import subprocess
 
     q_start = min(dates).to_period("Q").start_time
     lo = q_start - pd.Timedelta(days=170)
     hi = max(dates)
-    code = _QUARTER_WORKER.format(
-        project_root=str(PROJECT_ROOT),
-        kernels=kernels,
-        instruments=instruments,
-        lo=str(lo.date()),
-        hi=str(hi.date()),
-        dates=[str(d.date()) for d in dates],
-        cache_dir=str(FEATURE_CACHE),
-    )
     worker_path = (Path(FEATURE_CACHE).parent / "tmp"
                    / f"worker_{q_start.year}Q{q_start.quarter}.py")
     worker_path.parent.mkdir(parents=True, exist_ok=True)
-    worker_path.write_text(code, encoding="utf-8")
-    t0 = time.time()
-    proc = subprocess.run(
-        [sys.executable, "-u", str(worker_path)],
-        capture_output=True, text=True, timeout=1800,
-    )
-    if proc.returncode != 0:
-        raise RuntimeError(
-            f"quarter worker failed ({dates[0].date()}..{hi.date()}):\n"
-            f"{proc.stdout[-2000:]}\n{proc.stderr[-2000:]}"
-        )
-    if verbose:
-        wrote = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else ""
-        print(f"[features] {q_start.date()}..{hi.date()}: "
-              f"{len(instruments)} instruments in {time.time()-t0:.0f}s ({wrote})",
-              flush=True)
+
+    attempts = _worker_attempts(kernels)
+    last_err = ""
+    for i, (k, timeout_s) in enumerate(attempts, 1):
+        worker_path.write_text(_QUARTER_WORKER.format(
+            project_root=str(PROJECT_ROOT), kernels=k,
+            instruments=instruments, lo=str(lo.date()), hi=str(hi.date()),
+            dates=[str(d.date()) for d in dates],
+            cache_dir=str(FEATURE_CACHE)), encoding="utf-8")
+        t0 = time.time()
+        try:
+            proc = subprocess.run(
+                [sys.executable, "-u", str(worker_path)],
+                capture_output=True, text=True, timeout=timeout_s,
+                env=_worker_env(),
+            )
+        except subprocess.TimeoutExpired:
+            last_err = f"第 {i} 次（kernels={k}）{timeout_s}s 未返回"
+            if i < len(attempts):
+                print(f"[features] {last_err} —— 降并发重试", flush=True)
+                continue
+            break
+        if proc.returncode != 0:
+            out = f"{proc.stdout[-2000:]}\n{proc.stderr[-2000:]}"
+            if "MemoryError" in out and i < len(attempts):
+                last_err = f"第 {i} 次（kernels={k}）内存不足"
+                print(f"[features] {last_err} —— 降并发重试", flush=True)
+                continue
+            raise RuntimeError(
+                f"quarter worker failed ({dates[0].date()}..{hi.date()}):\n{out}"
+            )
+        if verbose:
+            wrote = (proc.stdout.strip().splitlines()[-1]
+                     if proc.stdout.strip() else "")
+            print(f"[features] {q_start.date()}..{hi.date()}: "
+                  f"{len(instruments)} instruments in {time.time()-t0:.0f}s "
+                  f"(kernels={k}, {wrote})", flush=True)
+        return
+
+    raise RuntimeError(
+        f"quarter worker failed ({dates[0].date()}..{hi.date()}) after "
+        f"{len(attempts)} attempts: {last_err}")
 
 
 def compute_features(
