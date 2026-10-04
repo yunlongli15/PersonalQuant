@@ -76,6 +76,22 @@ def check_alerts(metrics: Optional[dict] = None,
                           f"Top1 预测 z={_num(cd.get('top1_z'))} 极端偏高；"
                           f"仍然使用冻结策略，不调整"))
 
+    # ---- §22 news drift --------------------------------------------------
+    # 这两段以前不存在：engine 根本没算 news/data 漂移，所以无论漂移多大
+    # 都不会有告警。文档 §29-§31 的告警表里 DATA_QUALITY_WARNING 明确写着
+    # "审计 WARNING / 数据漂移"两种触发，这里补上第二种。
+    nd = drift.get("news", {})
+    if nd.get("status") == "NEWS_DRIFT_WARNING":
+        out.append(_alert(WARNING, "NEWS_DRIFT",
+                          f"新闻因子分布位移超过 3σ：{nd.get('shifted')}；"
+                          f"只记录，不调参、不换模型"))
+
+    # ---- §23 data drift --------------------------------------------------
+    dd = drift.get("data", {})
+    if dd.get("status") == "DATA_QUALITY_WARNING":
+        out.append(_alert(WARNING, "DATA_QUALITY_WARNING",
+                          f"数据漂移：{dd.get('issues')}"))
+
     # ---- §30 drawdown ----------------------------------------------------
     dd = metrics.get("drawdown")
     if dd is not None and np.isfinite(dd):

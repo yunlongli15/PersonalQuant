@@ -16,6 +16,11 @@ import pandas as pd
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
+#: 新闻基线从**历史**因子快照算，窗口 2018-01-31..2025-12-31 ——
+#: 全部早于前瞻实验的第一天（2026-09-30），不混入 forward 期的分布。
+NEWS_FACTOR_SNAPSHOT = (PROJECT_ROOT / "data" / "derived" / "news"
+                        / "news_factors.parquet")
+
 
 # ---------------------------------------------------------------------------
 # §20 Strategy drift
@@ -143,6 +148,93 @@ def data_drift(current: dict, baseline: Optional[dict] = None,
             issues.append(f"{key}: {b:.4f} -> {c:.4f} ({rel:+.0%})")
     return {"status": "DATA_QUALITY_WARNING" if issues else "OK",
             "issues": issues, "current": current, "baseline": baseline}
+
+
+def news_current(custom) -> Dict[str, float]:
+    """今日实际消费到的新闻因子的截面均值，喂给 news_drift。
+
+    只取 category=news 的列 —— 和 data.py 判定"哪些是新闻因子"用同一把尺子。
+    """
+    from factors.registry import FACTOR_REGISTRY
+
+    if custom is None or len(custom) == 0:
+        return {}
+    out: Dict[str, float] = {}
+    for col in custom.columns:
+        meta = FACTOR_REGISTRY.get(col) or {}
+        if meta.get("category") != "news":
+            continue
+        v = float(custom[col].mean(skipna=True)) if len(custom[col]) else np.nan
+        if np.isfinite(v):
+            out[col] = v
+    return out
+
+
+def build_news_baseline(snapshot=NEWS_FACTOR_SNAPSHOT) -> dict:
+    """从历史新闻因子快照算每个因子的 {mean, std}（一次性，之后复用）。
+
+    news_drift 判"位移超过 3σ"必须有 std；只拿一天当基线的话 std=0，
+    那个判断永远不触发 —— 等于没监控。
+    """
+    p = Path(snapshot)
+    if not p.exists():
+        return {}
+    df = pd.read_parquet(p, columns=["factor_name", "factor_value"])
+    if df.empty:
+        return {}
+    g = df.groupby("factor_name")["factor_value"].agg(["mean", "std"])
+    return {str(k): {"mean": float(r["mean"]), "std": float(r["std"])}
+            for k, r in g.iterrows() if np.isfinite(r["mean"])}
+
+
+def news_drift_vs_history(current: Dict[str, float], baseline_path) -> dict:
+    """news_drift 的正式入口：拿当前值比历史基线。
+
+    **只读**。基线必须在运行之前就建好（见 init_baselines）——
+    运行中顺手建档会让第一次和第二次的漂移结果不同，而 observation 是
+    append-only 的，store 会（正确地）拒绝覆盖，等于把每日运行变得不幂等。
+    基线缺失就如实返回 NO_BASELINE（= 这条监控还没上膛），不假装在监控。
+    """
+    return news_drift(current, load_baseline(baseline_path))
+
+
+def data_drift_vs_state(current: dict, baseline_path) -> dict:
+    """data_drift 的正式入口：拿当前值比基线。同样**只读**，理由同上。"""
+    return data_drift(current, load_baseline(baseline_path))
+
+
+def init_baselines(state_dir, provider=None, reference_date=None) -> dict:
+    """建立漂移基线 —— **一次性动作，绝不在每日运行里做**。
+
+    运行中建档会让"基线不存在"和"基线已存在"两次运行产出不同的漂移结果，
+    而 observation 是 append-only 的（store 会拒绝覆盖），每日运行就不再
+    幂等。所以基线是**输入**：先建档，再跑。
+
+    - news：从 2018-2025 的历史因子快照算每个因子的 mean/std。
+      必须有 std，否则"位移超过 3σ"永远不触发。
+    - data：以 reference_date 当天的完整性指标为参照点
+      （n_symbols / 缺失率 / 覆盖率，容差 30%）。需要 provider。
+    """
+    d = Path(state_dir)
+    d.mkdir(parents=True, exist_ok=True)
+    out: Dict[str, object] = {}
+
+    news = build_news_baseline()
+    if news:
+        out["news"] = str(save_baseline(d / "news_baseline.json", news))
+        out["news_factors"] = len(news)
+
+    if provider is not None and reference_date is not None:
+        from . import audit as audit_mod
+        d0 = pd.Timestamp(reference_date)
+        syms = provider.universe(d0)
+        cur = audit_mod.data_completeness(
+            provider.feature_matrix(d0, syms),
+            provider.custom_factors(d0, syms), syms)
+        if cur:
+            out["data"] = str(save_baseline(d / "data_baseline.json", cur))
+            out["data_values"] = cur
+    return out
 
 
 def load_baseline(path) -> dict:

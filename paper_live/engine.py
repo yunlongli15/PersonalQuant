@@ -613,13 +613,22 @@ def run_day(date, cfg: dict, store: ForwardStore, provider,
     res.n_orders = len(orders)
     res.portfolio = pf.as_dict()
 
-    # 7. 漂移
+    # 7. 漂移（§20-§23 四类：strategy / model / news / data）
+    # news 与 data 以前只定义了函数、没人调用 —— 文档写着每天监控四类，
+    # 实际只跑了 strategy/model/concentration 三类，等于那两条保护不存在。
     res.drift = {
         "strategy": drift_mod.strategy_drift(cfg),
         "model": drift_mod.model_drift(predictions,
                                        drift_mod.load_model_baseline()),
         "concentration": drift_mod.prediction_concentration(
             predictions, float(s["alerts"]["concentration_top1_z"])),
+        # 只读基线（基线由 scripts/paper_live/init_drift_baselines.py 建）：
+        # 缺基线 -> NO_BASELINE，如实说明这条监控没上膛，而不是假装在监控。
+        "news": drift_mod.news_drift_vs_history(
+            drift_mod.news_current(custom),
+            store.state_path("news_baseline")),
+        "data": drift_mod.data_drift_vs_state(
+            completeness, store.state_path("data_baseline")),
     }
 
     # 8. 告警
