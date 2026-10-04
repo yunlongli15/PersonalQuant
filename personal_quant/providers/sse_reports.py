@@ -46,6 +46,7 @@ class SSEReportsProvider:
         self._db = self.archive_dir / "sse_reports" / "data" / "reports.db"
         self._metadata_csv = self.archive_dir / "sse_reports" / "data" / "market_metadata.csv"
         self._lifecycle_csv = self.archive_dir / "sse_reports" / "data" / "company_lifecycle.csv"
+        self._metadata: Optional[pd.DataFrame] = None
         if not self._db.exists():
             raise FileNotFoundError(f"SSE archive database not found: {self._db}")
 
@@ -53,7 +54,18 @@ class SSEReportsProvider:
     # Metadata
     # ------------------------------------------------------------------
     def load_report_metadata(self) -> pd.DataFrame:
-        """Return canonical report_documents rows (DataFrame)."""
+        """Return canonical report_documents rows (DataFrame).
+
+        结果按实例缓存。归档 SQLite 对本模块是**只读**的（全模块 0 条写
+        语句），而抓取循环按 (股票, 财年) 调用它 —— 300 只 x 9 个财年 =
+        2,700 次。没有缓存时每次都要重开 SQLite、重读整张 coverage 表
+        （63,613 行）再重做一遍 merge，实测稳定在 0.50 秒，也就是一次运行
+        里约 22 分钟在重算**同一个** DataFrame（2026-10-04 实测）。
+
+        返回的就是那份缓存对象，调用方不得原地修改它。
+        """
+        if self._metadata is not None:
+            return self._metadata
         con = sqlite3.connect(str(self._db))
         cov = pd.read_sql_query(
             "SELECT * FROM coverage", con
@@ -115,7 +127,8 @@ class SSEReportsProvider:
         out.loc[still & se.notna(), "announcement_date"] = se[se.notna()]
         out.loc[still & se.notna(), "announcement_date_source"] = "sse_url"
 
-        return out
+        self._metadata = out
+        return self._metadata
 
     def build_report_documents(self) -> pd.DataFrame:
         """Full canonical report_documents DataFrame (63k rows)."""
