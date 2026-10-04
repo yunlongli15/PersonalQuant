@@ -114,7 +114,7 @@ def main() -> int:
           f"{FISCAL_YEARS[0]}-{FISCAL_YEARS[-1]}", flush=True)
 
     t0 = time.time()
-    ok = skipped = failed = re_extracted = 0
+    ok = skipped = failed = incomplete = 0
     fail_streak = 0
     done_years = set()
     for i, symbol in enumerate(symbols):
@@ -141,7 +141,7 @@ def main() -> int:
                 ok += 1
                 fail_streak = 0
                 if not is_complete(db.connect(), doc_id):
-                    re_extracted += 1
+                    incomplete += 1
             except Exception as e:
                 failed += 1
                 fail_streak += 1
@@ -173,8 +173,14 @@ def main() -> int:
     el = time.time() - t0
     print(f"\n===== fetch summary =====\n"
           f"extracted: {ok}, skipped (cached/no-metadata/no-date): {skipped}, "
-          f"failed: {failed}, re-extracted-for-eps/bps: {re_extracted}\n"
+          f"failed: {failed}, "
+          f"extracted-but-still-incomplete: {incomplete}\n"
           f"elapsed: {el/60:.1f} min", flush=True)
+    if incomplete:
+        print(f"  注：最后一项 = 抽取成功、但 9 项核心指标仍未凑齐的报告数；"
+              f"它**不是**『为了补 eps/bps 而重抽』的数量。"
+              f"各指标覆盖率见 reports/step4_financial_factor_coverage.md",
+              flush=True)
 
     try:
         register_source(
