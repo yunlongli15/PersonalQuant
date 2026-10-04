@@ -1,10 +1,11 @@
 {
-  "fetched_at": "2026-10-04 19:28:56",
+  "fetched_at": "2026-10-04 20:12:03",
   "price_date": null,
   "signal_date": "2026-09-30",
   "latest_bar_date": "2026-09-30",
   "n": 0,
   "not_newer": 60,
   "failed": [],
-  "prices": {}
+  "prices": {},
+  "eastmoney_blocked": "ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))"
 }

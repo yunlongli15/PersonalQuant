@@ -11,8 +11,11 @@ Data source map (2026-09-05, verified reachable from this machine):
                      push2 clist API was intermittently WAF-blocked for this
                      IP, so it is not used; Tencent provides pe_ttm, pb (pn),
                      total/float market cap and turnover for all A-shares.
-- daily history (cross-check): EastMoney push2his kline API (reachable),
-                     via akshare stock_zh_a_hist.
+- daily history (cross-check): EastMoney push2his kline API, via akshare
+                     stock_zh_a_hist. This IP gets WAF-blocked in bursts
+                     (the connection is dropped with no response), so the
+                     provider falls back to Tencent kline — once per run,
+                     then for the rest of that run (see fetch_daily_history).
 - corporate actions: EastMoney datacenter-web (reachable), via akshare
                      stock_fhps_em.
 - calendar cross-check: Sina tool_trade_date_hist_sina.
@@ -70,6 +73,16 @@ class AkShareMarketProvider:
     """Online market data provider; every fetch is cached to data/raw/akshare/."""
 
     name = "akshare"
+
+    def __init__(self):
+        # EastMoney's push2his drops the connection without responding once
+        # this IP trips its WAF, and it stays that way for a while — asking
+        # again for every symbol in a 60-symbol loop just burns 60 failed
+        # requests and prints 60 identical lines. So: try it once per run,
+        # and if it fails, serve the rest of that run from the Tencent
+        # fallback. One attempt still notices if EastMoney comes back.
+        # None = not tried yet; str = the reason it is out for this run.
+        self.eastmoney_blocked: Optional[str] = None
 
     # ------------------------------------------------------------------
     # Valuation snapshot (Tencent rank API, ~24 pages for the full market)
@@ -272,29 +285,38 @@ class AkShareMarketProvider:
         """Per-stock daily bars: EastMoney push2his via akshare, with a
         Tencent kline fallback (the EastMoney API hosts intermittently
         WAF-block this IP; the pipeline must not stop because one interface
-        is down)."""
+        is down).
+
+        下面的 source 列是可信的：调用方要区分数据到底来自哪一家，
+        不能再靠"我们本来想用 EastMoney"来标注（EastMoney 失败时整轮
+        都走 Tencent）。
+        """
         config.require_online(f"fetch_daily_history({symbol})")
         code = symbol.split(".")[0]
-        try:
-            import akshare as ak
-
-            df = ak.stock_zh_a_hist(
-                symbol=code, period="daily",
-                start_date=start.replace("-", ""), end_date=end.replace("-", ""),
-                adjust=adjust,
-            )
-            df = df.rename(
-                columns={
-                    "日期": "trade_date", "开盘": "open", "收盘": "close",
-                    "最高": "high", "最低": "low", "成交量": "volume",
-                    "成交额": "amount", "振幅": "amplitude", "涨跌幅": "pct_chg",
-                }
-            )
-            df["source"] = "eastmoney_push2his"
-        except Exception as e:
-            print(f"[fetch_daily_history] eastmoney failed ({type(e).__name__}), "
-                  f"falling back to tencent for {symbol}")
+        if self.eastmoney_blocked is not None:
             df = self._fetch_daily_history_tencent(symbol, start, end)
+        else:
+            try:
+                import akshare as ak
+
+                df = ak.stock_zh_a_hist(
+                    symbol=code, period="daily",
+                    start_date=start.replace("-", ""), end_date=end.replace("-", ""),
+                    adjust=adjust,
+                )
+                df = df.rename(
+                    columns={
+                        "日期": "trade_date", "开盘": "open", "收盘": "close",
+                        "最高": "high", "最低": "low", "成交量": "volume",
+                        "成交额": "amount", "振幅": "amplitude", "涨跌幅": "pct_chg",
+                    }
+                )
+                df["source"] = "eastmoney_push2his"
+            except Exception as e:
+                self.eastmoney_blocked = f"{type(e).__name__}: {e}"
+                print(f"[fetch_daily_history] eastmoney 本轮不可用"
+                      f"（{type(e).__name__}）—— 其余标的改用 tencent kline")
+                df = self._fetch_daily_history_tencent(symbol, start, end)
         df["trade_date"] = pd.to_datetime(df["trade_date"])
         df["symbol"] = normalize_symbol(symbol)
         return df

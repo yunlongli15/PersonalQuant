@@ -87,8 +87,14 @@ def main() -> int:
         "price_date": price_date, "signal_date": sig_date,
         "latest_bar_date": latest_bar or None,
         "n": len(prices), "not_newer": len(not_newer),
-        "failed": failed, "prices": prices},
+        "failed": failed, "prices": prices,
+        # 数据实际来自哪一家必须可查：eastmoney 一旦被 WAF 挡下，这一轮
+        # 全部价格都来自 tencent kline，不能靠"本意是用 EastMoney"来标注。
+        "eastmoney_blocked": p.eastmoney_blocked},
         ensure_ascii=False, indent=2), encoding="utf-8")
+    if p.eastmoney_blocked:
+        print(f"  价格来源：tencent kline（eastmoney 本轮不可用："
+              f"{p.eastmoney_blocked[:70]}）")
     if prices:
         print(f"live prices: {len(prices)}/{len(symbols)} @ {price_date}"
               f" -> {OUT}")

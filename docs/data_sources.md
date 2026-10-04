@@ -26,6 +26,16 @@
 3. **东财日线接口（push2his）时断时续**：`fetch_daily_history` 已实现
    腾讯 K 线回退（`web.ifzq.gtimg.cn`，空 fqt=不复权），单接口失败不阻塞
    整个 pipeline（用户要求：不要因为一个接口失败而停止 STEP 2）。
+
+   2026-10-04 实测补充：被封时不是返回 403，而是**直接断连**
+   （`RemoteDisconnected`，约 0.2s 失败），并且**会持续数分钟以上**——
+   8 分钟内每 8 秒探一次全部失败。因此"每个标的都试一次主源"没有意义：
+   60 个标的会得到 60 次同样的失败。现在**每轮只试一次**，失败后本轮
+   全部走腾讯；`AkShareMarketProvider.eastmoney_blocked` 记录原因，
+   `refresh_live_prices.py` 把它写进 `live_prices.json`，并且每次抓到的
+   每一行都带 `source` 列——**数据实际来自哪一家必须可查**，不能靠
+   "我们本来打算用 EastMoney"来标注。实测同一次运行 60 个标的中
+   `failed: []`、`not_newer: 60`，降级期间不丢任何数据。
 4. **价格口径（重要）**：chenditc 数据集的 `$close/$open/$high/$low/$vwap`
    是 **Yahoo 调整价**，`$factor` 为调整因子，原始价 = 值 ÷ factor
    （实测：茅台 2023-12-29 close/factor = 1726.00 = 交易所原始收盘价）。
