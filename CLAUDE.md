@@ -142,6 +142,10 @@ LLM 新闻分析、自定义复杂因子、Transformer、强化学习、GUI、Tu
 - 数据源/口径/决策全部记录于 docs/data_sources.md；每步导入登记 source_registry。
 - 质量门禁：bootstrap 自动跑 quality.checks（16 项），verify_step2.py 19 项
   验收，改动数据管线后必须全绿再提交。
+- **DuckDB 成组写入必须用 `db.transaction()`**：其 Python 客户端每条语句
+  自动提交，"先 DELETE 再 INSERT"中途失败会留下**空表**，而空表在下游和
+  "真的没有数据"无法区分（2026-10-04 news_events 事故）。
+  SQLite（wealth/）不受影响：DML 默认隐式事务，由 commit() 收口。
 - 本阶段不修改 Qlib provider；STEP 3 再决定 Custom Provider 还是
   Dataset 层直读 DuckDB。
 

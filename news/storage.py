@@ -125,9 +125,9 @@ def upsert_documents(docs: List[NewsDocument]) -> dict:
 def replace_events(events: List[NewsEvent]) -> int:
     """整表重建：先清空 news_events，再把新事件全部插回去。
 
-    **必须在一个事务里做。** 这两步以前是两条各自自动提交的语句，
-    中途崩溃（Ctrl-C、进程被杀、DuckDB 报错）会留下**空表** ——
-    而空的 news_events 在下游是**看不出来的**：计数类新闻因子 0 是
+    **必须在一个事务里做**（db.transaction）：这两步以前是两条各自自动
+    提交的语句，中途崩溃（Ctrl-C、进程被杀、DuckDB 报错）会留下**空表**
+    —— 而空的 news_events 在下游是**看不出来的**：计数类新闻因子 0 是
     "真的没有事件"的合法取值（docs/step5_news_pit.md），于是信号会
     静默退化，没有任何一层会报警。
 
@@ -136,21 +136,14 @@ def replace_events(events: List[NewsEvent]) -> int:
     恢复办法见 reports/incident_20261004_news_events_index.md）。
     """
     ensure_tables()
-    conn = db.connect()
     # 行数据先在 Python 侧拼好，把事务窗口压到最小
     rows = [[getattr(e, c) for c in EVENT_COLS] for e in events]
-    conn.execute("BEGIN")
-    try:
+    with db.transaction() as conn:
         conn.execute("DELETE FROM news_events")
         if rows:
             conn.executemany(
                 f"INSERT INTO news_events ({', '.join(EVENT_COLS)}) "
                 f"VALUES ({', '.join(['?'] * len(EVENT_COLS))})", rows)
-    except BaseException:
-        # 含 KeyboardInterrupt：被中断也要把表还原成原样，而不是留空
-        conn.execute("ROLLBACK")
-        raise
-    conn.execute("COMMIT")
     return len(rows)
 
 

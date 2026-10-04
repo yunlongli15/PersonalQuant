@@ -18,9 +18,11 @@ def ingest_sse_reports(provider: SSEReportsProvider | None = None) -> pd.DataFra
     provider = provider or SSEReportsProvider()
     docs = provider.build_report_documents()
 
-    conn = db.connect()
-    conn.execute("DELETE FROM report_documents")
-    conn.execute("INSERT INTO report_documents SELECT * FROM docs")
+    # Clear-and-refill as one transaction (an interrupted run must leave the
+    # previous metadata in place, not an empty table).
+    with db.transaction() as conn:
+        conn.execute("DELETE FROM report_documents")
+        conn.execute("INSERT INTO report_documents SELECT * FROM docs")
     write_parquet(docs, "reports", "report_documents")
 
     register_source(
@@ -37,7 +39,7 @@ def ingest_sse_reports(provider: SSEReportsProvider | None = None) -> pd.DataFra
 def ingest_lifecycle(provider: SSEReportsProvider | None = None) -> pd.DataFrame:
     provider = provider or SSEReportsProvider()
     lc = provider.load_lifecycle()
-    conn = db.connect()
-    conn.execute("DELETE FROM company_lifecycle")
-    conn.execute("INSERT INTO company_lifecycle SELECT * FROM lc")
+    with db.transaction() as conn:
+        conn.execute("DELETE FROM company_lifecycle")
+        conn.execute("INSERT INTO company_lifecycle SELECT * FROM lc")
     return lc

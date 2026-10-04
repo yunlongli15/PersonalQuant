@@ -23,9 +23,11 @@ from ..storage.parquet import register_source
 
 def ingest_calendar() -> pd.DataFrame:
     cal = load_calendar()
-    conn = db.connect()
-    conn.execute("DELETE FROM trading_calendar")
-    conn.execute("INSERT INTO trading_calendar SELECT * FROM cal")
+    # One transaction: an empty trading_calendar means "no trading day at all"
+    # to the whole system, so the clear-and-refill must not be interruptible.
+    with db.transaction() as conn:
+        conn.execute("DELETE FROM trading_calendar")
+        conn.execute("INSERT INTO trading_calendar SELECT * FROM cal")
     register_source(
         source_name="qlib_chenditc",
         data_type="trading_calendar",

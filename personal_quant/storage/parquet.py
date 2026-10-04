@@ -25,13 +25,20 @@ def write_parquet(df: pd.DataFrame, domain: str, name: str) -> Path:
 
 
 def write_table(df: pd.DataFrame, table: str, mode: str = "replace") -> None:
-    """Insert/replace a DataFrame into the corresponding DuckDB table."""
-    conn = db.connect()
+    """Insert/replace a DataFrame into the corresponding DuckDB table.
+
+    "replace" clears the table first, so the two statements must commit
+    together — otherwise a crash in between empties it (see db.transaction).
+    An empty df still means "nothing to write", not "clear the table".
+    """
     if df is None or df.empty:
         return
-    if mode == "replace":
+    if mode != "replace":
+        db.connect().execute(f"INSERT INTO {table} SELECT * FROM df")
+        return
+    with db.transaction() as conn:
         conn.execute(f"DELETE FROM {table}")
-    conn.execute(f"INSERT INTO {table} SELECT * FROM df")
+        conn.execute(f"INSERT INTO {table} SELECT * FROM df")
 
 
 def register_source(

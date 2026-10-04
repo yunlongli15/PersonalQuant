@@ -3,7 +3,7 @@
 > 类型：**数据层故障**（不是交易 bug）
 > 影响：刷新链停在 4/10；**未影响任何历史交易状态**（正式实验尚未启动，
 > `experiments/daily_exit_paper_v1/` 当时不存在）
-> 状态：**已恢复，并已做最小加固**
+> 状态：**已恢复；同类隐患（5 处成组写入）已全部加固**
 
 ---
 
@@ -104,20 +104,42 @@ conn.executemany("INSERT INTO news_events ...", rows)   # 另一条自动提交
 **已修**：把 DELETE + INSERT 包进一个事务，异常（含 `KeyboardInterrupt`）一律
 `ROLLBACK`。已验证：事务内删除 186,003 行后模拟中断 → 回滚 → 表原样 186,003 行。
 
-### 6.2 仓库里**没有任何一处使用 `BEGIN`/`COMMIT`**
+### 6.2 仓库里**没有任何一处使用 `BEGIN`/`COMMIT`**（已全部加固）
 
-同类"全表删 + 重插"共 5 处，都没有事务保护：
+根因是 **DuckDB 的 Python 客户端每条语句自动提交**：任何"先清空、再灌入"
+的写法都是两次独立提交，中途失败就留下空表。同类共 5 处，全部已修：
 
-| 位置 | 删什么 | 崩溃后果 |
-|---|---|---|
-| `news/storage.py:128` | `news_events` | **已修** |
-| `personal_quant/ingest/qlib_baseline.py:27` | `trading_calendar` | 日历变空 → 全系统取不到交易日 |
-| `personal_quant/ingest/sse_reports.py:22` | `report_documents` | 公告索引变空 |
-| `personal_quant/ingest/sse_reports.py:41` | `company_lifecycle` | 生命周期变空 |
-| `personal_quant/storage/parquet.py:33` | 任意表 | 同上 |
+| 位置 | 删什么 | 崩溃后果 | 状态 |
+|---|---|---|---|
+| `news/storage.py` | `news_events` | 新闻因子静默退化为 0 | **已修** |
+| `personal_quant/ingest/qlib_baseline.py` | `trading_calendar` | 日历变空 → 全系统取不到交易日 | **已修** |
+| `personal_quant/ingest/sse_reports.py` | `report_documents` | 公告索引变空 | **已修** |
+| `personal_quant/ingest/sse_reports.py` | `company_lifecycle` | 生命周期变空 | **已修** |
+| `personal_quant/storage/parquet.py` | 任意表 | 同上 | **已修** |
 
-**这 4 处本轮没有修改**（不在本次事故的直接影响面内，且属于另一个议题）。
-它们与 §6.1 是同一个模式，建议作为一次独立的加固来处理。
+做法是 `personal_quant/db.py` 新增一个共享的 `db.transaction()` 上下文管理器
+（`BEGIN` → 块内成功才 `COMMIT`；块内抛出的任何异常，含 `KeyboardInterrupt`，
+一律 `ROLLBACK` 后重新抛出），上面 5 处全部改用它 —— 保证只有一份实现，
+`news/storage.py` 里那份手抄的版本也已并进来。
+
+`DB` 层之外的同类删除**不需要改**：`wealth/` 用的是 SQLite，其 Python 驱动
+对 DML 默认开隐式事务、由 `conn.commit()` 收口，所以
+`repository.replace_positions` 的"按日删除 + 重插 + 一次 commit"本来就是原子的
+（`financial/query.py` 等按 key 限定的单条 DELETE 同理）。这是两种数据库的
+语义差异，不是同一类缺陷。
+
+**验证**（tests/test_duckdb_transaction.py，9 条）：
+
+1. 机制本身：提交成功 / 出错回滚 / `KeyboardInterrupt` 回滚。断言比对的是
+   **内容**而不是行数 —— 只看行数是抓不住这个 bug 的：自动提交时 DELETE 已经
+   生效、后面那半截 INSERT 又灌了行进去，行数照样对得上。
+2. 四处整表重建各一条：写入失败时旧数据必须原样还在（跑在一次性 DuckDB 上，
+   不碰 canonical 库）。
+3. **反证**：把 `db.transaction()` 换回加固前的自动提交行为重跑，**7/9 失败**，
+   每一条的失败信息都是"旧数据没了"。不这样验一遍，通过只能说明测试是空的。
+4. 真实库上另做两点确认：共享原语在长驻单例连接上提交/回滚正常；
+   `replace_events` 对着真实的 186,003 行 `news_events`（含二级索引）失败时，
+   行数与 `MIN/MAX(event_id)` 前后完全一致。
 
 ## 7. 流程层面的教训
 

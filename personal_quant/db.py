@@ -11,6 +11,7 @@ All large data files are git-ignored (data/).
 from __future__ import annotations
 
 import threading
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional
 
@@ -217,6 +218,34 @@ def refresh_daily_bars_view() -> None:
     conn = connect()
     with _lock:
         _register_daily_bars_view(conn)
+
+
+@contextmanager
+def transaction():
+    """Run a group of statements as one atomic unit.
+
+    The DuckDB Python client **autocommits every statement**, so a
+    "clear the table, then refill it" pair is two separate commits: a crash in
+    between leaves the table EMPTY, and an empty table is indistinguishable
+    from "genuinely no rows" downstream (see
+    reports/incident_20261004_news_events_index.md). Use this for any
+    multi-statement write that is only valid as a whole:
+
+        with db.transaction() as conn:
+            conn.execute("DELETE FROM t")
+            conn.execute("INSERT INTO t SELECT * FROM df")
+
+    COMMIT happens only after the block finishes; anything raised inside —
+    KeyboardInterrupt included — rolls the whole group back and re-raises.
+    """
+    conn = connect()
+    conn.execute("BEGIN")
+    try:
+        yield conn
+    except BaseException:
+        conn.execute("ROLLBACK")
+        raise
+    conn.execute("COMMIT")
 
 
 def close() -> None:
