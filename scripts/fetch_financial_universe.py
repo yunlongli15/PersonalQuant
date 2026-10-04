@@ -13,7 +13,7 @@ added by STEP 4).
 The financial universe = top-N A-shares by current total market cap
 (valuation snapshot). This is a documented large-cap sample, not the full
 universe: results on it carry a survivorship/large-cap caveat recorded in
-reports/step4_financial_factor_coverage.md. Fiscal years 2017-2025:
+reports/步骤4-财务因子覆盖率.md. Fiscal years 2017-2025:
 FY2017 covers signals from 2018, FY2024 covers 2025 signals, FY2025 covers
 2026 paper-live signals.
 
@@ -179,7 +179,7 @@ def main() -> int:
     if incomplete:
         print(f"  注：最后一项 = 抽取成功、但 9 项核心指标仍未凑齐的报告数；"
               f"它**不是**『为了补 eps/bps 而重抽』的数量。"
-              f"各指标覆盖率见 reports/step4_financial_factor_coverage.md",
+              f"各指标覆盖率见 reports/步骤4-财务因子覆盖率.md",
               flush=True)
 
     try:

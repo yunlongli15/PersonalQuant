@@ -3,14 +3,14 @@
 
     python scripts/news/write_news_reports.py
 
-reports/step5_news_coverage.md        backfill coverage by year/source
-reports/step5_news_sources.md         provider audit (probed 2026-09-09)
-reports/step5_news_factor_evaluation.md  news factor IC/pack results
-reports/step5_news_ablation.md        A/B/C/D/E (+N-series) comparison
-reports/step5_news_pit_audit.md       PIT rule audit (rules + test results)
-reports/step5_news_manual_audit.md    sampled events for human review
-reports/step5_news_cost.md            LLM cost/usage (cache/budget state)
-reports/step5_news_strategy.md        strategy_v1_news results
+reports/步骤5-新闻覆盖率.md        backfill coverage by year/source
+reports/步骤5-新闻来源审计.md         provider audit (probed 2026-09-09)
+reports/步骤5-新闻因子评估.md  news factor IC/pack results
+reports/步骤5-新闻消融.md        A/B/C/D/E (+N-series) comparison
+reports/步骤5-新闻时点审计.md       PIT rule audit (rules + test results)
+reports/步骤5-新闻人工抽查.md    sampled events for human review
+reports/步骤5-新闻成本.md            LLM cost/usage (cache/budget state)
+reports/步骤5-新闻策略.md        strategy_v1_news results
 """
 
 import json
@@ -46,11 +46,11 @@ def coverage_report():
         df = pd.DataFrame()
         print(f"coverage: DB unavailable ({type(e).__name__})")
     if df.empty:
-        _w("step5_news_coverage.md", ["# STEP 5 news coverage", "",
+        _w("步骤5-新闻覆盖率.md", ["# 步骤 5 新闻覆盖率", "",
                                       "no documents yet — run the backfill"])
         return
     df["year"] = pd.to_datetime(df["published_at"]).dt.year
-    lines = ["# STEP 5 news coverage", "",
+    lines = ["# 步骤 5 新闻覆盖率", "",
              f"generated: {datetime.now().isoformat(timespec='seconds')}", "",
              "| year | source | documents | symbols | time_known_ratio |",
              "| --- | --- | --- | --- | --- |"]
@@ -67,11 +67,11 @@ def coverage_report():
               "fabricated for missing years.",
               "- time_known=False rows follow the conservative "
               "next-trading-day availability rule.", ""]
-    _w("step5_news_coverage.md", lines)
+    _w("步骤5-新闻覆盖率.md", lines)
 
 
 def sources_report():
-    lines = ["# STEP 5 news sources audit", "",
+    lines = ["# 步骤 5 新闻来源审计", "",
              "probed 2026-09-09; provider abstraction in news/providers/", "",
              "| provider | official | exchanges | availability | "
              "historical depth | timestamp quality | mapping | rate limit "
@@ -91,7 +91,7 @@ def sources_report():
              "Policy: official exchanges first; a blocked source is "
              "recorded SOURCE_BLOCKED and the next legal source is used. "
              "No proxy pools, no WAF bypass, no high concurrency.", ""]
-    _w("step5_news_sources.md", lines)
+    _w("步骤5-新闻来源审计.md", lines)
 
 
 def factor_evaluation_report():
@@ -103,7 +103,7 @@ def factor_evaluation_report():
         ev = json.loads(f.read_text(encoding="utf-8"))
         test_icir[f.stem] = ev["test"]["normalizations"]["rank"][
             "horizons"]["20"]["rank_ic"]["icir"]
-    lines = ["# STEP 5 news factor evaluation", "",
+    lines = ["# 步骤 5 新闻因子评估", "",
              f"generated: {datetime.now().isoformat(timespec='seconds')}", "",
              "Selection: research 2018-2021 + valid 2022-2023 ONLY; "
              "test 2024-2025 evaluated exactly once (frozen).", "",
@@ -134,7 +134,7 @@ def factor_evaluation_report():
               "额外结构 —— 如实记录，不预设 20 日最优。",
               "5. LLM 层未启用（无 DEEPSEEK_API_KEY）→ rule-based 基线"
               "为主结果；LLM 对比留待 API 可用（系统自动检测）。", ""]
-    _w("step5_news_factor_evaluation.md", lines)
+    _w("步骤5-新闻因子评估.md", lines)
 
 
 def ablation_report():
@@ -143,7 +143,7 @@ def ablation_report():
         print("ablation comparison.csv missing — run run_news_ablation.py")
         return
     comp = pd.read_csv(comp_path)
-    lines = ["# STEP 5 news ablation", "",
+    lines = ["# 步骤 5 新闻消融", "",
              f"generated: {datetime.now().isoformat(timespec='seconds')}", "",
              "同引擎/同区间/同参数/同成本/同 Top-20/同 T+1，只改特征集；"
              "A/B 与 STEP 4 冻结锚点一致（漂移需解释）。", "",
@@ -169,13 +169,13 @@ def ablation_report():
               "6. **总回答**：规则公告信息在'强度+风险'维度提供了超越 "
               "Alpha158 的边际增量（E > A），但单独使用无排序能力；"
               "LLM 对比留待 API 可用。", ""]
-    _w("step5_news_ablation.md", lines)
+    _w("步骤5-新闻消融.md", lines)
 
 
 def pit_audit_report():
-    lines = ["# STEP 5 news PIT audit", "",
+    lines = ["# 步骤 5 新闻时点审计", "",
              f"generated: {datetime.now().isoformat(timespec='seconds')}", "",
-             "## rules (docs/step5_news_pit.md)", "",
+             "## rules (docs/步骤5-新闻时点规则.md)", "",
              "- published on a trading day with time <= 15:00 -> available "
              "AT the publication time (usable for the same day's close)",
              "- otherwise (after close / weekend / holiday / date-only) -> "
@@ -194,7 +194,7 @@ def pit_audit_report():
              "events (14 factor parametrization)",
              "- test_timestamp.py: tz-aware Asia/Shanghai everywhere", "",
              "（结果以测试运行为准。）", ""]
-    _w("step5_news_pit_audit.md", lines)
+    _w("步骤5-新闻时点审计.md", lines)
 
 
 def manual_audit_report():
@@ -203,7 +203,7 @@ def manual_audit_report():
     from news.storage import load_events_snapshot
 
     ev = load_events_snapshot()
-    lines = ["# STEP 5 news manual audit sample", "",
+    lines = ["# 步骤 5 新闻人工抽查样本", "",
              f"generated: {datetime.now().isoformat(timespec='seconds')}", "",
              "程序随机抽取 200 条事件，供未来人工核对规则分类是否明显"
              "误分（positive/negative/neutral/major/ordinary）。",
@@ -226,7 +226,7 @@ def manual_audit_report():
                          f"{r.get('publication_time')} |")
         lines += ["", f"sample saved to "
                   "reports/step5_news_manual_audit_sample.csv", ""]
-    _w("step5_news_manual_audit.md", lines)
+    _w("步骤5-新闻人工抽查.md", lines)
 
 
 def cost_report():
@@ -237,7 +237,7 @@ def cost_report():
     from news.storage import document_count
 
     b = Budget()
-    lines = ["# STEP 5 news cost report", "",
+    lines = ["# 步骤 5 新闻成本报告", "",
              f"generated: {datetime.now().isoformat(timespec='seconds')}", "",
              "| item | value |", "| --- | --- |",
              f"| documents processed | {document_count()} |",
@@ -248,12 +248,12 @@ def cost_report():
              f"| budget limits | {b.max_calls} calls / {b.max_tokens} tokens/day |",
              "", "API cost 估计：LLM 层未启用时为 0；启用后按实际 usage "
              "记录（每文档 ~400 tokens 上限）。", ""]
-    _w("step5_news_cost.md", lines)
+    _w("步骤5-新闻成本.md", lines)
 
 
 def strategy_report():
     summary_path = NEWS_STRAT / "summary.json"
-    lines = ["# STEP 5 news strategy (strategy_v1_news)", "",
+    lines = ["# 步骤 5 新闻策略（strategy_v1_news）", "",
              f"generated: {datetime.now().isoformat(timespec='seconds')}", "",
              "strategy_v1 同引擎（月度调仓/T+1/Top20 等权/5% 现金/相同成本），"
              "特征 = Alpha158 + factor_pack_v1 + news 因子。", ""]
@@ -266,12 +266,12 @@ def strategy_report():
                   f"| max_drawdown | {st['max_drawdown']:.4f} |",
                   f"| IC(test) | {s['ic']['test']['ic_mean']:.4f} |",
                   f"| RankIC(test) | {s['ic']['test']['rank_ic_mean']:.4f} |",
-                  "", "（与 reports/step5_news_ablation.md 的 E 变体一致。）",
+                  "", "（与 reports/步骤5-新闻消融.md 的 E 变体一致。）",
                   ""]
     else:
         lines.append("no strategy results yet — run the news strategy "
                      "backtest.")
-    _w("step5_news_strategy.md", lines)
+    _w("步骤5-新闻策略.md", lines)
 
 
 def main() -> int:

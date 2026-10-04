@@ -3,11 +3,11 @@
 
     python scripts/portfolio/write_step6_reports.py
 
-reports/step6_portfolio_optimization.md  14 sections (optimization methods,
+reports/步骤6-组合优化.md  14 sections (optimization methods,
 risk model, constraints, selected parameters, research/valid/frozen-test
 results, turnover, costs, concentration, industry exposure, risk
 contribution, stress test, final candidate)
-reports/step6_final_candidate.md         the honest final recommendation
+reports/步骤6-最终候选.md         the honest final recommendation
 (never "future guaranteed"; research/valid/test/paper-live separated)
 """
 
@@ -90,9 +90,9 @@ def main() -> int:
     s6 = load("study_6_signals.csv")
     stress = load("stress_test.csv")
 
-    # ---- step6_portfolio_optimization.md -----------------------------------
+    # ---- 步骤6-组合优化.md -----------------------------------
     lines = [
-        "# STEP 6 portfolio optimization",
+        "# 步骤 6 组合优化",
         "",
         f"generated: {now}",
         "",
@@ -299,7 +299,7 @@ def main() -> int:
             "",
             f"- **strategy_v2 = S3 alpha + {LABELS.get(method, method)}**"
             f"（top_k={k}, cash={cash:.0%}, {freq}, max_weight 10%, "
-            f"行业上限 20%），详见 reports/step6_final_candidate.md。",
+            f"行业上限 20%），详见 reports/步骤6-最终候选.md。",
             "",
         "## benchmark conventions（spec §56）",
         "",
@@ -309,11 +309,11 @@ def main() -> int:
         "- 图：reports/figures/step6/（12 张）。",
         "",
     ]
-    (REPORTS / "step6_portfolio_optimization.md").write_text(
+    (REPORTS / "步骤6-组合优化.md").write_text(
         "\n".join(lines), encoding="utf-8")
-    print(f"wrote {REPORTS / 'step6_portfolio_optimization.md'}")
+    print(f"wrote {REPORTS / '步骤6-组合优化.md'}")
 
-    # ---- step6_final_candidate.md ------------------------------------------
+    # ---- 步骤6-最终候选.md ------------------------------------------
     v2_dir = EXP_DIR / "strategy_v2"
     gates = {}
     v2_res = {}
@@ -335,7 +335,7 @@ def main() -> int:
             rows.append(r)
         sig_tbl = pd.DataFrame(rows).to_markdown(index=False)
     lines = [
-        "# STEP 6 final candidate (strategy_v2)",
+        "# 步骤 6 最终候选（strategy_v2）",
         "",
         f"generated: {now}",
         "",
@@ -427,7 +427,7 @@ def main() -> int:
         "- **组合优化在本阶段没有带来增量**：没有任何优化器方法在 "
         "research + valid 上通过预先写死的门槛，最终候选退回 P0 等权。"
         "这是数据给出的结论，不是调参失败（详见 "
-        "reports/step6_portfolio_optimization.md 第 7 节）。",
+        "reports/步骤6-组合优化.md 第 7 节）。",
         "- **strategy_v2 未通过全部 candidate gates**（2 项失败，原因如上），"
         "因此按 spec §54 **不将其晋升为生产候选**，保持研究候选状态；"
         "两项失败均为可解释的、被如实记录的结果，而非流程缺陷。",
@@ -441,7 +441,7 @@ def main() -> int:
         "- 已知限制：SZSE 新闻回填仅 top-60 大市值（增量模式可续跑）；"
         "research 期预测 2018-2019 为新闻盲期（覆盖率从 2018 起）。",
         "- 若 portfolio optimization 相对 P0 无增量，如实记录"
-        "（见 step6_portfolio_optimization.md 第 7 节）。",
+        "（见 步骤6-组合优化.md 第 7 节）。",
         "",
         "## signal comparison (stage 6)",
         "",
@@ -453,9 +453,9 @@ def main() -> int:
         "手数 + 预估费用，资本 500,000，仅研究，不连接券商）。",
         "",
     ]
-    (REPORTS / "step6_final_candidate.md").write_text(
+    (REPORTS / "步骤6-最终候选.md").write_text(
         "\n".join(lines), encoding="utf-8")
-    print(f"wrote {REPORTS / 'step6_final_candidate.md'}")
+    print(f"wrote {REPORTS / '步骤6-最终候选.md'}")
     return 0
 
 

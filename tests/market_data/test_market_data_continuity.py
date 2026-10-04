@@ -2,7 +2,7 @@
 """Market data continuity checks against the canonical layer.
 
 These are the automated, permanent form of the STEP 4 market-data audit
-(docs/step4_market_data_quality.md). Thresholds were calibrated from the
+(docs/步骤4-市场数据质量.md). Thresholds were calibrated from the
 audit run (data/derived/audit/market_continuity.json).
 
 The checks are skipped (not failed) when the DuckDB file is locked by

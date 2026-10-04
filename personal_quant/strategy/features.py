@@ -37,7 +37,7 @@ def feature_cache_path(date) -> Path:
     旧格式 `YYYY-MM.parquet` 只带月份，而文件内容其实是"该月最后一次写入
     的那一天"：同月不同日互相覆盖，读取时又无从校验 —— 于是请求
     2026-09-18 会静默拿到 2026-09-29 的横截面（2026-09 实际发生，
-    见 reports/daily_exit_paper_v1_audit.md §3.3）。
+    见 reports/前瞻实验-执行链审计.md §3.3）。
 
     新格式把日期写进文件名，文件内再存一列 `feature_date`，读写两侧都校验。
     旧文件**不删除、不迁移**，保留为历史证据，但新 loader 永不读它们。

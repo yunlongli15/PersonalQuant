@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Financial factor coverage report -> reports/step4_financial_factor_coverage.md.
+"""Financial factor coverage report -> reports/步骤4-财务因子覆盖率.md.
 
 For each financial factor and each year: available stocks / financial
 universe size / coverage ratio, plus the missing-reason breakdown on one
@@ -59,7 +59,7 @@ def main() -> int:
     fin_dates = sorted(fin["date"].unique())
     fin_sets = {d: set(g["symbol"]) for d, g in fin.groupby("date")}
 
-    lines = ["# STEP 4 financial factor coverage", "",
+    lines = ["# 步骤 4 财务因子覆盖率", "",
              "Financial universe = top-300 A-shares by current market cap "
              "(large-cap sample; survivorship/large-cap caveat). Coverage "
              "counts stocks whose PIT annual-report value exists at the "
@@ -163,7 +163,7 @@ def main() -> int:
     cov.to_csv(PROJECT_ROOT / "reports" / "step4_financial_factor_coverage.csv",
                index=False)
 
-    out = PROJECT_ROOT / "reports" / "step4_financial_factor_coverage.md"
+    out = PROJECT_ROOT / "reports" / "步骤4-财务因子覆盖率.md"
     out.write_text("\n".join(lines), encoding="utf-8")
     print(f"wrote {out}")
     return 0

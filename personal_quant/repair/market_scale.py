@@ -4,7 +4,7 @@ and by the interim cache builder).
 
 Per-stock constant-scale model: canonical volume/amount carry a per-stock
 multiplicative scale (Yahoo adjustment artifacts; within-stock CV ~0.11,
-cross-stock spread ~230x — see docs/step4_market_data_quality.md). The
+cross-stock spread ~230x — see docs/步骤4-市场数据质量.md). The
 repair estimates scale_volume = median(ground_truth_shares / canonical)
 over the overlap window; canonical files are never modified.
 """
@@ -88,6 +88,6 @@ def finalize_table(results: list) -> pd.DataFrame:
     out["method"] = "median_gt_canonical_ratio"
     out["reason"] = (
         "Yahoo-source per-stock volume/amount scaling artifact "
-        "(see docs/step4_market_data_quality.md)"
+        "(see docs/步骤4-市场数据质量.md)"
     )
     return out

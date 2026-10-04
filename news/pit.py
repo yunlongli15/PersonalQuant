@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""News PIT availability rules (docs/step5_news_pit.md).
+"""News PIT availability rules (docs/步骤5-新闻时点规则.md).
 
 All times Asia/Shanghai (timezone-aware; naive datetimes are rejected
 upstream by the schema). Rules for a publication time p:

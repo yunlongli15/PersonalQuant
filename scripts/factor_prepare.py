@@ -16,7 +16,7 @@ lock:
 
 The research universe follows the strategy_v1 rules with ONE documented
 deviation: liquidity uses the calibrated amount (amount_cny; see
-docs/step4_market_data_quality.md) instead of raw source units, because
+docs/步骤4-市场数据质量.md) instead of raw source units, because
 the raw amount is not comparable across stocks. strategy_v1 itself is
 frozen and untouched.
 

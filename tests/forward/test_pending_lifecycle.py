@@ -9,7 +9,7 @@ T 日收盘后运行时，交易日历的最后一天就是 T 本身（系统里
     * 下次运行读出来变成 NaT，绕过 `is None` 守卫；
     * DuckDB 对 'NaT' 的类型错误被 `except Exception: return False` 吞掉；
     * 而每次运行又无条件**覆盖**挂单文件 —— 上一批挂单无声消失。
-结果是 paper-live 三次前瞻观测全部 0 成交（reports/daily_exit_paper_v1_audit.md §3.1）。
+结果是 paper-live 三次前瞻观测全部 0 成交（reports/前瞻实验-执行链审计.md §3.1）。
 
 这里逐条锁死修复后的行为。
 """

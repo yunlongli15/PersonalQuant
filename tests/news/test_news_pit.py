@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """News PIT rules: pre-close / post-close / date-only / weekends /
-holidays / availability_unknown (docs/step5_news_pit.md)."""
+holidays / availability_unknown (docs/步骤5-新闻时点规则.md)."""
 
 import sys
 from pathlib import Path

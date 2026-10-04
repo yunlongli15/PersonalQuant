@@ -151,7 +151,7 @@ class BaseNewsProvider(ABC):
         return []
 
     def audit(self) -> dict:
-        """Provider audit row (docs/step5_news_sources.md)."""
+        """Provider audit row (docs/步骤5-新闻来源审计.md)."""
         return {
             "provider": self.name,
             "official": self.official,

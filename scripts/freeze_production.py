@@ -5,7 +5,7 @@
     python scripts/freeze_production.py --check   # 只校验
 
 冻结后，生产策略（strategy_v2 / paper_live / forward holdout）不允许直接
-修改。任何新研究都必须新建 experiment config，见 docs/V1_FREEZE.md。
+修改。任何新研究都必须新建 experiment config，见 docs/V1.0冻结规则.md。
 """
 
 import argparse

@@ -14,7 +14,7 @@ Streamlit 页面只允许调用这里，不允许自己 import pandas 算收益�
     wealth/  trade_plan/  pipeline/  factors/  portfolio/  paper_live/
                                     （既有引擎，本阶段不重写）
 
-复用说明（见 docs/step11_existing_asset_system_audit.md §3.3）：
+复用说明（见 docs/步骤11-既有资产系统审计.md §3.3）：
 `webapp/services.py` 已经是同一职责的服务层，本包**直接复用它**，
 只补齐缺口（风险、因子、健康、账本估值），不重写一遍。
 """

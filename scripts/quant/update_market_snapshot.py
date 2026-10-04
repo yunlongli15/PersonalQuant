@@ -2,7 +2,7 @@
 """Market-data refresh from the upstream snapshot (STEP 7C, implemented).
 
 The canonical daily layer is built from the chenditc/investment_data
-release (see docs/data_sources.md). "Refreshing market data" therefore
+release (see docs/数据来源与口径.md). "Refreshing market data" therefore
 means: fetch the newest release, swap it into qlib_data/, then re-ingest
 the affected years into canonical parquet + DuckDB.
 

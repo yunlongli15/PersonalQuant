@@ -65,7 +65,7 @@ def ingest_daily_bars(
         df = df.reset_index()
         df["symbol"] = df["qlib_symbol"].map(_to_canonical)
         # The source dataset stores Yahoo-adjusted prices ($close etc. are
-        # adjusted; raw = value / factor, see docs/data_sources.md). The
+        # adjusted; raw = value / factor, see docs/数据来源与口径.md). The
         # canonical layer stores RAW prices plus the factor so downstream
         # research can adjust in either direction.
         price_cols = ["open", "high", "low", "close", "vwap"]

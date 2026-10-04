@@ -200,7 +200,7 @@ def volume_ratio_20_60(data: FactorData, dates=None):
                 / data.volume_raw.rolling(60).mean(), dates)
 
 
-# --- liquidity (calibrated CNY amount; see step4_market_data_quality.md) -----
+# --- liquidity (calibrated CNY amount; see 步骤4-市场数据质量.md) -----
 
 def _log_amount(data: FactorData, window: int):
     amt = data.amount_cny.rolling(window).mean()

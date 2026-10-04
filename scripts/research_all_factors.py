@@ -10,7 +10,7 @@ Pipeline (the ordering enforces the no-test-set-selection rule):
 4. ONLY THEN: single frozen-test evaluation (2024-2025) for all factors
 5. outputs: experiments/factors/<run-id>/ (evaluations, leaderboard, pack,
    correlation, dashboard, manifest) + reports/factors/*.md +
-   reports/step4_financial_factor_coverage.md
+   reports/步骤4-财务因子覆盖率.md
 
 2026 (paper live) never appears anywhere in this pipeline.
 """

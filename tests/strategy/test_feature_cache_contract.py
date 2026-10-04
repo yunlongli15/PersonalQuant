@@ -9,7 +9,7 @@
     会污染所有 `cache=True` 的读者。
 
 结果：请求 2026-09-18 会静默拿到 2026-09-29 的横截面，而且**在"事后回放"
-时方向是真实的前视泄漏**（reports/daily_exit_paper_v1_audit.md §3.3）。
+时方向是真实的前视泄漏**（reports/前瞻实验-执行链审计.md §3.3）。
 
 新契约：按日期存 `feature_<YYYY-MM-DD>.parquet`，文件内写 `feature_date`，
 读写两侧都校验；任何不一致一律视为未命中。

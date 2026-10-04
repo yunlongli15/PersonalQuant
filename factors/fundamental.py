@@ -2,7 +2,7 @@
 """PIT financial-metric join engine (STEP 4).
 
 Turns the canonical financial_metrics table (strict PIT, see
-docs/point_in_time.md) into factor panels: at each signal date a stock
+docs/时点正确性规则.md) into factor panels: at each signal date a stock
 carries the LATEST annual-report value whose availability_date < signal
 date (the announcement day itself is excluded — the data becomes usable
 the next trading day). Values are forward-filled step functions that only

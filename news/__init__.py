@@ -14,7 +14,7 @@ PIT rule: a news item with publication time p is usable for a signal at
 date T close iff available_at <= T close, where available_at = p when p is
 on a trading day with time <= 15:00 (Asia/Shanghai), else the next
 trading day 09:30. Date-only publications are conservatively available
-the NEXT trading day (docs/step5_news_pit.md).
+the NEXT trading day (docs/步骤5-新闻时点规则.md).
 """
 
 from . import schema  # noqa: F401

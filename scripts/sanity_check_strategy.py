@@ -4,7 +4,7 @@
 For each date prints: universe size, Top-20 picks, predicted returns, realized
 next-20d returns, execution prices (T+1 open), suspension/limit checks — so a
 human can verify the logic makes sense. Writes
-reports/step3_sanity_check.md.
+reports/步骤3-人工核对.md.
 """
 
 import sys
@@ -50,7 +50,7 @@ def main() -> int:
     days = list(trading_days("2015-01-01", "2026-12-31"))
     day_idx = {d: i for i, d in enumerate(days)}
 
-    lines = ["# STEP 3 sanity check（人工核对）", ""]
+    lines = ["# 步骤 3 人工核对（sanity check）", ""]
     for ds in DATES:
         d = pd.Timestamp(ds)
         if d not in day_idx:
@@ -104,7 +104,7 @@ def main() -> int:
                 f"{'' if pc is None else round(pc, 2)} | {note} |"
             )
         lines.append("")
-    report = PROJECT_ROOT / "reports" / "step3_sanity_check.md"
+    report = PROJECT_ROOT / "reports" / "步骤3-人工核对.md"
     report.write_text("\n".join(lines), encoding="utf-8")
     print(f"wrote {report}")
     return 0

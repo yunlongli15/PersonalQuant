@@ -283,7 +283,7 @@ def research_view() -> dict:
         out["test_metrics"] = g.get("test", {})
         out["valid_metrics"] = g.get("valid", {})
         out["research_metrics"] = g.get("research", {})
-    inc = PROJECT_ROOT / "reports" / "step5_incremental_alpha_check.md"
+    inc = PROJECT_ROOT / "reports" / "步骤5-新闻增量alpha检查.md"
     out["incremental_check"] = inc.exists()
     return out
 

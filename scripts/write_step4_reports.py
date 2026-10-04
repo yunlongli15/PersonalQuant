@@ -4,8 +4,8 @@
     python scripts/write_step4_reports.py
 
 Produces:
-  reports/step4_factor_research.md    factor research summary (pack_v1)
-  reports/step4_model_ablation.md     Model A/B/C/D comparison table
+  reports/步骤4-因子研究.md    factor research summary (pack_v1)
+  reports/步骤4-模型消融.md     Model A/B/C/D comparison table
 Both read only experiment artifacts — never recomputed numbers.
 """
 
@@ -37,7 +37,7 @@ def factor_research_report():
         f"generated: {datetime.now().isoformat(timespec='seconds')}", "",
         "## 1. 数据与股票池", "",
         "- 研究股票池：strategy_v1 同规则，流动性过滤改用校准成交额 "
-        "（docs/step4_market_data_quality.md）；ST 过滤关闭（无历史序列）。",
+        "（docs/步骤4-市场数据质量.md）；ST 过滤关闭（无历史序列）。",
         "- 财务股票池：当前总市值前 300（大市值样本，偏倚已注明）。",
         "- 区间：research 2018-2021 / valid 2022-2023 / "
         "test 2024-2025（FROZEN）/ 2026 paper live（未使用）。",
@@ -82,9 +82,9 @@ def factor_research_report():
         "### 4.3 与 Alpha158 的关系", "",
         "把 pack 的 7 个技术因子加入 LightGBM 后（ablation A2），test 期"
         "收益反而低于纯 Alpha158 —— Alpha158 已经捕获了这些横截面信息。"
-        "详见 reports/step4_model_ablation.md。", "",
+        "详见 reports/步骤4-模型消融.md。", "",
     ]
-    out = PROJECT_ROOT / "reports" / "step4_factor_research.md"
+    out = PROJECT_ROOT / "reports" / "步骤4-因子研究.md"
     out.write_text("\n".join(lines), encoding="utf-8")
     print(f"wrote {out}")
 
@@ -96,7 +96,7 @@ def ablation_report():
         return
     comp = pd.read_csv(comp_path)
     lines = [
-        "# STEP 4 Model Ablation（A/B/C/D）", "",
+        "# 步骤 4 模型消融（A/B/C/D）", "",
         f"generated: {datetime.now().isoformat(timespec='seconds')}", "",
         "同引擎/同区间/同参数/同成本/同 Top-20/同 T+1，**只改特征集**"
         "（禁止为好看调参）。test 为 FROZEN TEST SET；2026 未参与。", "",
@@ -140,7 +140,7 @@ def ablation_report():
         "**总回答：第一轮因子研究中，财务因子与自定义技术因子都未能稳定超越 "
         "Alpha158 基线；Alpha158 已相当好。**", "",
     ]
-    out = PROJECT_ROOT / "reports" / "step4_model_ablation.md"
+    out = PROJECT_ROOT / "reports" / "步骤4-模型消融.md"
     out.write_text("\n".join(lines), encoding="utf-8")
     print(f"wrote {out}")
 

@@ -16,7 +16,7 @@ Checks (each PASS/FAIL with evidence):
 10. no current constituent list used historically (universe is built from
     securities.list_date/delist_date + bars, not from any current list)
 
-Writes reports/step3_point_in_time_audit.md.
+Writes reports/步骤3-时点正确性审计.md.
 """
 
 import sys
@@ -42,7 +42,7 @@ def main() -> int:
     )
     ts = config["time_split"]
     conn = db.connect()
-    lines = ["# STEP 3 point-in-time / leakage audit", "",
+    lines = ["# 步骤 3 时点正确性审计（泄漏检查）", "",
              f"generated: {pd.Timestamp.now():%Y-%m-%d %H:%M}", ""]
     results = []
 
@@ -112,7 +112,7 @@ def main() -> int:
     lines.append("")
     n_pass = sum(ok for _, ok in results)
     lines.append(f"**{n_pass}/{len(results)} checks PASS**")
-    report = PROJECT_ROOT / "reports" / "step3_point_in_time_audit.md"
+    report = PROJECT_ROOT / "reports" / "步骤3-时点正确性审计.md"
     report.write_text("\n".join(lines), encoding="utf-8")
     print(f"wrote {report}: {n_pass}/{len(results)} PASS")
     return 0 if n_pass == len(results) else 1

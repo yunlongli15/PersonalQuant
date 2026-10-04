@@ -14,7 +14,7 @@ Steps:
   8. SSE report metadata + lifecycle  (local, sse-reports-archive)
   9. financial tables                 (schema, already initialized)
  10. data quality checks              (local)
- 11. data catalog                     (reports/step2_data_catalog.md)
+ 11. data catalog                     (reports/步骤2-数据目录.md)
 
 OFFLINE_MODE (--offline or PQ_MODE=offline) skips the online steps and only
 uses cached data. Historical research/backtests must prefer OFFLINE_MODE.
@@ -136,7 +136,7 @@ def main() -> int:
 
         summary = table_summary()
         lines = [
-            "# STEP 2 data catalog",
+            "# 步骤 2 数据目录",
             "",
             f"generated: {dt.datetime.now():%Y-%m-%d %H:%M}",
             "",
@@ -159,7 +159,7 @@ def main() -> int:
                 f"| {p.relative_to(config.PARQUET_DIR)} | "
                 f"{p.stat().st_size / 1e6:.1f} MB |"
             )
-        report = Path(__file__).resolve().parents[1] / "reports" / "step2_data_catalog.md"
+        report = Path(__file__).resolve().parents[1] / "reports" / "步骤2-数据目录.md"
         report.write_text("\n".join(lines), encoding="utf-8")
         print(f"       written {report}")
         return summary

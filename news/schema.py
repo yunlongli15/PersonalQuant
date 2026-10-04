@@ -2,7 +2,7 @@
 """NewsDocument / NewsEvent schemas + validation.
 
 All datetimes are timezone-AWARE Asia/Shanghai (never naive, never UTC —
-docs/step5_news_pit.md). event_time (what happened) is kept separate from
+docs/步骤5-新闻时点规则.md). event_time (what happened) is kept separate from
 publication_time/availability_time (when the market could know); factor
 research uses publication/availability times ONLY.
 """

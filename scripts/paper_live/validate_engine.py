@@ -23,7 +23,7 @@ import _runner
 from paper_live.alerts import check_alerts
 from paper_live.engine import run_day
 
-OUT = _runner.PROJECT_ROOT / "reports" / "paper_live_engine_validation.md"
+OUT = _runner.PROJECT_ROOT / "reports" / "模拟盘-引擎验证.md"
 
 
 def main() -> int:
@@ -87,7 +87,7 @@ def main() -> int:
         ("suspension", True, "无行情 -> NO_TRADE 并记录原因"),
         ("limit-up/down", True, "涨跌停 -> NO_TRADE 并记录原因"),
     ]
-    text = ["# Paper Live 引擎历史验证", "",
+    text = ["# 模拟盘引擎历史验证", "",
             f"验证区间 {dates[0].date()} .. {dates[-1].date()}，"
             f"共 {len(dates)} 个调仓日。",
             "",

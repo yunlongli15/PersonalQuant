@@ -152,7 +152,7 @@ def write_freeze() -> dict:
             raise ProductionDrift(
                 "已存在冻结记录且当前工件不一致，拒绝覆盖："
                 f"{st.mismatches}。生产策略不允许直接修改 —— "
-                "请新建 experiment config，见 docs/V1_FREEZE.md")
+                "请新建 experiment config，见 docs/V1.0冻结规则.md")
         return existing["production_freeze"]
     rec = build_record()
     FREEZE_PATH.write_text(

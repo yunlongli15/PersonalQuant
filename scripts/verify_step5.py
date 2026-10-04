@@ -281,7 +281,7 @@ def main() -> int:
 
     # 18. leakage audit
     try:
-        audit = PROJECT_ROOT / "reports" / "step5_news_pit_audit.md"
+        audit = PROJECT_ROOT / "reports" / "步骤5-新闻时点审计.md"
         check("leakage audit", audit.exists(), str(audit))
     except Exception as e:
         check("leakage audit", False, str(e))
@@ -301,7 +301,7 @@ def main() -> int:
 
     # 20. cost report
     try:
-        cr = PROJECT_ROOT / "reports" / "step5_news_cost.md"
+        cr = PROJECT_ROOT / "reports" / "步骤5-新闻成本.md"
         check("cost report", cr.exists(), str(cr))
     except Exception as e:
         check("cost report", False, str(e))

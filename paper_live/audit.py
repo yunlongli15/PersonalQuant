@@ -153,7 +153,7 @@ def pit_audit(provider, signal_date: pd.Timestamp, symbols: List[str],
                     res.add("news_pit", VALID,
                             f"消费 {len(news)} 个新闻因子；截至信号日最新 "
                             f"{newest.date()}，近 30 天覆盖 {covered} 只"
-                            f"（15:00→次日规则见 docs/step5_news_pit.md）")
+                            f"（15:00→次日规则见 docs/步骤5-新闻时点规则.md）")
         except Exception as e:
             res.add("news_pit", WARNING, f"无法检查：{e}")
 

@@ -1,4 +1,4 @@
-# Personal A-Share Quantitative Investment System
+# PersonalQuant — 个人 A 股量化投资系统
 
 个人用 A 股低频量化投资研究与决策系统。完全本地运行，不涉及实盘交易。
 
@@ -11,26 +11,26 @@ A股数据 → 数据清洗与本地数据库 → 因子计算与因子挖掘 �
 ```
 
 分阶段推进，每阶段验收通过后才进入下一阶段（详见
-[ROADMAP.md](ROADMAP.md)）。
+[路线图.md](路线图.md)）。
 
 ## 当前状态
 
 **STEP 1 ✅ / STEP 2 ✅ / STEP 3 ✅ / STEP 4 ✅ / STEP 5 ✅ / STEP 6 ✅ /
 STEP 7 ✅ / STEP 9 ✅ / STEP 10 ✅ / STEP 11 ✅ / STEP 12 ✅**
 — **V1.1.0**（`cat VERSION`）。
-📄 发布说明 [docs/V1_RELEASE.md](docs/V1_RELEASE.md) ｜
-🔒 冻结规则 [docs/V1_FREEZE.md](docs/V1_FREEZE.md)
+📄 发布说明 [docs/V1.0发布说明.md](docs/V1.0发布说明.md) ｜
+🔒 冻结规则 [docs/V1.0冻结规则.md](docs/V1.0冻结规则.md)
 
 > 🧪 **`daily_exit_paper_v1` —— 独立前瞻实验**（V1.1.0 新增）：
 > 与 monthly paper_live 完全独立的 forward 模拟盘，S3 信号 + T+1 限价入场 +
 > target / stop / time-stop 出场。**交易规则已冻结**，见
-> [使用说明第 10 节](docs/USER_GUIDE.md#10-daily_exit_paper_v1-前瞻实验)。
+> [使用说明第 10 节](docs/使用说明.md#10-daily_exit_paper_v1-前瞻实验)。
 > 状态：**已就绪，等待启动**（需要明确的初始本金与起始日）。
 
-> 📖 **使用说明书：[docs/USER_GUIDE.md](docs/USER_GUIDE.md)** —— 怎么用、
+> 📖 **使用说明书：[docs/使用说明.md](docs/使用说明.md)** —— 怎么用、
 > 面板每个数字什么意思、板块交易权限、常见问题、系统边界。
 >
-> 📦 **数据与模型清单：[DATA.md](DATA.md)** —— 仓库里包含哪些数据、
+> 📦 **数据与模型清单：[数据与模型清单.md](数据与模型清单.md)** —— 仓库里包含哪些数据、
 > 哪些需要重新生成、怎么生成。
 >
 > 🚀 **五分钟上手**（下面「快速开始」一节）。
@@ -63,7 +63,7 @@ python scripts/quant/write_recommendation_note.py --capital 66000
 **为什么要两条、为什么先 ① 后 ②**：`refresh_all.py` 更新数据与信号，
 `run_daily.py` 只**读**这些数据做记录与报告 —— **它不下载行情**。先跑 ② 的话，
 它会对着旧的一天做记录（这就是"日期怎么没更新"的原因）。
-分工与产出详见 **[docs/USER_GUIDE.md](docs/USER_GUIDE.md) 第 1 节**（唯一权威说法）。
+分工与产出详见 **[docs/使用说明.md](docs/使用说明.md) 第 1 节**（唯一权威说法）。
 
 两者都别在开着界面时跑（DuckDB 单进程独占）。
 
@@ -75,20 +75,20 @@ python scripts/quant/write_recommendation_note.py --capital 66000
   股数 / 预估费用，并自动**排除当前买不了的板块**（科创板需 50 万等）。
 
 - STEP 1：Qlib 0.9.7 研究环境 + 官方 LightGBM/Alpha158 workflow 完整回测
-  （基线报告 `reports/step1_qlib_baseline.md`）
+  （基线报告 `reports/步骤1-Qlib基线.md`）
 - STEP 2：本地 A 股数据基础设施 —— DuckDB + Parquet canonical 层
   （日线 17.9M 行 / 证券主表 6,148 / SSE 年报 metadata 63k+）、
   按需 PDF 财务提取管线（PIT + 审计）、质量体系 16/16、
   交叉验证与 bootstrap/verify 脚本
 - STEP 3：第一个低频 Alpha 策略 strategy_v1 —— 月度调仓、Alpha158+LightGBM、
   Top-20 等权、T+1 执行、严格 PIT（测试期年化 24.8%、IC 0.036、
-  显著胜动量基线；报告 reports/step3_strategy_v1.md）
+  显著胜动量基线；报告 reports/步骤3-策略v1.md）
 - STEP 4：因子研究与 Alpha Mining 平台 —— 市场数据缩放审计与逐股校准、
   31 因子研究（IC/衰减/分位/稳定性/相关性）、PIT 财务因子管线
   （lazy 年报提取 + 覆盖率报告）、factor_pack_v1、浅层表达式挖掘
   （snooping 记录）、Model A/B/C/D 消融。诚实结论：自定义技术因子与
   财务因子第一轮未能稳定超越 Alpha158 基线（报告
-  reports/step4_factor_research.md / step4_model_ablation.md）
+  reports/步骤4-因子研究.md / 步骤4-模型消融.md）
 - STEP 5：新闻/公告因子系统 —— 官方交易所优先的 Provider 抽象层
   （SSE 按日全量 / SZSE 按股 / CNINFO / AkShare）、canonical 公告库
   （171k 条 2018-2026）、严格 PIT（盘后→次日）、规则事件分类（25 类）
@@ -96,8 +96,8 @@ python scripts/quant/write_recommendation_note.py --capital 66000
   factor_pack_news_v1、A/B/C/D/E 消融（锚点 drift 0.0000）、
   strategy_v1_news（E：0.2812/1.022 vs A：0.2475/0.943）。
   诚实结论：公告强度+风险事件与 pack_v1 组合提供边际增量；
-  LLM 对比留待 API（报告 reports/step5_news_factor_evaluation.md /
-  step5_news_ablation.md）
+  LLM 对比留待 API（报告 reports/步骤5-新闻因子评估.md /
+  步骤5-新闻消融.md）
 - STEP 6：组合优化与高级策略研究 —— portfolio/ 引擎（P0-P6 分配方法、
   PIT 协方差 + sanity gate、约束/回退链、T+1 执行、风险贡献、
   allocation audit）、STEP 5 增量检查（D vs B 确认新闻增量）、
@@ -106,8 +106,8 @@ python scripts/quant/write_recommendation_note.py --capital 66000
   paper live（500k）。诚实结论：**组合优化没有带来增量，最终候选退回
   P0 等权**（research 期无任何优化器超过等权；引擎锚点 drift 0.0000）；
   strategy_v2 因 2 项 gate 未通过保持研究候选状态
-  （报告 reports/step6_portfolio_optimization.md /
-  step6_final_candidate.md）
+  （报告 reports/步骤6-组合优化.md /
+  步骤6-最终候选.md）
 - STEP 7：个人财富管理 + 本地 GUI —— 财富库（SQLite，与研究会话严格
   分离）、收益引擎（P&L 剔除外部资金流、万份收益、TWR/XIRR、净资产
   变动分解）、数据刷新管线（job store + 新鲜度面板，离线记 SKIPPED）、
@@ -131,7 +131,7 @@ python scripts/quant/write_recommendation_note.py --capital 66000
     Parkinson 波动、量能趋势等——**frozen test 中预测力延续**（与 STEP 4
     财务因子"出样本即反转"形成对比），但**加入组合未提升策略**（诚实记录，
     research candidate，未进入 strategy_v2）。报告
-    `reports/step8_micro_factors.md`
+    `reports/步骤8-微结构因子.md`
   - **STEP 10：Clean Forward Holdout + Paper Live Monitoring**
     - **2024-2025 正式降级为 `HISTORICAL_TEST_OBSERVED`**（已被评估 3 次：
       STEP 6 终评、step8、step9），不再声称是 untouched test。
@@ -150,8 +150,8 @@ python scripts/quant/write_recommendation_note.py --capital 66000
       只产生 WARNING，绝不自动修复、绝不自动减仓。
     - 历史引擎验证：24 个调仓日跑通全部 §46 检查项（T+1、手数、成本、
       无未来数据、停牌/涨跌停）。报告
-      `reports/step10_forward_holdout.md` /
-      `reports/paper_live_engine_validation.md`
+      `reports/步骤10-前瞻留出样本.md` /
+      `reports/模拟盘-引擎验证.md`
   - **STEP 9：Incremental IC 因子选择协议**（两段，第二段是对第一段的修正）
     - **(9.1 发现)** 把候选因子对「Alpha158 + 冻结 pack」做横截面正交投影，
       残差 IC 才是它新增的信息：75 个候选里只有 4 个通过，最强的
@@ -159,7 +159,7 @@ python scripts/quant/write_recommendation_note.py --capital 66000
       重新包装）。同时发现 **"加入因子反而变差"统计上不成立**——S3/I/R/M/N
       五个变体在 24 个月上无法区分（p = 0.15~0.83，年化 CI 全部跨零），
       该样本能可靠检出的最小年化差异是 **41%**。报告
-      `reports/step9_independent_info.md`
+      `reports/步骤9-独立信息研究.md`
     - **(9.2 修正)** 残差方法有偏（R² 越高、残差越像噪声、看起来越"独立"），
       改成**直接配对比较两个模型**：`M0 = Alpha158 + pack_v1 + news`，
       `M1 = M0 + F`，评价量是逐日配对的 `ΔIC = IC1 − IC0`。4 折 walk-forward
@@ -168,15 +168,15 @@ python scripts/quant/write_recommendation_note.py --capital 66000
       秩相关**。**诚实结果：0/20 个候选的 ΔIC 置信区间排除 0；置换重要性
       ≈ 0（模型几乎没用到这些列）；修正后的判据推翻了 9.1 的波动率结论。**
       最终 5 个候选是"待观察清单"，不是"已证明有效清单"。报告
-      `reports/incremental_factor_selection_v2.md`
+      `reports/增量IC因子筛选协议v2.md`
 
   - **STEP 11：个人投资终端（Streamlit）** —— 先审计既有资产代码
-    （`docs/step11_existing_asset_system_audit.md`），确认 `wealth/engine.py`
+    （`docs/步骤11-既有资产系统审计.md`），确认 `wealth/engine.py`
     已实现 TWR/XIRR/P&L/持仓重建，于是**扩展而非重写**。
     新增：`services/`（10 个服务模块，GUI 唯一接触面）、`app/`（12 个页面的
     Streamlit 终端）、CSV 导入（幂等、不猜值、自动审计）、拆股处理、
     现金余额与对账、演示账户、备份/恢复 CLI。
-    修掉 4 个真实 bug（详见 `reports/step11_investment_terminal.md`），
+    修掉 4 个真实 bug（详见 `reports/步骤11-投资终端.md`），
     其中最隐蔽的是**页面文件名遮蔽同名包**——`app/pages/paper_live.py`
     会挡住 `paper_live/` 包，Streamlit 把页面目录放进 sys.path 后
     整个 Paper Live 功能失效。
@@ -202,7 +202,7 @@ python -m pip install --upgrade pip
 python -m pip install -i https://pypi.org/simple pyqlib==0.9.7 lightgbm matplotlib mlflow fire
 
 # 3. 下载中国市场示例数据（qlib 官方 README 推荐的数据源）
-#    注意：qlib 官方 CLI 数据集已暂停（详见 docs/environment_check.md），
+#    注意：qlib 官方 CLI 数据集已暂停（详见 docs/环境检查.md），
 #    官方 README 指引使用 chenditc/investment_data 社区数据源：
 curl -L -o /tmp/qlib_bin.tar.gz https://github.com/chenditc/investment_data/releases/latest/download/qlib_bin.tar.gz
 tar -xzf /tmp/qlib_bin.tar.gz -C qlib_data --strip-components=1
@@ -317,8 +317,8 @@ python -m pytest tests/ -q                       # 全部测试（613 个）
 # 运行模式：PQ_MODE=offline 只读缓存（历史回测必须用）；PQ_PDF_CACHE=1 开启 PDF 缓存
 ```
 
-STEP 1 基线结果见 `reports/step1_qlib_baseline.md`；
-STEP 2 数据目录见 `reports/step2_data_catalog.md`。
+STEP 1 基线结果见 `reports/步骤1-Qlib基线.md`；
+STEP 2 数据目录见 `reports/步骤2-数据目录.md`。
 
 ## 目录结构
 
@@ -326,7 +326,7 @@ STEP 2 数据目录见 `reports/step2_data_catalog.md`。
 PersonalQuant/
 ├── README.md            # 本文件
 ├── CLAUDE.md            # AI 协作开发规范
-├── ROADMAP.md           # 阶段路线图与进度（STEP 1/2 COMPLETED）
+├── 路线图.md           # 阶段路线图与进度（STEP 1/2 COMPLETED）
 ├── pyproject.toml       # 项目元信息与依赖声明
 ├── personal_quant/      # 数据基础设施包（STEP 2）
 │   ├── symbols.py       #   统一股票代码 600519.SH
@@ -352,7 +352,7 @@ PersonalQuant/
 ├── scripts/             # bootstrap / verify / refresh / research / demo
 ├── tests/               # 613 个测试
 ├── docs/                # 使用说明书 + schema/数据源/PIT/执行模型文档
-├── data/                # canonical parquet + derived（部分入库，见 DATA.md）
+├── data/                # canonical parquet + derived（部分入库，见 数据与模型清单.md）
 ├── qlib_data/           # Qlib 基线数据（git 忽略，可脚本重新下载）
 ├── reports/             # 实验报告
 ├── logs/                # 运行日志

@@ -34,7 +34,7 @@ def check(name, ok, detail=""):
 
 def main() -> int:
     # 1. STEP5 incremental alpha check
-    p = REPORTS / "step5_incremental_alpha_check.md"
+    p = REPORTS / "步骤5-新闻增量alpha检查.md"
     ok = p.exists() and "是" in p.read_text(encoding="utf-8")
     check("STEP5 incremental alpha check", ok, str(p))
 
@@ -142,7 +142,7 @@ def main() -> int:
     check("stress test", stress.exists(), str(stress))
 
     # 21. benchmark consistency (definitions in the optimizer report)
-    rep = REPORTS / "step6_portfolio_optimization.md"
+    rep = REPORTS / "步骤6-组合优化.md"
     bench_ok = rep.exists() and \
         "CSI300" in rep.read_text(encoding="utf-8")
     check("benchmark consistency", bench_ok, str(rep))

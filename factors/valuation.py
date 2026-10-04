@@ -7,7 +7,7 @@ shares = net_assets / bps. Price is the RAW close at the signal date.
 
 PE with negative EPS is kept (a negative PE is itself informative); the
 evaluator's rank normalization handles it naturally — negative PE values
-are never silently dropped (see docs/step4_financial_factor_pit.md).
+are never silently dropped (see docs/步骤4-财务因子时点规则.md).
 Banks/insurers have no cost_of_revenue (gross_margin MISSING) but do
 disclose eps/bps, so the valuation factors are available for them.
 """
@@ -97,7 +97,7 @@ def earnings_yield(data: FactorData, dates=None):
 
 # --- turnover (shares from the latest annual report; coverage = financial
 #     universe — the full-market turnover source (eastmoney) is WAF-blocked,
-#     documented in docs/step4_market_data_quality.md) -----------------------
+#     documented in docs/步骤4-市场数据质量.md) -----------------------
 
 @register(dict(
     factor_name="turnover_20", category="liquidity",

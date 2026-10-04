@@ -74,7 +74,7 @@ Desktop.ini
 .claude/settings.local.json
 
 # --- 模型：全部入库（每个 40-70KB；S3 生产模型是推荐的来源，必须可复现）---
-# 曾经忽略 experiments/**/model.txt —— 已改为入库，见 DATA.md
+# 曾经忽略 experiments/**/model.txt —— 已改为入库，见 数据与模型清单.md
 
 # --- STEP 3/6: 大型可再生成产物 ---
 experiments/**/walkforward_predictions.parquet

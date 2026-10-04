@@ -4,8 +4,8 @@
     python scripts/write_reports.py [--run-id run_001]
 
 Writes:
-  reports/step3_strategy_v1.md
-  reports/step3_model_evaluation.md
+  reports/步骤3-策略v1.md
+  reports/步骤3-模型评估.md
 """
 
 import argparse
@@ -66,7 +66,7 @@ def main() -> int:
         "", "## 7. walk-forward", "",
         "季度重训 + 月调仓（7 年滚动窗口）；结果见 walkforward_predictions.parquet。",
         "", "## 8. rebalance / 9. execution / 10. transaction costs", "",
-        "见 docs/step3_execution_model.md（T+1 开盘、涨跌停与停牌 NO_TRADE、",
+        "见 docs/步骤3-执行模型.md（T+1 开盘、涨跌停与停牌 NO_TRADE、",
         "0.025% 佣金+0.05% 印花税(卖)+过户费+滑点 0.05%/边，全部可配置）。",
         "", "## 11. portfolio construction / 12. benchmark", "",
         "Top 20 等权（4.75%/只）+ 5% 现金；基准：CSI300/CSI500/CSI1000 买入持有、",
@@ -119,7 +119,7 @@ def main() -> int:
               f"- 最大回撤 {fmt(s.get('max_drawdown'), 3)}（图见 reports/figures/2_drawdown.png）",
               f"- 换手（图见 reports/figures/10_turnover.png）",
               "", "## 20. sanity check / 21. leakage audit", "",
-              "- 见 reports/step3_sanity_check.md 与 reports/step3_point_in_time_audit.md",
+              "- 见 reports/步骤3-人工核对.md 与 reports/步骤3-时点正确性审计.md",
               "", "## 22. limitations（诚实记录）", "",
               "- volume/amount 源侧缩放：流动性过滤为粗过滤，精确流动性数据待 STEP 4",
               "- 历史 ST 状态缺失：回测关闭 ST 过滤（记录限制，避免未来函数）",
@@ -129,7 +129,7 @@ def main() -> int:
               "- STEP 4：干净的成交量源重建流动性过滤；财务因子（STEP 2 PIT 数据）接入",
               "- 更多基线（行业中性、低换手变体）；参数敏感性分析（独立实验，不调优本策略）",
               ""]
-    p = PROJECT_ROOT / "reports" / "step3_strategy_v1.md"
+    p = PROJECT_ROOT / "reports" / "步骤3-策略v1.md"
     p.write_text("\n".join(lines), encoding="utf-8")
     print(f"wrote {p}")
 
@@ -162,7 +162,7 @@ def main() -> int:
            "## 结论", "",
            "（由实际结果填写：是否存在稳定正 IC、分位是否单调、是否超过基线；",
            "如实记录，不美化。）"]
-    p2 = PROJECT_ROOT / "reports" / "step3_model_evaluation.md"
+    p2 = PROJECT_ROOT / "reports" / "步骤3-模型评估.md"
     p2.write_text("\n".join(ml), encoding="utf-8")
     print(f"wrote {p2}")
     return 0

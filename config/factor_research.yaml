@@ -18,7 +18,7 @@ factor_research:
 
   universe:
     # 与 strategy_v1 同规则，仅流动性过滤改用校准后成交额（amount_cny）——
-    # 源单位 amount 跨股票不可比（见 docs/step4_market_data_quality.md）。
+    # 源单位 amount 跨股票不可比（见 docs/步骤4-市场数据质量.md）。
     # strategy_v1 本身保持冻结不变。
     exchanges: [SH, SZ]
     min_listing_days: 180

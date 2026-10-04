@@ -5,9 +5,9 @@ Strictness rules (tested in tests/factors/):
 - technical factors use only data <= the signal date (rolling/shift on
   per-stock rows, never future rows);
 - financial factors honor PIT: a report is usable iff signal_date >
-  availability_date (= announcement_date; see docs/point_in_time.md);
+  availability_date (= announcement_date; see docs/时点正确性规则.md);
 - cross-stock comparability of volume/amount comes from the calibrated
-  scale table (docs/step4_market_data_quality.md); when no calibration
+  scale table (docs/步骤4-市场数据质量.md); when no calibration
   exists the raw columns are used with scale=1 and the fact is recorded.
 
 Loading reads parquet via pyarrow (multi-process safe; DuckDB stays free

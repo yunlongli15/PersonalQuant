@@ -59,18 +59,18 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
 
 ## 项目定位
 
-个人用 A 股低频量化投资研究与决策系统。**完全本地运行**，按 ROADMAP.md 分阶段推进。
-当前阶段定义见 ROADMAP.md 顶部，**严禁超前开发未开始的阶段**。
+个人用 A 股低频量化投资研究与决策系统。**完全本地运行**，按 路线图.md 分阶段推进。
+当前阶段定义见 路线图.md 顶部，**严禁超前开发未开始的阶段**。
 
 ## 铁律
 
-1. **分阶段开发**：只做当前阶段（见 ROADMAP.md 状态行）。完成一个阶段后停下来
+1. **分阶段开发**：只做当前阶段（见 路线图.md 状态行）。完成一个阶段后停下来
    汇报，未经用户明确指示不得自动开始下一阶段。
 2. **严禁实盘交易**：任何阶段都不得接入券商 API、自动下单或涉及真实资金操作。
 3. **不伪造结果**：不得修改官方示例/基准逻辑来“制造更好结果”；不得使用未来数据
    （标签与特征的时间对齐以 Qlib 官方实现为准）。
 4. **不污染系统 Python**：所有 Python 工作都在项目虚拟环境 `.venv` 中进行。
-   `.venv` 基于用户级安装的 Python 3.12（见 docs/environment_check.md 的决策）。
+   `.venv` 基于用户级安装的 Python 3.12（见 docs/环境检查.md 的决策）。
 5. **不删除用户已有文件**：修改/删除前先查看内容，重要操作前确认。
 6. **不跳过错误**：安装、导入、数据、workflow 任何一步失败都必须诊断并修复，
    不得静默绕过或降低标准。
@@ -102,7 +102,7 @@ PYTHONIOENCODING=utf-8 MPLBACKEND=Agg MLFLOW_ALLOW_FILE_STORE=true \
   仅 `provider_uri` 指向项目本地数据目录）
 - 日志：`logs/`；实验报告：`reports/`；mlflow 产物：`mlruns/`（git 忽略）
 - **mlflow 3.x 必须加 `MLFLOW_ALLOW_FILE_STORE=true`**，否则 qlib 0.9.7 的
-  文件存储 recorder 直接报 MlflowException（详见 reports/step1_qlib_baseline.md）
+  文件存储 recorder 直接报 MlflowException（详见 reports/步骤1-Qlib基线.md）
 
 ## 关键背景（决策记录）
 
@@ -139,7 +139,7 @@ LLM 新闻分析、自定义复杂因子、Transformer、强化学习、GUI、Tu
   在线抓取：单连接、随机 1-3s 延迟、指数退避、raw 缓存，禁止高并发/WAF 绕过。
 - 东财 push2/push2his 会被 WAF 间歇封禁：估值快照用腾讯行情，日线对照用
   腾讯 K 线（provider 已内置回退）；系统代理 7890 不可靠，默认直连。
-- 数据源/口径/决策全部记录于 docs/data_sources.md；每步导入登记 source_registry。
+- 数据源/口径/决策全部记录于 docs/数据来源与口径.md；每步导入登记 source_registry。
 - 质量门禁：bootstrap 自动跑 quality.checks（16 项），verify_step2.py 19 项
   验收，改动数据管线后必须全绿再提交。
 - **DuckDB 成组写入必须用 `db.transaction()`**：其 Python 客户端每条语句
@@ -161,7 +161,7 @@ LLM 新闻分析、自定义复杂因子、Transformer、强化学习、GUI、Tu
   特征计算必须走每季度独立子进程（features.py 已实现，勿改回进程内循环）。
 - DuckDB 单进程独占：实验运行期间不要并发跑其它 DB 任务。
 - 执行模型：T+1 开盘、涨跌停/停牌 NO_TRADE、100 股手数、成本可配置
-  （docs/step3_execution_model.md）。
+  （docs/步骤3-执行模型.md）。
 - 泄漏审计与 sanity check：scripts/audit_point_in_time.py、
   scripts/sanity_check_strategy.py；改动策略后必须重跑。
 - canonical 层修复（factor 跳变/NaN 占位行）已注册 source_registry；
@@ -195,7 +195,7 @@ LLM 新闻分析、自定义复杂因子、Transformer、强化学习、GUI、Tu
   银行/保险无营业成本 → gross_margin 诚实 MISSING；负 PE 保留不删。
 - 财务数据获取：lazy 增量（scripts/fetch_financial_universe.py，
   chunked 运行、断点续跑）；**严禁全量下载年报 PDF**；覆盖率如实报告
-  （reports/step4_financial_factor_coverage.md），绝不猜值提覆盖率。
+  （reports/步骤4-财务因子覆盖率.md），绝不猜值提覆盖率。
 - Alpha Mining：shallow beam search（深度≤3、算子白名单
   + - * / rank zscore log abs、每代≤1000 候选）；search 只用 research、
   validation 排序、test 单次；**snooping diagnostics（候选数/各期最优分）
@@ -210,7 +210,7 @@ LLM 新闻分析、自定义复杂因子、Transformer、强化学习、GUI、Tu
 - **SSE 公告 API 分页陷阱**：pageHelp.pageNo 被忽略——分页必须用
   pageHelp.beginPage/endPage；pageSize=1000 一天一请求。旧分页代码会把
   >100 条的交易日截断（已用 --repair-truncated 修复，勿回退）。
-- **PIT 铁律**（docs/step5_news_pit.md）：发布日≤15:00 → 当日可用；
+- **PIT 铁律**（docs/步骤5-新闻时点规则.md）：发布日≤15:00 → 当日可用；
   盘后/周末/节假日/仅日期 → 下一交易日 09:30；发布日未知 → strict
   禁用。event_time 与 publication_time 分开，因子只用 availability；
   updated_at 绝不代替 published_at。全链路 Asia/Shanghai tz-aware。

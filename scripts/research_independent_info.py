@@ -6,7 +6,7 @@
 
 问题
 ----
-微结构因子消融（reports/step8_micro_factors.md）显示：
+微结构因子消融（reports/步骤8-微结构因子.md）显示：
   S3 = Alpha158 + pack_v1 + news            年化 0.2812 / Sharpe 1.022
   N  = S3 + 5 个新因子（直接叠加）            年化 0.1592 / Sharpe 0.657  ← 崩了
   M  = Alpha158 + 11 个因子（换掉一部分）     年化 0.3053 / Sharpe 1.148  ← 反而好
@@ -71,7 +71,7 @@ from personal_quant.strategy.universe import build_universe
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 OUT = PROJECT_ROOT / "experiments" / "factors" / "independent_info"
 # 本脚本只产出**数据表**（run artifact）；结论与解读写在
-# reports/step9_independent_info.md，不由此脚本覆盖。
+# reports/步骤9-独立信息研究.md，不由此脚本覆盖。
 REPORT = OUT / "tables.md"
 S3_PACK = [
     ("experiments/factors/factor_run_001/factor_pack_v1.json", "selected"),

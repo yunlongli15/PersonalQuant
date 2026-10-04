@@ -38,9 +38,9 @@ def main() -> int:
     conn = db.connect(tmp / "verify.db")
 
     # 1. existing asset system audit ---------------------------------------
-    audit = PROJECT_ROOT / "docs" / "step11_existing_asset_system_audit.md"
+    audit = PROJECT_ROOT / "docs" / "步骤11-既有资产系统审计.md"
     check("existing asset system audit", audit.exists(),
-          "docs/step11_existing_asset_system_audit.md")
+          "docs/步骤11-既有资产系统审计.md")
 
     # 2. account schema ----------------------------------------------------
     tables = set(db.table_names(conn))

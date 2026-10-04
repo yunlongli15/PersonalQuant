@@ -120,7 +120,7 @@ def is_rebalance_date(date: pd.Timestamp, cfg: dict,
     （2026-10-01 实测：最大 2026-09-29）。旧实现把窗口取成 `[d-70天, d]`
     再比较 `dates[-1] == d`，而该窗口每个周期分组的最后一个元素**恒等于 d**
     —— 于是只要 d 是交易日就返回 True（2026-08 全月 21 个交易日里 20 个
-    被误判，见 reports/daily_exit_paper_v1_audit.md §3.2）。
+    被误判，见 reports/前瞻实验-执行链审计.md §3.2）。
 
     `calendar` 必须是**真实交易日历**（provider.trading_calendar()）。
     旧实现虽然收了这个形参却完全没用、直接去查 DB，与 run_day 里
@@ -223,7 +223,7 @@ def t1_availability(provider, signal_date
 
     旧实现用 `except Exception: return False`，于是
     `pd.Timestamp(None) -> NaT` 引起的 DuckDB 类型错误被静默吞掉，
-    挂单永远不结算、也不报错（reports/daily_exit_paper_v1_audit.md §3.1）。
+    挂单永远不结算、也不报错（reports/前瞻实验-执行链审计.md §3.1）。
     这里刻意不写任何兜底 except。
     """
     try:

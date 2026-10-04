@@ -228,7 +228,7 @@ def transaction():
     "clear the table, then refill it" pair is two separate commits: a crash in
     between leaves the table EMPTY, and an empty table is indistinguishable
     from "genuinely no rows" downstream (see
-    reports/incident_20261004_news_events_index.md). Use this for any
+    reports/事故-20261004-新闻事件索引.md). Use this for any
     multi-statement write that is only valid as a whole:
 
         with db.transaction() as conn:

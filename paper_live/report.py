@@ -294,7 +294,7 @@ def monthly_report(store, cfg: dict, month: str,
         "指出样本量是否足以支撑任何结论。",
         "",
         "**样本不足时不得推断策略失效。** 月度样本对年化收益的分辨力极低"
-        "（参见 `reports/step9_independent_info.md`：24 个月的可检出最小"
+        "（参见 `reports/步骤9-独立信息研究.md`：24 个月的可检出最小"
         "年化差异约 41pp）。短期 IC 波动属于正常范围，不构成任何修改理由。",
         "",
     ]

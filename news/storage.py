@@ -128,12 +128,12 @@ def replace_events(events: List[NewsEvent]) -> int:
     **必须在一个事务里做**（db.transaction）：这两步以前是两条各自自动
     提交的语句，中途崩溃（Ctrl-C、进程被杀、DuckDB 报错）会留下**空表**
     —— 而空的 news_events 在下游是**看不出来的**：计数类新闻因子 0 是
-    "真的没有事件"的合法取值（docs/step5_news_pit.md），于是信号会
+    "真的没有事件"的合法取值（docs/步骤5-新闻时点规则.md），于是信号会
     静默退化，没有任何一层会报警。
 
     另：本函数只保证"要么全换、要么不动"，不负责修复 DuckDB 自身的
     索引不一致（2026-10-04 遇到过 `DELETE` 因二级索引失配而失败，
-    恢复办法见 reports/incident_20261004_news_events_index.md）。
+    恢复办法见 reports/事故-20261004-新闻事件索引.md）。
     """
     ensure_tables()
     # 行数据先在 Python 侧拼好，把事务窗口压到最小

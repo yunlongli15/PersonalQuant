@@ -73,7 +73,7 @@ def incremental() -> dict:
             "n": int(len(df)),
             "tag": "RESEARCH CANDIDATE",
             "note": "研究候选，未进入 strategy_v2；显著性见 "
-                    "reports/incremental_factor_selection_v2.md"}
+                    "reports/增量IC因子筛选协议v2.md"}
 
 
 @safe(label="当前信号")

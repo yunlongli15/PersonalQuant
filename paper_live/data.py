@@ -263,7 +263,7 @@ class LiveDataProvider:
         历史回放时必然返回 2026 年的文档，把正常的回放误判成 PIT 违规。
 
         盘后(>15:00)→次日的规则在 derived 因子层执行
-        （docs/step5_news_pit.md），由 tests/news/test_news_pit.py 与因子
+        （docs/步骤5-新闻时点规则.md），由 tests/news/test_news_pit.py 与因子
         投毒测试覆盖；这里只回答"信号日为止有没有新闻、有多新"。
         """
         from personal_quant import db

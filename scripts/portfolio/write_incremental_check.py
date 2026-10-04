@@ -12,7 +12,7 @@
 （experiments/news/ablation/comparison.csv + 各变体 summary.json），
 不重跑、不调参；2024-2025 从未用于任何参数选择。
 
-生成 reports/step5_incremental_alpha_check.md
+生成 reports/步骤5-新闻增量alpha检查.md
 """
 
 import json
@@ -60,7 +60,7 @@ def main() -> int:
     llm_on = bool(os.environ.get("DEEPSEEK_API_KEY"))
 
     lines = [
-        "# STEP 5 完整性预检查：新闻在非新闻因子之上的增量 alpha",
+        "# 步骤 5 新闻增量 alpha 预检查",
         "",
         f"generated: {datetime.now().isoformat(timespec='seconds')}",
         "",
@@ -141,7 +141,7 @@ def main() -> int:
         "- experiments/news/ablation/variant_A,B,C,E/summary.json（锚点核对）",
         "",
     ]
-    out = PROJECT_ROOT / "reports" / "step5_incremental_alpha_check.md"
+    out = PROJECT_ROOT / "reports" / "步骤5-新闻增量alpha检查.md"
     out.write_text("\n".join(lines), encoding="utf-8")
     print(f"wrote {out}")
     print(f"D vs B: ann {d_vs_b[0]:+.4f} sharpe {d_vs_b[1]:+.3f} -> "
