@@ -1,6 +1,6 @@
 {
   "as_of": "2026-09-30",
-  "generated_at": "2026-10-04T14:59:56",
+  "generated_at": "2026-10-04T19:29:02",
   "capital": 66000.0,
   "frequency": "monthly",
   "risk_profile": "balanced",
@@ -299,7 +299,7 @@
     {
       "symbol": "300611.SZ",
       "name": "美力科技",
-      "raw_rank": 46,
+      "raw_rank": 45,
       "board": "CHINEXT",
       "board_name": "创业板",
       "capital_required": 100000.0,
@@ -398,7 +398,7 @@
     {
       "symbol": "301308.SZ",
       "name": "江波龙",
-      "raw_rank": 68,
+      "raw_rank": 66,
       "board": "CHINEXT",
       "board_name": "创业板",
       "capital_required": 100000.0,
@@ -407,7 +407,7 @@
     {
       "symbol": "301191.SZ",
       "name": "菲菱科思",
-      "raw_rank": 69,
+      "raw_rank": 67,
       "board": "CHINEXT",
       "board_name": "创业板",
       "capital_required": 100000.0,
@@ -423,8 +423,8 @@
       "reason": "需50万元日均资产（当前 6.6万元）"
     },
     {
-      "symbol": "300739.SZ",
-      "name": "明阳电路",
+      "symbol": "300820.SZ",
+      "name": "英杰电气",
       "raw_rank": 73,
       "board": "CHINEXT",
       "board_name": "创业板",
@@ -432,8 +432,8 @@
       "reason": "需10万元日均资产（当前 6.6万元）"
     },
     {
-      "symbol": "300820.SZ",
-      "name": "英杰电气",
+      "symbol": "300739.SZ",
+      "name": "明阳电路",
       "raw_rank": 74,
       "board": "CHINEXT",
       "board_name": "创业板",
@@ -459,8 +459,8 @@
       "reason": "需50万元日均资产（当前 6.6万元）"
     },
     {
-      "symbol": "301013.SZ",
-      "name": "利和兴",
+      "symbol": "300720.SZ",
+      "name": "海川智能",
       "raw_rank": 85,
       "board": "CHINEXT",
       "board_name": "创业板",
@@ -468,8 +468,8 @@
       "reason": "需10万元日均资产（当前 6.6万元）"
     },
     {
-      "symbol": "300720.SZ",
-      "name": "海川智能",
+      "symbol": "301013.SZ",
+      "name": "利和兴",
       "raw_rank": 86,
       "board": "CHINEXT",
       "board_name": "创业板",

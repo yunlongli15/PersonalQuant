@@ -1,6 +1,6 @@
 # 交易建议 · 基准信号日 2026-09-30 · monthly (20 trading days)
 
-生成时间: 2026-10-04 14:59 · **仅供研究，不构成投资建议，系统不会自动下单**
+生成时间: 2026-10-04 19:29 · **仅供研究，不构成投资建议，系统不会自动下单**
 
 
 ## 一句话结论
@@ -78,8 +78,7 @@
 - 信号：strategy_v2/S3，信号日 **2026-09-30**（全市场 2978 只打分）
 - ⚠ **价格是 2026-09-30 的收盘价（4 天前）**，入场区间可能已经失效。先跑 `python scripts/quant/refresh_live_prices.py` 取当前价、再重新生成计划；或直接以实际盘口为准。
 - 分配方法：equal_weight（optimal）
-- 数据新鲜度：Market Data OK，Valuation OK，Financial Reports OK，News OK，Factors OK，Forecast OK，Portfolio STALE
-- ⚠ **注意：Portfolio 数据过期**，建议先运行 `python scripts/quant/refresh_all.py`。
+- 数据新鲜度：Market Data OK，Valuation OK，Financial Reports OK，News OK，Factors OK，Forecast OK，Portfolio OK
 
 ## 执行提醒
 
