@@ -26,7 +26,10 @@ qlib FeatureD wrapper（qlib.init kwargs 注入 C.feature_provider）
    ▼
 qlib 官方 Expression 引擎 / Alpha158 handler（原样，含日历对齐、NaN 填充）
    ▼
-月度特征切片 → data/derived/features/YYYY-MM.parquet（DERIVED 层缓存）
+按日特征切片 → data/derived/features/feature_<YYYY-MM-DD>.parquet（DERIVED 层缓存）
+   （文件名里带日期，且**内部**有一列 `feature_date` 自证日期；
+    读侧会校验两者一致，不一致按未命中处理。旧的 YYYY-MM.parquet 已不再被读取，
+    仅作历史证据留在盘上。）
    ▼
 LightGBM（train 2015-2021 / valid 2022-2023 / test 2024-2025）
    ▼

@@ -25,7 +25,12 @@ STEP 7 ✅ / STEP 9 ✅ / STEP 10 ✅ / STEP 11 ✅ / STEP 12 ✅**
 > 与 monthly paper_live 完全独立的 forward 模拟盘，S3 信号 + T+1 限价入场 +
 > target / stop / time-stop 出场。**交易规则已冻结**，见
 > [使用说明第 10 节](docs/使用说明.md#10-daily_exit_paper_v1-前瞻实验)。
-> 状态：**已就绪，等待启动**（需要明确的初始本金与起始日）。
+> 状态：**已启动**（2026-10-04）—— 初始本金 **100,000 元**，首个信号日
+> 2026-09-30，当日 20 笔挂单全部 PENDING，**首批成交在 2026-10-08**
+> （10-01~10-07 国庆休市）。账本
+> [experiments/daily_exit_paper_v1/ledger.jsonl](experiments/daily_exit_paper_v1/ledger.jsonl)，
+> 日报 [reports/daily_exit_paper_v1/](reports/daily_exit_paper_v1/)。
+> **本金一旦锁定不得更改**；规则变更 = 新建 v1.1，绝不改完继续叫 v1。
 
 > 📖 **使用说明书：[docs/使用说明.md](docs/使用说明.md)** —— 怎么用、
 > 面板每个数字什么意思、板块交易权限、常见问题、系统边界。
@@ -35,8 +40,9 @@ STEP 7 ✅ / STEP 9 ✅ / STEP 10 ✅ / STEP 11 ✅ / STEP 12 ✅**
 >
 > 🚀 **五分钟上手**（下面「快速开始」一节）。
 >
-> ⚠️ 当前数据快照：行情 / 因子 / 信号 / 预测 **2026-09-17**，
-> 新闻公告 2026-09-11（官方索引滞后约 5 天，界面会如实标注）。
+> ⚠️ 当前数据快照（2026-10-05）：行情 / 估值 / 信号 / 新闻 / 预测 / 交易计划
+> 均为 **2026-09-30**（国庆休市，10-01~10-07 无新行情）。
+> 数据日期以界面 Data Status 与实际文件为准 —— 这行字会过期，以系统显示为准。
 > **本系统仅用于研究，不构成投资建议，永不自动下单。**
 
 ## 快速开始
@@ -61,8 +67,10 @@ python scripts/quant/write_recommendation_note.py --capital 66000
 ```
 
 **为什么要两条、为什么先 ① 后 ②**：`refresh_all.py` 更新数据与信号，
-`run_daily.py` 只**读**这些数据做记录与报告 —— **它不下载行情**。先跑 ② 的话，
+`run_daily.py` 读这些数据做记录与报告。先跑 ② 的话，
 它会对着旧的一天做记录（这就是"日期怎么没更新"的原因）。
+（注意：`run_daily.py` **不是**纯只读 —— 本地行情落后超过 5 个交易日时它会
+自己下载整份快照，且每天都会抓公告。详见使用说明第 1 节。）
 分工与产出详见 **[docs/使用说明.md](docs/使用说明.md) 第 1 节**（唯一权威说法）。
 
 两者都别在开着界面时跑（DuckDB 单进程独占）。
@@ -78,7 +86,7 @@ python scripts/quant/write_recommendation_note.py --capital 66000
   （基线报告 `reports/步骤1-Qlib基线.md`）
 - STEP 2：本地 A 股数据基础设施 —— DuckDB + Parquet canonical 层
   （日线 17.9M 行 / 证券主表 6,148 / SSE 年报 metadata 63k+）、
-  按需 PDF 财务提取管线（PIT + 审计）、质量体系 16/16、
+  按需 PDF 财务提取管线（PIT + 审计）、质量体系 18/18、
   交叉验证与 bootstrap/verify 脚本
 - STEP 3：第一个低频 Alpha 策略 strategy_v1 —— 月度调仓、Alpha158+LightGBM、
   Top-20 等权、T+1 执行、严格 PIT（测试期年化 24.8%、IC 0.036、
@@ -91,7 +99,7 @@ python scripts/quant/write_recommendation_note.py --capital 66000
   reports/步骤4-因子研究.md / 步骤4-模型消融.md）
 - STEP 5：新闻/公告因子系统 —— 官方交易所优先的 Provider 抽象层
   （SSE 按日全量 / SZSE 按股 / CNINFO / AkShare）、canonical 公告库
-  （171k 条 2018-2026）、严格 PIT（盘后→次日）、规则事件分类（25 类）
+  （186,003 条 2018-2026）、严格 PIT（盘后→次日）、规则事件分类（25 类）
   + LLM 层（DeepSeek 自动检测、cache、预算）、27 个新闻因子评估、
   factor_pack_news_v1、A/B/C/D/E 消融（锚点 drift 0.0000）、
   strategy_v1_news（E：0.2812/1.022 vs A：0.2475/0.943）。
@@ -115,9 +123,10 @@ python scripts/quant/write_recommendation_note.py --capital 66000
   手数/费用/卖出原因）、本地 Web GUI（127.0.0.1、零外部资源）、
   决策链（推荐→接受/修改/拒绝→实际成交滑点）、闭环脚本（9/9 步）
 - **STEP 7 之后**（2026-09-13 起）：
-  - **数据刷新到 2026-09-17** + 可复现快照更新脚本；修复上游快照引入的
+  - **数据刷新到 2026-09-30** + 可复现快照更新脚本；修复上游快照引入的
     复权因子重定基准缺陷（7 只标的、23,026 行）
-  - **界面全中文**（14 个页面），零 CDN、仅绑定 127.0.0.1
+  - **界面中文**（14 个页面；导航与正文全中文，**数据状态徽标仍是英文**
+    `✓ OK / ⚠ DATA STALE / ✗ missing / — not computed`），零 CDN、仅绑定 127.0.0.1
   - **板块交易权限**：科创板 50 万 / 创业板 10 万 / 北交所 50 万，
     交易计划**先按权限过滤再选股**，被排除标的完整列出
   - **股票专用录入**：名称/代码/买入成本价/买入日期/股数/现价 → 市值与浮盈
@@ -146,7 +155,7 @@ python scripts/quant/write_recommendation_note.py --capital 66000
       bug 时必须给理由、写新 revision、保留旧版本。
     - **冻结可证明**：config / model / feature pack 的 sha256 逐日校验，
       不一致即 `DRIFT_DETECTED`；config 哈希排除 freeze 块以免自指。
-    - **只监控不反馈**：strategy / model / news / data 漂移与 9 类告警
+    - **只监控不反馈**：strategy / model / news / data 漂移与 10 类告警
       只产生 WARNING，绝不自动修复、绝不自动减仓。
     - 历史引擎验证：24 个调仓日跑通全部 §46 检查项（T+1、手数、成本、
       无未来数据、停牌/涨跌停）。报告
@@ -187,7 +196,7 @@ python scripts/quant/write_recommendation_note.py --capital 66000
 - Windows 10/11 x64（Linux/macOS 亦可，命令略有差异）
 - Python 3.12（pyqlib 0.9.7 官方 wheel 支持 cp38–cp312，**不支持 3.13**）
 - git
-- 磁盘空间 ≥ 10 GB（Qlib cn 数据约 3–4 GB）
+- 磁盘空间 ≥ 10 GB（Qlib cn 数据约 850 MB，duckdb 约 174 MB）
 
 ## 安装方法
 
@@ -312,7 +321,7 @@ python scripts/verify_step10.py                      # 21 项验收
 python scripts/portfolio/run_micro_ablation.py --variants S3,I,R \
     --variants-file experiments/factors/independent_info/variants.json \
     --out-dir experiments/factors/independent_ablation   # 独立信息消融
-python -m pytest tests/ -q                       # 全部测试（613 个）
+python -m pytest tests/ -q                       # 全部测试（1200+ 条）
 
 # 运行模式：PQ_MODE=offline 只读缓存（历史回测必须用）；PQ_PDF_CACHE=1 开启 PDF 缓存
 ```
@@ -326,7 +335,7 @@ STEP 2 数据目录见 `reports/步骤2-数据目录.md`。
 PersonalQuant/
 ├── README.md            # 本文件
 ├── CLAUDE.md            # AI 协作开发规范
-├── 路线图.md           # 阶段路线图与进度（STEP 1/2 COMPLETED）
+├── 路线图.md           # 阶段路线图与进度
 ├── pyproject.toml       # 项目元信息与依赖声明
 ├── personal_quant/      # 数据基础设施包（STEP 2）
 │   ├── symbols.py       #   统一股票代码 600519.SH
@@ -350,7 +359,7 @@ PersonalQuant/
 ├── webapp/              # 本地 Web GUI（FastAPI，仅 127.0.0.1，零 CDN）
 ├── config/              # 策略/组合/账户档案等运行配置
 ├── scripts/             # bootstrap / verify / refresh / research / demo
-├── tests/               # 613 个测试
+├── tests/               # 1200+ 条测试
 ├── docs/                # 使用说明书 + schema/数据源/PIT/执行模型文档
 ├── data/                # canonical parquet + derived（部分入库，见 数据与模型清单.md）
 ├── qlib_data/           # Qlib 基线数据（git 忽略，可脚本重新下载）

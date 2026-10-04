@@ -5,11 +5,16 @@
 
 理论权重 ≠ 实际执行权重。这里把两者的差距全部显式记下来：
 
-    target_value     目标金额
-    theoretical_shares = target_value / price        （未取整）
-    rounded_shares     100 股整数倍，向下取整
-    actual_trade_value 实际成交金额（含滑点）
-    residual_cash      因为取整而没投出去的钱
+    target_value            目标金额
+    delta_value             目标金额 − 当前金额（本次要动多少钱）
+    theoretical_shares      = target_value / price（未取整）
+    estimated_shares        向下取整到 100 股整数倍
+    estimated_trade_value   = |estimated_shares| × price
+    estimated_fee           预估费用
+
+    取整没投出去的那部分**没有单独的字段**（以前这里写了一个
+    `residual_cash`，但 as_row() 从来没输出过它）——要的话自己算：
+    `delta_value − estimated_trade_value`。
 
 不能成交的情况（涨跌停 / 停牌 / 无开盘价 / 不足 1 手）一律 NO_TRADE，
 并记录原因。
