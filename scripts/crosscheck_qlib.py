@@ -4,10 +4,17 @@
 Part A - conversion integrity: canonical daily_bars (Parquet, ingested from
          the Qlib baseline .bin files) vs a direct Qlib D.features read of
          the same 20 stocks x 2 years. Expects EXACT equality (same source).
-Part B - independent source: 10 stocks x recent 2 years from EastMoney
-         (akshare, unadjusted) vs the canonical layer (Yahoo-sourced
+Part B - independent source: 10 stocks x recent 2 years from an independent
+         vendor (unadjusted) vs the canonical layer (Yahoo-sourced
          baseline). Differences are EXPECTED (vendor, suspension handling);
          this part reports them honestly rather than forcing equality.
+         WHICH vendor is not fixed: fetch_daily_history prefers EastMoney's
+         push2his but falls back to Tencent kline, and since this IP is
+         under a persistent EastMoney block the fallback is usually what
+         actually serves (2026-09-05 and 2026-10-04 both ran on Tencent).
+         So the vendor is printed from what the data actually says and
+         recorded per symbol, instead of being asserted in the header —
+         "canonical vs EastMoney" was wrong every time it was printed.
 Part C - trading calendar: canonical calendar (Qlib baseline) vs Sina's
          trade-date list (2020-2026 overlap).
 
@@ -69,6 +76,32 @@ def part_a() -> dict:
     return out
 
 
+#: 供应商 -> 报告里用的名字
+SOURCE_LABELS = {
+    "eastmoney_push2his": "EastMoney push2his",
+    "tencent_kline": "Tencent kline",
+}
+
+
+def source_mix(rows: list) -> dict:
+    """每个标的数据**实际**来自哪一家（失败单独计一类）。"""
+    mix: dict = {}
+    for r in rows:
+        key = r.get("source") if "error" not in r else "fetch_failed"
+        mix[key] = mix.get(key, 0) + 1
+    return mix
+
+
+def describe_sources(rows: list) -> str:
+    mix = source_mix(rows)
+    if not mix:
+        return "no data"
+    return ", ".join(
+        f"{SOURCE_LABELS.get(k, k or 'unknown')} {n}"
+        for k, n in sorted(mix.items(), key=lambda kv: (-kv[1], str(kv[0])))
+    )
+
+
 def part_b() -> dict:
     from personal_quant.providers.akshare_market import AkShareMarketProvider
 
@@ -98,6 +131,9 @@ def part_b() -> dict:
             {
                 "symbol": sym,
                 "n_days": int(len(m)),
+                # 实际来源逐只记录：回退后整段可能都不是 EastMoney，
+                # 报告里"对照的是哪一家"必须由数据说了算。
+                "source": str(m["source"].iloc[0]) if "source" in m else None,
                 "close_match_exact_share": float((m["close_em"] == m["close_canon"]).mean()),
                 "close_mean_abs_rel_diff": float(rel.mean()),
                 "close_max_abs_rel_diff": float(rel.max()),
@@ -150,8 +186,10 @@ def main() -> int:
     for k, v in a.items():
         print(f"  {k}: {v}")
 
-    print("Part B: canonical vs EastMoney (independent source, expected diffs)")
+    # 先取数再打标题：标题里的供应商名必须是数据说的，不是我们预设的
     b = part_b()
+    print(f"Part B: canonical vs an independent vendor "
+          f"({describe_sources(b['rows'])}; expected diffs)")
     for r in b["rows"]:
         print(f"  {r}")
 
