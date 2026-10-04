@@ -65,11 +65,10 @@ import pandas as pd
 from factors.base import DERIVED, cached_rebalance_dates, load_factor_data
 from factors.normalization import normalize_panel
 from factors.registry import FACTOR_REGISTRY, FACTORS
-from personal_quant.strategy.features import flatten_columns
+from personal_quant.strategy.features import flatten_columns, read_feature_cache
 from personal_quant.strategy.universe import build_universe
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-FEATURE_CACHE = PROJECT_ROOT / "data" / "derived" / "features"
 OUT = PROJECT_ROOT / "experiments" / "factors" / "independent_info"
 # 本脚本只产出**数据表**（run artifact）；结论与解读写在
 # reports/step9_independent_info.md，不由此脚本覆盖。
@@ -136,12 +135,19 @@ def _summary(series: pd.Series) -> dict:
 
 
 def _load_alpha158(date: pd.Timestamp) -> pd.DataFrame:
-    f = FEATURE_CACHE / f"{date.strftime('%Y-%m')}.parquet"
-    if not f.exists():
+    """读按**日期**存档的特征缓存（feature_YYYY-MM-DD.parquet）。
+
+    这里以前自己拼 `YYYY-MM.parquet`（按月）的路径、不做日期校验 ——
+    同月不同日会互相覆盖，读到的是"该月最后一次写入的那一天"。
+    现在统一走 `read_feature_cache`：任何日期不自洽都视为未命中。
+    """
+    sub = read_feature_cache(date)
+    if sub is None:
         raise FileNotFoundError(
-            f"Alpha158 缓存缺失 {date:%Y-%m}；先跑一次 "
-            f"scripts/backtest_strategy.py 生成 data/derived/features/")
-    return flatten_columns(pd.read_parquet(f))
+            f"Alpha158 缓存缺失 {pd.Timestamp(date):%Y-%m-%d}"
+            f"（按日期存档）；先跑一次 scripts/backtest_strategy.py 生成 "
+            f"data/derived/features/feature_YYYY-MM-DD.parquet")
+    return flatten_columns(sub)
 
 
 # ---------------------------------------------------------------------------

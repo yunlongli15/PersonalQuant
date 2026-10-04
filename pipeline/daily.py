@@ -537,13 +537,15 @@ def task_paper_prediction(ctx: Ctx) -> Tuple[str, str]:
     ctx.store_data["paper_store"] = store
     ctx.store_data["paper_provider"] = provider
 
-    force_rebalance = _is_rebalance(ctx.date, cfg)
-    ctx.store_data["is_rebalance"] = force_rebalance
+    sig = _rebalance_signal_date(ctx.date, cfg)
+    ctx.store_data["rebalance_signal_date"] = (
+        str(sig.date()) if sig is not None else None)
 
     result = run_day(ctx.date, cfg, store, provider, dry_run=ctx.run.dry_run,
-                     force_rebalance=force_rebalance, alerts_fn=check_alerts)
+                     signal_date=sig, alerts_fn=check_alerts)
     ctx.paper = result
     ctx.store_data["paper_result"] = result
+    ctx.store_data["is_rebalance"] = result.is_rebalance
     if result.status == INVALID:
         return INVALID, f"PIT/冻结未通过：{result.audit.get('status')}"
     where = "forward_holdout（正式前瞻）" if ctx.store_data.get(
@@ -556,10 +558,14 @@ def task_paper_prediction(ctx: Ctx) -> Tuple[str, str]:
                     f"订单 {result.n_orders}；成交 {result.n_fills}；"
                     f"位于 {where}")
     if result.pending:
-        return OK, f"预测 {result.n_predictions} 只；订单挂起等 T+1；写入 {where}"
+        # 挂起是**正常状态**，不是失败：T+1 的行情还没进库，下次运行再结算。
+        return OK, (f"预测 {result.n_predictions} 只；订单 {result.n_orders} "
+                    f"笔挂起保持 PENDING，等 T+1 行情到货后结算"
+                    f"（不是失败）；写入 {where}")
     return OK, (f"预测 {result.n_predictions} 只；订单 {result.n_orders}；"
                 f"成交 {result.n_fills}；"
-                f"{'调仓日' if force_rebalance else '监控日'}；写入 {where}")
+                f"{'调仓日' if result.is_rebalance else '监控日'}；"
+                f"写入 {where}")
 
 
 def task_personal_snapshot(ctx: Ctx) -> Tuple[str, str]:
@@ -700,14 +706,23 @@ TASKS: List[Tuple[str, Callable[..., Tuple[str, str]], Tuple[str, ...], bool]] =
 TASK_NAMES = [t[0] for t in TASKS]
 
 
-def _is_rebalance(date: pd.Timestamp, cfg: dict) -> bool:
-    from paper_live.engine import is_rebalance_date
-    try:
-        from factors.base import load_calendar
-        cal = load_calendar()
-    except Exception:                                          # noqa: BLE001
-        return False
-    return is_rebalance_date(date, cfg, cal)
+def _rebalance_signal_date(date: pd.Timestamp, cfg: dict):
+    """今天要补做的那次调仓的**信号日**；没有则 None。
+
+    **不能**用 `is_rebalance_date(date)` 来判断"今天要不要调仓"：
+    交易日历只装已经发生的交易日，所以"今天是不是本月最后一个交易日"
+    在今天当天无法回答（见 paper_live.engine.is_rebalance_date）。
+    等到下个周期的第一个交易日，上一个交易日才被确认 —— 那时以它为
+    信号日补做，而执行正好落在今天开盘。
+
+    日历读不出来时**不吞异常**：那属于"数据链路坏了"，
+    应当让 job store 记 FAILED，而不是悄悄当成"今天不调仓"。
+    """
+    from paper_live.engine import rebalance_signal_date
+
+    from factors.base import load_calendar
+
+    return rebalance_signal_date(date, cfg, load_calendar())
 
 
 # ---------------------------------------------------------------------------

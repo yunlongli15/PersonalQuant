@@ -53,11 +53,10 @@ from incremental.redundancy import (_mean_spearman,
                                     redundancy_diagnostics,
                                     residual_ic)
 from incremental.stats import block_bootstrap, evaluate_gates, evidence_score
-from personal_quant.strategy.features import flatten_columns
+from personal_quant.strategy.features import flatten_columns, read_feature_cache
 from personal_quant.strategy.universe import build_universe
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-FEATURE_CACHE = PROJECT_ROOT / "data" / "derived" / "features"
 M0_PACKS = [
     ("experiments/factors/factor_run_001/factor_pack_v1.json", "selected"),
     ("experiments/news/news_factor_run_001/factor_pack_news_v1.json",
@@ -85,10 +84,17 @@ def load_strategy_config() -> dict:
 
 
 def load_alpha158(date: pd.Timestamp) -> pd.DataFrame:
-    f = FEATURE_CACHE / f"{date.strftime('%Y-%m')}.parquet"
-    if not f.exists():
-        raise FileNotFoundError(f"Alpha158 缓存缺失 {date:%Y-%m}")
-    return flatten_columns(pd.read_parquet(f))
+    """读按**日期**存档的特征缓存（feature_YYYY-MM-DD.parquet）。
+
+    这里以前自己拼 `YYYY-MM.parquet`（按月）的路径、不做日期校验 ——
+    同月不同日会互相覆盖，读到的是"该月最后一次写入的那一天"。
+    现在统一走 `read_feature_cache`：任何日期不自洽都视为未命中。
+    """
+    sub = read_feature_cache(date)
+    if sub is None:
+        raise FileNotFoundError(
+            f"Alpha158 缓存缺失 {pd.Timestamp(date):%Y-%m-%d}（按日期存档）")
+    return flatten_columns(sub)
 
 
 def m0_custom_factors() -> list:

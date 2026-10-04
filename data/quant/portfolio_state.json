@@ -1,7 +1,7 @@
 {
-  "as_of": "2026-09-24",
-  "computed_at": "2026-09-27T20:05:52",
-  "generated_at": "2026-09-27T20:05:51",
+  "as_of": "2026-09-30",
+  "computed_at": "2026-10-04T14:59:56",
+  "generated_at": "2026-10-04T14:59:56",
   "capital": 66000.0,
   "frequency": "monthly",
   "risk_profile": "balanced",
@@ -16,29 +16,56 @@
   "account_capital": 66000.0,
   "sector_cap": 0.2,
   "cash_buffer": 0.05,
-  "total_buy_value": 51451.43,
-  "estimated_fees": 71.24,
-  "remaining_cash": 14477.33,
-  "cash_residual_pct": 0.2194,
-  "expected_gross_return_value": 1020.36,
-  "expected_net_return_value": 852.72,
-  "expected_net_return_pct": 0.0129,
-  "expected_volatility": 0.0246,
+  "total_buy_value": 50056.73,
+  "estimated_fees": 70.53,
+  "remaining_cash": 15872.74,
+  "cash_residual_pct": 0.2405,
+  "expected_gross_return_value": 500.54,
+  "expected_net_return_value": 333.69,
+  "expected_net_return_pct": 0.0051,
+  "expected_volatility": 0.0223,
   "n_positions": 9,
   "exclude_restricted": true,
   "excluded_restricted": [
     {
-      "symbol": "300752.SZ",
-      "name": "隆利科技",
+      "symbol": "688141.SH",
+      "name": "杰华特",
       "raw_rank": 1,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "688233.SH",
+      "name": "神工股份",
+      "raw_rank": 2,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "688702.SH",
+      "name": "盛科通信",
+      "raw_rank": 3,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "301399.SZ",
+      "name": "英特科技",
+      "raw_rank": 4,
       "board": "CHINEXT",
       "board_name": "创业板",
       "capital_required": 100000.0,
       "reason": "需10万元日均资产（当前 6.6万元）"
     },
     {
-      "symbol": "301201.SZ",
-      "name": "诚达药业",
+      "symbol": "301232.SZ",
+      "name": "飞沃科技",
       "raw_rank": 5,
       "board": "CHINEXT",
       "board_name": "创业板",
@@ -46,81 +73,27 @@
       "reason": "需10万元日均资产（当前 6.6万元）"
     },
     {
-      "symbol": "300843.SZ",
-      "name": "胜蓝股份",
+      "symbol": "301319.SZ",
+      "name": "唯特偶",
+      "raw_rank": 6,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "301210.SZ",
+      "name": "金杨精密",
+      "raw_rank": 7,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "300752.SZ",
+      "name": "隆利科技",
       "raw_rank": 8,
-      "board": "CHINEXT",
-      "board_name": "创业板",
-      "capital_required": 100000.0,
-      "reason": "需10万元日均资产（当前 6.6万元）"
-    },
-    {
-      "symbol": "688717.SH",
-      "name": "艾罗能源",
-      "raw_rank": 10,
-      "board": "STAR",
-      "board_name": "科创板",
-      "capital_required": 500000.0,
-      "reason": "需50万元日均资产（当前 6.6万元）"
-    },
-    {
-      "symbol": "301252.SZ",
-      "name": "同星科技",
-      "raw_rank": 11,
-      "board": "CHINEXT",
-      "board_name": "创业板",
-      "capital_required": 100000.0,
-      "reason": "需10万元日均资产（当前 6.6万元）"
-    },
-    {
-      "symbol": "300720.SZ",
-      "name": "海川智能",
-      "raw_rank": 12,
-      "board": "CHINEXT",
-      "board_name": "创业板",
-      "capital_required": 100000.0,
-      "reason": "需10万元日均资产（当前 6.6万元）"
-    },
-    {
-      "symbol": "300558.SZ",
-      "name": "贝达药业",
-      "raw_rank": 13,
-      "board": "CHINEXT",
-      "board_name": "创业板",
-      "capital_required": 100000.0,
-      "reason": "需10万元日均资产（当前 6.6万元）"
-    },
-    {
-      "symbol": "300932.SZ",
-      "name": "三友联众",
-      "raw_rank": 14,
-      "board": "CHINEXT",
-      "board_name": "创业板",
-      "capital_required": 100000.0,
-      "reason": "需10万元日均资产（当前 6.6万元）"
-    },
-    {
-      "symbol": "688521.SH",
-      "name": "芯原股份",
-      "raw_rank": 16,
-      "board": "STAR",
-      "board_name": "科创板",
-      "capital_required": 500000.0,
-      "reason": "需50万元日均资产（当前 6.6万元）"
-    },
-    {
-      "symbol": "301209.SZ",
-      "name": "联合化学",
-      "raw_rank": 18,
-      "board": "CHINEXT",
-      "board_name": "创业板",
-      "capital_required": 100000.0,
-      "reason": "需10万元日均资产（当前 6.6万元）"
-    },
-    {
-      "symbol": "301399.SZ",
-      "name": "英特科技",
-      "raw_rank": 19,
       "board": "CHINEXT",
       "board_name": "创业板",
       "capital_required": 100000.0,
@@ -129,52 +102,79 @@
     {
       "symbol": "301528.SZ",
       "name": "多浦乐",
-      "raw_rank": 23,
+      "raw_rank": 13,
       "board": "CHINEXT",
       "board_name": "创业板",
       "capital_required": 100000.0,
       "reason": "需10万元日均资产（当前 6.6万元）"
     },
     {
-      "symbol": "300668.SZ",
-      "name": "杰恩股份",
-      "raw_rank": 25,
+      "symbol": "301380.SZ",
+      "name": "挖金客",
+      "raw_rank": 14,
       "board": "CHINEXT",
       "board_name": "创业板",
       "capital_required": 100000.0,
       "reason": "需10万元日均资产（当前 6.6万元）"
     },
     {
-      "symbol": "300749.SZ",
-      "name": "顶固集创",
-      "raw_rank": 27,
-      "board": "CHINEXT",
-      "board_name": "创业板",
-      "capital_required": 100000.0,
-      "reason": "需10万元日均资产（当前 6.6万元）"
-    },
-    {
-      "symbol": "301392.SZ",
-      "name": "汇成真空",
-      "raw_rank": 28,
-      "board": "CHINEXT",
-      "board_name": "创业板",
-      "capital_required": 100000.0,
-      "reason": "需10万元日均资产（当前 6.6万元）"
-    },
-    {
-      "symbol": "688559.SH",
-      "name": "海目星",
-      "raw_rank": 33,
+      "symbol": "688766.SH",
+      "name": "普冉股份",
+      "raw_rank": 15,
       "board": "STAR",
       "board_name": "科创板",
       "capital_required": 500000.0,
       "reason": "需50万元日均资产（当前 6.6万元）"
     },
     {
-      "symbol": "688279.SH",
-      "name": "峰岹科技",
-      "raw_rank": 35,
+      "symbol": "688372.SH",
+      "name": "伟测科技",
+      "raw_rank": 16,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "688757.SH",
+      "name": "胜科纳米",
+      "raw_rank": 17,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "300932.SZ",
+      "name": "三友联众",
+      "raw_rank": 18,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "688371.SH",
+      "name": "菲沃泰",
+      "raw_rank": 19,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "301005.SZ",
+      "name": "超捷股份",
+      "raw_rank": 21,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "688795.SH",
+      "name": "摩尔线程",
+      "raw_rank": 22,
       "board": "STAR",
       "board_name": "科创板",
       "capital_required": 500000.0,
@@ -183,15 +183,87 @@
     {
       "symbol": "688172.SH",
       "name": "燕东微",
-      "raw_rank": 37,
+      "raw_rank": 24,
       "board": "STAR",
       "board_name": "科创板",
       "capital_required": 500000.0,
       "reason": "需50万元日均资产（当前 6.6万元）"
     },
     {
-      "symbol": "300438.SZ",
-      "name": "鹏辉能源",
+      "symbol": "301119.SZ",
+      "name": "正强股份",
+      "raw_rank": 25,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "688783.SH",
+      "name": "西安奕材",
+      "raw_rank": 26,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "301362.SZ",
+      "name": "民爆光电",
+      "raw_rank": 27,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "301611.SZ",
+      "name": "珂玛科技",
+      "raw_rank": 28,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "300868.SZ",
+      "name": "杰美特",
+      "raw_rank": 29,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "688548.SH",
+      "name": "广钢气体",
+      "raw_rank": 30,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "301252.SZ",
+      "name": "同星科技",
+      "raw_rank": 32,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "300710.SZ",
+      "name": "万隆光电",
+      "raw_rank": 33,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "301161.SZ",
+      "name": "唯万密封",
       "raw_rank": 40,
       "board": "CHINEXT",
       "board_name": "创业板",
@@ -199,8 +271,17 @@
       "reason": "需10万元日均资产（当前 6.6万元）"
     },
     {
-      "symbol": "300214.SZ",
-      "name": "日科化学",
+      "symbol": "688629.SH",
+      "name": "华丰科技",
+      "raw_rank": 41,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "300136.SZ",
+      "name": "信维通信",
       "raw_rank": 42,
       "board": "CHINEXT",
       "board_name": "创业板",
@@ -208,8 +289,8 @@
       "reason": "需10万元日均资产（当前 6.6万元）"
     },
     {
-      "symbol": "300570.SZ",
-      "name": "太辰光",
+      "symbol": "301151.SZ",
+      "name": "冠龙节能",
       "raw_rank": 43,
       "board": "CHINEXT",
       "board_name": "创业板",
@@ -217,44 +298,71 @@
       "reason": "需10万元日均资产（当前 6.6万元）"
     },
     {
-      "symbol": "301305.SZ",
-      "name": "朗坤科技",
-      "raw_rank": 44,
+      "symbol": "300611.SZ",
+      "name": "美力科技",
+      "raw_rank": 46,
       "board": "CHINEXT",
       "board_name": "创业板",
       "capital_required": 100000.0,
       "reason": "需10万元日均资产（当前 6.6万元）"
     },
     {
-      "symbol": "301106.SZ",
-      "name": "骏成科技",
-      "raw_rank": 53,
+      "symbol": "301589.SZ",
+      "name": "诺瓦星云",
+      "raw_rank": 47,
       "board": "CHINEXT",
       "board_name": "创业板",
       "capital_required": 100000.0,
       "reason": "需10万元日均资产（当前 6.6万元）"
     },
     {
-      "symbol": "300727.SZ",
-      "name": "润禾材料",
-      "raw_rank": 54,
-      "board": "CHINEXT",
-      "board_name": "创业板",
-      "capital_required": 100000.0,
-      "reason": "需10万元日均资产（当前 6.6万元）"
-    },
-    {
-      "symbol": "688686.SH",
-      "name": "奥普特",
-      "raw_rank": 55,
+      "symbol": "688347.SH",
+      "name": "华虹宏力",
+      "raw_rank": 49,
       "board": "STAR",
       "board_name": "科创板",
       "capital_required": 500000.0,
       "reason": "需50万元日均资产（当前 6.6万元）"
     },
     {
-      "symbol": "301111.SZ",
-      "name": "粤万年青",
+      "symbol": "300727.SZ",
+      "name": "润禾材料",
+      "raw_rank": 50,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "300151.SZ",
+      "name": "昌红科技",
+      "raw_rank": 52,
+      "board": "CHINEXT",
+      "board_name": "创业板",
+      "capital_required": 100000.0,
+      "reason": "需10万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "688536.SH",
+      "name": "思瑞浦",
+      "raw_rank": 53,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "688279.SH",
+      "name": "峰岹科技",
+      "raw_rank": 54,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "301266.SZ",
+      "name": "宇邦新材",
       "raw_rank": 56,
       "board": "CHINEXT",
       "board_name": "创业板",
@@ -262,35 +370,44 @@
       "reason": "需10万元日均资产（当前 6.6万元）"
     },
     {
-      "symbol": "301489.SZ",
-      "name": "思泉新材",
-      "raw_rank": 58,
-      "board": "CHINEXT",
-      "board_name": "创业板",
-      "capital_required": 100000.0,
-      "reason": "需10万元日均资产（当前 6.6万元）"
-    },
-    {
-      "symbol": "688775.SH",
-      "name": "影石创新",
-      "raw_rank": 65,
+      "symbol": "688135.SH",
+      "name": "利扬芯片",
+      "raw_rank": 62,
       "board": "STAR",
       "board_name": "科创板",
       "capital_required": 500000.0,
       "reason": "需50万元日均资产（当前 6.6万元）"
     },
     {
-      "symbol": "301379.SZ",
-      "name": "天山电子",
-      "raw_rank": 67,
+      "symbol": "688308.SH",
+      "name": "欧科亿",
+      "raw_rank": 63,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "688362.SH",
+      "name": "甬矽电子",
+      "raw_rank": 64,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "301308.SZ",
+      "name": "江波龙",
+      "raw_rank": 68,
       "board": "CHINEXT",
       "board_name": "创业板",
       "capital_required": 100000.0,
       "reason": "需10万元日均资产（当前 6.6万元）"
     },
     {
-      "symbol": "301282.SZ",
-      "name": "金禄电子",
+      "symbol": "301191.SZ",
+      "name": "菲菱科思",
       "raw_rank": 69,
       "board": "CHINEXT",
       "board_name": "创业板",
@@ -298,26 +415,17 @@
       "reason": "需10万元日均资产（当前 6.6万元）"
     },
     {
-      "symbol": "300499.SZ",
-      "name": "高澜股份",
-      "raw_rank": 71,
-      "board": "CHINEXT",
-      "board_name": "创业板",
-      "capital_required": 100000.0,
-      "reason": "需10万元日均资产（当前 6.6万元）"
+      "symbol": "688221.SH",
+      "name": "前沿生物",
+      "raw_rank": 70,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 6.6万元）"
     },
     {
-      "symbol": "301550.SZ",
-      "name": "斯菱智驱",
-      "raw_rank": 72,
-      "board": "CHINEXT",
-      "board_name": "创业板",
-      "capital_required": 100000.0,
-      "reason": "需10万元日均资产（当前 6.6万元）"
-    },
-    {
-      "symbol": "300429.SZ",
-      "name": "强力新材",
+      "symbol": "300739.SZ",
+      "name": "明阳电路",
       "raw_rank": 73,
       "board": "CHINEXT",
       "board_name": "创业板",
@@ -325,8 +433,8 @@
       "reason": "需10万元日均资产（当前 6.6万元）"
     },
     {
-      "symbol": "300782.SZ",
-      "name": "卓胜微",
+      "symbol": "300820.SZ",
+      "name": "英杰电气",
       "raw_rank": 74,
       "board": "CHINEXT",
       "board_name": "创业板",
@@ -334,144 +442,36 @@
       "reason": "需10万元日均资产（当前 6.6万元）"
     },
     {
-      "symbol": "688239.SH",
-      "name": "航宇科技",
-      "raw_rank": 80,
+      "symbol": "688692.SH",
+      "name": "达梦数据",
+      "raw_rank": 75,
       "board": "STAR",
       "board_name": "科创板",
       "capital_required": 500000.0,
       "reason": "需50万元日均资产（当前 6.6万元）"
     },
     {
-      "symbol": "688795.SH",
-      "name": "摩尔线程",
+      "symbol": "688545.SH",
+      "name": "兴福电子",
+      "raw_rank": 79,
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 6.6万元）"
+    },
+    {
+      "symbol": "301013.SZ",
+      "name": "利和兴",
       "raw_rank": 85,
-      "board": "STAR",
-      "board_name": "科创板",
-      "capital_required": 500000.0,
-      "reason": "需50万元日均资产（当前 6.6万元）"
-    },
-    {
-      "symbol": "688209.SH",
-      "name": "英集芯",
-      "raw_rank": 89,
-      "board": "STAR",
-      "board_name": "科创板",
-      "capital_required": 500000.0,
-      "reason": "需50万元日均资产（当前 6.6万元）"
-    },
-    {
-      "symbol": "301526.SZ",
-      "name": "国际复材",
-      "raw_rank": 92,
       "board": "CHINEXT",
       "board_name": "创业板",
       "capital_required": 100000.0,
       "reason": "需10万元日均资产（当前 6.6万元）"
     },
     {
-      "symbol": "301591.SZ",
-      "name": "肯特股份",
-      "raw_rank": 94,
-      "board": "CHINEXT",
-      "board_name": "创业板",
-      "capital_required": 100000.0,
-      "reason": "需10万元日均资产（当前 6.6万元）"
-    },
-    {
-      "symbol": "301042.SZ",
-      "name": "安联锐视",
-      "raw_rank": 97,
-      "board": "CHINEXT",
-      "board_name": "创业板",
-      "capital_required": 100000.0,
-      "reason": "需10万元日均资产（当前 6.6万元）"
-    },
-    {
-      "symbol": "688275.SH",
-      "name": "万润新能",
-      "raw_rank": 98,
-      "board": "STAR",
-      "board_name": "科创板",
-      "capital_required": 500000.0,
-      "reason": "需50万元日均资产（当前 6.6万元）"
-    },
-    {
-      "symbol": "300390.SZ",
-      "name": "天华新能",
-      "raw_rank": 101,
-      "board": "CHINEXT",
-      "board_name": "创业板",
-      "capital_required": 100000.0,
-      "reason": "需10万元日均资产（当前 6.6万元）"
-    },
-    {
-      "symbol": "300508.SZ",
-      "name": "维宏股份",
-      "raw_rank": 102,
-      "board": "CHINEXT",
-      "board_name": "创业板",
-      "capital_required": 100000.0,
-      "reason": "需10万元日均资产（当前 6.6万元）"
-    },
-    {
-      "symbol": "300786.SZ",
-      "name": "国林科技",
-      "raw_rank": 103,
-      "board": "CHINEXT",
-      "board_name": "创业板",
-      "capital_required": 100000.0,
-      "reason": "需10万元日均资产（当前 6.6万元）"
-    },
-    {
-      "symbol": "300976.SZ",
-      "name": "达瑞电子",
-      "raw_rank": 105,
-      "board": "CHINEXT",
-      "board_name": "创业板",
-      "capital_required": 100000.0,
-      "reason": "需10万元日均资产（当前 6.6万元）"
-    },
-    {
-      "symbol": "301046.SZ",
-      "name": "能辉科技",
-      "raw_rank": 106,
-      "board": "CHINEXT",
-      "board_name": "创业板",
-      "capital_required": 100000.0,
-      "reason": "需10万元日均资产（当前 6.6万元）"
-    },
-    {
-      "symbol": "301183.SZ",
-      "name": "东田微",
-      "raw_rank": 108,
-      "board": "CHINEXT",
-      "board_name": "创业板",
-      "capital_required": 100000.0,
-      "reason": "需10万元日均资产（当前 6.6万元）"
-    },
-    {
-      "symbol": "300751.SZ",
-      "name": "迈为股份",
-      "raw_rank": 113,
-      "board": "CHINEXT",
-      "board_name": "创业板",
-      "capital_required": 100000.0,
-      "reason": "需10万元日均资产（当前 6.6万元）"
-    },
-    {
-      "symbol": "300547.SZ",
-      "name": "川环科技",
-      "raw_rank": 114,
-      "board": "CHINEXT",
-      "board_name": "创业板",
-      "capital_required": 100000.0,
-      "reason": "需10万元日均资产（当前 6.6万元）"
-    },
-    {
-      "symbol": "300154.SZ",
-      "name": "瑞凌股份",
-      "raw_rank": 118,
+      "symbol": "300720.SZ",
+      "name": "海川智能",
+      "raw_rank": 86,
       "board": "CHINEXT",
       "board_name": "创业板",
       "capital_required": 100000.0,
@@ -495,45 +495,45 @@
     "scans": [
       {
         "top_k": 3,
-        "invested": 0.865475,
+        "invested": 0.7780296969696969,
         "n_positions": 3,
-        "expected_net_return_pct": 0.0233
+        "expected_net_return_pct": 0.0152
       },
       {
         "top_k": 4,
-        "invested": 0.8485574242424243,
+        "invested": 0.8492792424242425,
         "n_positions": 4,
-        "expected_net_return_pct": 0.0226
+        "expected_net_return_pct": 0.0158
       },
       {
         "top_k": 5,
-        "invested": 0.806135606060606,
-        "n_positions": 5,
-        "expected_net_return_pct": 0.021
+        "invested": 0.6945243939393939,
+        "n_positions": 4,
+        "expected_net_return_pct": 0.0102
       },
       {
         "top_k": 6,
-        "invested": 0.7703154545454546,
-        "n_positions": 6,
-        "expected_net_return_pct": 0.0193
+        "invested": 0.7351268181818182,
+        "n_positions": 5,
+        "expected_net_return_pct": 0.0092
       },
       {
         "top_k": 7,
-        "invested": 0.8252336363636363,
-        "n_positions": 7,
-        "expected_net_return_pct": 0.0186
+        "invested": 0.6639512121212121,
+        "n_positions": 6,
+        "expected_net_return_pct": 0.0065
       },
       {
         "top_k": 8,
-        "invested": 0.7590221212121212,
-        "n_positions": 8,
-        "expected_net_return_pct": 0.0151
+        "invested": 0.7102546969696969,
+        "n_positions": 7,
+        "expected_net_return_pct": 0.0059
       },
       {
         "top_k": 10,
-        "invested": 0.7795671212121212,
+        "invested": 0.758435303030303,
         "n_positions": 9,
-        "expected_net_return_pct": 0.0129
+        "expected_net_return_pct": 0.0051
       }
     ]
   }

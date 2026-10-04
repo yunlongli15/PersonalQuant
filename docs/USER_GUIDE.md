@@ -16,6 +16,7 @@
 7. [数据状态与刷新](#7-数据状态与刷新)
 8. [常见问题](#8-常见问题)
 9. [本系统的边界（务必阅读）](#9-本系统的边界务必阅读)
+10. [daily_exit_paper_v1 前瞻实验](#10-daily_exit_paper_v1-前瞻实验)
 
 ---
 
@@ -374,3 +375,106 @@ A：GUI → Settings → "Back up wealth database"（生成
    未建模冲击成本）；实盘会有滑点与流动性差异。
 7. **永远自己决策**。系统给区间、给理由、给风险边界，
    最终是否买卖由你判断并承担后果。
+
+---
+
+## 10. daily_exit_paper_v1 前瞻实验
+
+> **状态：已就绪，尚未启动。** 启动需要两个只有你能给的东西：
+> **初始本金** 与 **正式起始日**。系统不会替你选。
+
+### 它是什么
+
+一套**独立于** monthly paper_live 的前瞻模拟实验，用来在真实市场里检验
+「S3 信号 + 有明确出场规则」的组合：
+
+```text
+strategy_v2 / S3 信号（冻结，只读）
+   → 每日推荐（Top-K=20，空缺席位等权）
+   → T+1 限价入场（限价 = 可接受区间上沿）
+   → 持仓：target / stop / time-stop（40 个交易日）
+   → 平仓 → 现金回流 → 下一轮
+```
+
+**它与 monthly paper_live 完全独立**：不同的目录、不同的账本、不同的执行语义，
+互不读写。也**不读**你的财富库或任何人工交易记录。
+
+### 怎么运行
+
+```bash
+source .venv/Scripts/activate
+
+# 每天的固定三步（第三步只在你确认后执行）
+python scripts/quant/refresh_all.py            # ① 更新数据与信号
+python scripts/run_daily.py                    # ② 每日流水线
+python scripts/quant/run_daily_exit_paper.py   # ③ 推进实验（几秒）
+
+# 只看不改
+python scripts/quant/run_daily_exit_paper.py --dry-run     # 空跑，磁盘零变化
+python scripts/quant/run_daily_exit_paper.py --preflight   # 只做上线前检查
+python scripts/quant/run_daily_exit_paper.py --show-state  # 只看当前状态
+python scripts/quant/run_daily_exit_paper.py --reconcile   # 只对账
+```
+
+**首次启动**（只做一次，本金一旦写入就永久锁定）：
+
+```bash
+python scripts/quant/run_daily_exit_paper.py --capital <你的本金>
+```
+
+### 它保证什么（这些都有测试锁死）
+
+| 保证 | 含义 |
+|---|---|
+| **T+1** | T 日收盘出信号，T+1 开盘才可能成交。绝不当天买 |
+| **限价入场** | 开盘价低于限价 → 按**开盘价**成交（价格改善）；全天高于限价 → 不成交（终态，不追） |
+| **目标/止损锁定** | 入场成交时按**实际成交价**锚定并**冻结**。之后再生成推荐也**改不动**它 |
+| **同日不卖** | 当天买入的股票当天不能卖（A 股 T+1 制度） |
+| **跳空保守** | 开盘跳过目标价/止损价 → 一律按**开盘价**成交，不假装能按挂单价成交 |
+| **同日双触发** | 日线不知道盘中先后 → **一律按止损**（保守） |
+| **绝不用收盘价成交** | 收盘价是收盘才知道的，挂单不会等它 |
+| **对账失败即报错** | 现金与账本对不上就停下来，**绝不自动改账** |
+| **不可变快照** | 每天的推荐写一次就不再改，连你自己也覆盖不了 |
+
+### 人工干预（可选）
+
+缺省 = **完全采纳系统建议**。想改的话，在
+`experiments/daily_exit_paper_v1/decisions/<信号日>.json` 写：
+
+```json
+{"signal_date": "2026-10-08", "default_action": "ADOPT_ALL",
+ "decisions": [{"symbol": "601086.SH", "action": "SKIP",
+                "override_reason": "不想买这只"},
+               {"symbol": "601998.SH", "action": "MODIFY",
+                "limit_price": 9.00, "quantity": 300,
+                "override_reason": "挂低一点"}]}
+```
+
+- `action` 只能是 `ADOPT` / `SKIP` / `MODIFY`；
+- `SKIP` 和 `MODIFY` **必须写 `override_reason`**；
+- **你的修改不会写回系统建议** —— 所以"如果完全照系统做会怎样"永远可回答。
+- 实际成交回填到 `executions/<信号日>.json`（三层分开存）。
+
+### 每天产出什么
+
+- 终端：`DAILY EXIT PAPER` 报告（三个时间、组合、持仓、挂单、成交、费用、对账）
+- 文件：`reports/daily_exit_paper_v1/daily_<日期>.md`
+- 账本：`experiments/daily_exit_paper_v1/ledger.jsonl`（append-only）
+
+### 规矩（很重要）
+
+1. **代码冻结**。实验开始后，除非发现真实 bug，**不改任何交易规则**：
+   不改 Top-K、不改 horizon、不改 target/stop、不改仓位规模、不改成本模型。
+2. **禁止短期调参**。连续止损 5 笔不改规则，连续盈利 5 笔也不加仓位。
+   规则固定、市场真实变化、观察结果 —— 这才是实验的意义。
+3. **改规则 = 新建版本**（`daily_exit_paper_v1.1`），新目录、新账本；
+   绝不改完继续叫 v1。
+4. **不删记录**。错误也必须保留。已经影响成交/现金/持仓的 bug →
+   **停止实验**先审计，不得手工改 ledger。
+5. 任何 bug / 人工干预 / 数据中断 / 漏跑 / 异常成交都记到
+   `experiments/daily_exit_paper_v1/incidents.md`。
+
+### 关于"每天要盯盘吗"
+
+不用。`run_daily_exit_paper.py` 几秒钟跑完，会告诉你：昨天挂的单成交了没有、
+持仓有没有触发目标价/止损、今晚要挂什么单。你只需要在下单时打开券商 APP。

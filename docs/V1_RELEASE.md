@@ -1,6 +1,10 @@
-# PersonalQuant V1.0.0 发布说明
+# PersonalQuant 发布说明
 
-**发布日期：2026-09-19** ｜ `cat VERSION` → `1.0.0`
+**最新：V1.1.0（2026-10-04）** ｜ `cat VERSION` → `1.1.0` ｜
+本版重点见 [§18](#18-v110--执行链专项审计--独立前瞻实验2026-10-04)
+（执行链三个 CRITICAL bug 修复 + `daily_exit_paper_v1` 独立前瞻实验 + 代码冻结）。
+
+**首版：V1.0.0（2026-09-19）** ｜ 以下为 V1.0.0 的原始说明。
 
 > 一个**完全本地运行**的个人投资研究、组合管理与决策辅助终端。
 > 不连接券商、不自动下单、不涉及真实资金操作。
@@ -370,3 +374,108 @@ retries`。这也解释了更早那些 "Unable to allocate 13 MB" 的诡异报�
 测试：`tests/strategy/test_quarter_worker_retry.py`（+6）、
 `tests/pipeline/test_refresh_jobs.py`（+5）。`verify_step12.py` 24/24 PASS。
 
+
+---
+
+## 18. v1.1.0 — 执行链专项审计 + 独立前瞻实验（2026-10-04）
+
+一次大更新：从"修 bug"转到"建立一个可被检验的实验对象"。
+**本版之后，交易逻辑正式冻结**（见 §18.6）。
+
+### 18.1 三个执行层 CRITICAL bug（PHASE 1–4）
+
+对现有 monthly paper_live 做了代码级专项审计，发现它**从未真正成交过一笔**：
+
+| # | 缺陷 | 影响 |
+|---|---|---|
+| **C1** | T 日晚上算不出 T+1（日历里只有已发生的交易日）→ `exec_date=None` → 下次运行 `pd.Timestamp(None)` 得到 **`NaT`** 绕过守卫 → DuckDB 类型错误被 `except Exception: return False` 吞掉；而每次运行又**无条件覆盖**挂单文件 | 3 次前瞻观测 × 20 笔订单 = 60 笔，**成交 0 笔**；09-18 / 09-24 两批挂单无声消失 |
+| **C2** | `is_rebalance_date` 用 `[d-70天, d]` 的窗口算"本月最后一个交易日"，右端点就是 `d` 自己 → **任何交易日都返回 True** | 2026-08 全月 21 个交易日里 **20 个被误判**；同一个月被当成三个"月末" |
+| **C3** | 特征缓存按**月**命名、内容却是"该月最后一次写入的那一天"，读取时零校验；`cache=False` 重算后**照样写共享月文件** | 请求 09-18 会静默拿到 09-29 的横截面 —— **当天正着跑时保守，事后回放时是真实的前视泄漏** |
+
+**修复要点**
+
+- C1：挂单三态 `READY / NOT_YET / ERROR`，判定完全显式；`except Exception: return False`
+  在挂单路径上全面移除；挂单文件改**读-改-写** + 稳定 `order_id` 去重 + `attempts` 留痕；
+  旧格式挂单**归档不结算**；账本成为真相（`cash == 账本重算`，对不上就 raise，**绝不自动改账**）。
+- C2：改成纯函数"`d` 之后的第一个**已观测**交易日是否落在下个周期"；
+  日历里还没有下一个交易日时**保守返回 False**（"本月是否结束"当天答不出来）。
+  新增 `rebalance_signal_date()` 把**信号日**与**确认日/运行日**分开 ——
+  调仓信号仍是上月末，执行落在下月首日开盘。
+- C3：`feature_<YYYY-MM-DD>.parquet` + 文件内 `feature_date` 列，**读写两侧都校验**；
+  空切片不落盘；`cache=False` 只写自己那一天的文件。旧 132 个月度文件原样保留、新 loader 永不读取。
+
+### 18.2 历史 3 条前瞻观测的处置
+
+**不删除、不覆盖、不重跑、不补成交。** 逐条重建时间线确认：三条观测用的是
+**更旧**的特征（保守方向），**未发生前视泄漏**；但它们是被 C1/C2/C3 污染过的
+记录，只能作为**缺陷证据**，不是有效业绩样本。
+
+### 18.3 新增：`daily_exit_paper_v1` 独立前瞻实验
+
+一套与 monthly paper_live **完全独立**（不 import、不共享状态）的 forward 实验：
+
+```text
+strategy_v2 / S3（冻结只读）
+  → 每日推荐（Top-K=20，空缺席位等权）
+  → T+1 限价入场（限价 = 区间上沿；开盘更低则按开盘价 = 价格改善）
+  → target / stop / time-stop(40 交易日)
+  → 平仓 → 现金回流 → 下一轮
+```
+
+- **9 个模块 / 2,400 余行**，order / position / cash / lifecycle 全部自己管理。
+- 市场数据**注入式**（`LiveMarket` / 测试 `FakeMarket`），整条状态机毫秒级可测。
+- **追加式账本** + 每次运行对账（7 条恒等式）；**先写 state 再写账本**，
+  崩溃时账本落后 → 下次大声报错，**不会重放同一段交易日导致重复记账**。
+- **追赶**（漏跑几天）逐日重放 —— 漏跑期间触发的止损会被补在**正确的日子**上；
+  但**冷启动绝不补历史**（3 条测试锁死）。
+- **人工干预三层分离**（recommendation / decision / execution），
+  用户的修改**不写回系统建议**。
+- **出场语义**：目标/止损是挂在市场上的 resting order，触发当天按 OHLC 原子判定
+  （跳空一律用开盘价，**绝不用收盘价冒充成交价**）；同日双触发**一律按止损**（保守）；
+  **同日禁卖**（A 股 T+1）；时间止损是收盘决策 → **次日开盘**成交。
+- **全程可追溯**：signal → order → fill → position → exit → cash → ledger，每一环都带日期。
+
+### 18.4 配置与冻结
+
+`config/daily_exit_paper_v1.yaml` 的每个数值都是**继承**的，不是新选的：
+
+```text
+signal_horizon_days = 20   ← strategy_v2.label_horizon_days
+top_k               = 20   ← strategy_v2.portfolio.top_k
+risk_profile        = balanced  ← trade_plan 既有默认档
+time_stop.days      = 40   ← plan.py 的 horizon×2 定义
+transaction_costs          ← 与 paper_live 逐字相同（有测试断言）
+```
+
+首次运行锁定本金与配置哈希；之后改本金/改配置**直接拒绝**，只能新建版本。
+
+### 18.5 本版新增的测试与验证
+
+```text
+tests/daily_exit_paper/     8 个文件 / 104 条
+tests/forward/              +23 条（C1 挂单生命周期 9、C2 调仓日 14）
+tests/strategy/             +13 条（C3 缓存契约）
+全量                        1160 passed / 0 failed（v1.0.5 时是 1020）
+```
+
+真实数据影子验证（PHASE 6）：09-24 → 09-28 跨中秋假期 **20 笔成交**、
+成交价与执行日开盘价 **20/20 精确相符**、账本现金精确对账；
+目标/止损判定的**六个分支全部在真实 bar 上被走到过**。
+
+### 18.6 代码冻结（本版最重要的变化）
+
+从 v1.1.0 起，`daily_exit_paper_v1` 的**交易规则正式冻结**：
+
+```text
+strategy_v2 / S3 / horizon / Top-K / risk profile / 入场规则 /
+target 规则 / stop 规则 / time stop / 成本模型 / 仓位规模 /
+T+1 规则 / 状态机 / 记账
+```
+
+**禁止**因为最近几笔盈亏而调整任何一项。改规则 = **新建
+`daily_exit_paper_v1.1`**，新目录、新账本；绝不改完继续叫 v1。
+任何 bug / 人工干预 / 数据中断 / 漏跑 / 异常成交都记入
+`experiments/daily_exit_paper_v1/incidents.md`。
+
+> PersonalQuant 不再"每天被改得更好"，而是作为一个**固定的实验对象**接受市场检验。
+> 只有这样，将来得到的收益率才有实验意义。

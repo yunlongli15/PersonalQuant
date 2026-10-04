@@ -98,11 +98,17 @@ def main() -> int:
 
     # evidence from cached artifacts
     if FEATURE_CACHE.exists():
+        # 两种格式并存：旧的 `YYYY-MM.parquet`（按月的单日切片，日期不可查）
+        # 与新的 `feature_YYYY-MM-DD.parquet`（按日期，自证日期）。
+        # 这里只是清点证据，不读内容，所以格式说明必须与事实一致。
         files = sorted(FEATURE_CACHE.glob("*.parquet"))
         if files:
+            dated = [f for f in files if f.stem.startswith("feature_")]
             lines.append("")
-            lines.append(f"feature cache: {len(files)} monthly slices, "
-                         f"first {files[0].stem}, last {files[-1].stem}")
+            lines.append(
+                f"feature cache: {len(files)} slices "
+                f"({len(dated)} date-keyed, {len(files) - len(dated)} legacy "
+                f"monthly), first {files[0].stem}, last {files[-1].stem}")
     lines.append("")
     n_pass = sum(ok for _, ok in results)
     lines.append(f"**{n_pass}/{len(results)} checks PASS**")

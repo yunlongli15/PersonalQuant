@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import _runner
 from paper_live.alerts import check_alerts
-from paper_live.engine import run_day
+from paper_live.engine import rebalance_signal_date, run_day
 
 
 def main() -> int:
@@ -32,9 +32,13 @@ def main() -> int:
 
     cfg, store, provider = _runner.build(validation=args.validation)
     d = _runner.resolve_signal_date(provider, args.date)
+    # 今天是不是调仓日，今天**答不出来**（日历里只有已经发生的交易日）。
+    # 等到下个周期第一个交易日，上一个交易日才被确认 —— 那时以它为信号日
+    # 补做这次调仓，执行正好落在今天开盘。见 paper_live.engine。
+    sig = rebalance_signal_date(d, cfg, provider.trading_calendar())
     try:
         result = run_day(d, cfg, store, provider, dry_run=args.dry_run,
-                         alerts_fn=check_alerts)
+                         signal_date=sig, alerts_fn=check_alerts)
     except (PermissionError, ValueError) as e:
         print(f"[REFUSED] {e}")
         return 2

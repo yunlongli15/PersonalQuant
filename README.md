@@ -17,9 +17,15 @@ A股数据 → 数据清洗与本地数据库 → 因子计算与因子挖掘 �
 
 **STEP 1 ✅ / STEP 2 ✅ / STEP 3 ✅ / STEP 4 ✅ / STEP 5 ✅ / STEP 6 ✅ /
 STEP 7 ✅ / STEP 9 ✅ / STEP 10 ✅ / STEP 11 ✅ / STEP 12 ✅**
-— **V1.0.0**（`cat VERSION`）。
+— **V1.1.0**（`cat VERSION`）。
 📄 发布说明 [docs/V1_RELEASE.md](docs/V1_RELEASE.md) ｜
 🔒 冻结规则 [docs/V1_FREEZE.md](docs/V1_FREEZE.md)
+
+> 🧪 **`daily_exit_paper_v1` —— 独立前瞻实验**（V1.1.0 新增）：
+> 与 monthly paper_live 完全独立的 forward 模拟盘，S3 信号 + T+1 限价入场 +
+> target / stop / time-stop 出场。**交易规则已冻结**，见
+> [使用说明第 10 节](docs/USER_GUIDE.md#10-daily_exit_paper_v1-前瞻实验)。
+> 状态：**已就绪，等待启动**（需要明确的初始本金与起始日）。
 
 > 📖 **使用说明书：[docs/USER_GUIDE.md](docs/USER_GUIDE.md)** —— 怎么用、
 > 面板每个数字什么意思、板块交易权限、常见问题、系统边界。

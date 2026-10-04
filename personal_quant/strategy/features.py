@@ -2,7 +2,8 @@
 """Alpha158 feature pipeline over the canonical layer + 20d label.
 
 - features: qlib official Alpha158 handler, computed per QUARTER (the handler
-  needs trailing windows), month-end slices cached to data/derived/features
+  needs trailing windows); each slice cached to
+  data/derived/features/feature_<YYYY-MM-DD>.parquet
 - label: future 20-trading-day adjusted return computed from canonical
   (close[t+20]*factor[t+20])/(close[t]*factor[t]) - 1; strictly future-only
 """
@@ -24,6 +25,71 @@ FEATURE_CACHE = PROJECT_ROOT / "data" / "derived" / "features"
 LABEL_CACHE = PROJECT_ROOT / "data" / "derived" / "labels"
 
 ALPHA158_COLS = None  # populated on first computation
+
+#: 缓存文件内部自述日期的列名。文件名的日期只是外壳，内容自己也要能自证 ——
+#: 文件被复制、改名、手工搬运之后仍然可以判断它到底是哪一天。
+FEATURE_DATE_COL = "feature_date"
+
+
+def feature_cache_path(date) -> Path:
+    """按**日期**命名的特征缓存路径。
+
+    旧格式 `YYYY-MM.parquet` 只带月份，而文件内容其实是"该月最后一次写入
+    的那一天"：同月不同日互相覆盖，读取时又无从校验 —— 于是请求
+    2026-09-18 会静默拿到 2026-09-29 的横截面（2026-09 实际发生，
+    见 reports/daily_exit_paper_v1_audit.md §3.3）。
+
+    新格式把日期写进文件名，文件内再存一列 `feature_date`，读写两侧都校验。
+    旧文件**不删除、不迁移**，保留为历史证据，但新 loader 永不读它们。
+    """
+    return FEATURE_CACHE / "feature_{}.parquet".format(
+        pd.Timestamp(date).strftime("%Y-%m-%d"))
+
+
+def _date_col_key(df: pd.DataFrame):
+    """`feature_date` 列在（可能是 MultiIndex 的）列索引里的实际键。"""
+    for c in df.columns:
+        name = c[0] if isinstance(c, tuple) else c
+        if str(name) == FEATURE_DATE_COL:
+            return c
+    return None
+
+
+def strip_cache_metadata(df: pd.DataFrame) -> pd.DataFrame:
+    """摘掉缓存自带的 `feature_date` 列，还原成"纯特征矩阵"。
+
+    调用方拿到的东西必须和加这列之前一模一样（158 列 Alpha158），
+    否则模型的特征列校验与 `n_features` 统计都会被这列污染。
+    """
+    key = _date_col_key(df)
+    return df.drop(columns=[key]) if key is not None else df
+
+
+def read_feature_cache(date) -> Optional[pd.DataFrame]:
+    """读某一天的日期化缓存；任何不自洽都视为**未命中**。
+
+    唯一的放行条件：文件名日期 == 文件内 `feature_date` == 请求日期。
+    不一致 -> 打印警告并返回 None（调用方会重算），
+    **绝不返回错误日期的特征**。
+
+    返回的是**剥离了元数据列**的纯特征矩阵 —— 调用方拿到的东西与加
+    `feature_date` 之前完全一致，不需要记得再摘一次。
+
+    非交易日不落盘（见 worker），所以这里返回 None 是正常情况，不是错误。
+    """
+    p = feature_cache_path(date)
+    if not p.exists():
+        return None
+    want = pd.Timestamp(date).strftime("%Y-%m-%d")
+    sub = pd.read_parquet(p)
+    key = _date_col_key(sub)
+    stored = str(sub[key].iloc[0]) if key is not None and len(sub) else None
+    if stored != want:
+        print(f"[features] WARNING 缓存日期不匹配：请求 {want}，"
+              f"{p.name} 内记录的是 {stored!r} —— 视为未命中并重算"
+              f"（绝不返回错误日期的特征）", flush=True)
+        return None
+    return strip_cache_metadata(sub)
 
 
 def flatten_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -72,6 +138,7 @@ def main():
     raw["symbol"] = raw["qlib_symbol"].map(
         lambda s: normalize_symbol(s) if isinstance(s, str) else None)
     raw = raw.drop(columns=["qlib_symbol"])
+    written = 0
     for d in dates:
         sub = raw[raw["datetime"] == d].drop(columns=["datetime"])
         sub = sub.set_index("symbol").sort_index()
@@ -81,8 +148,16 @@ def main():
         label_cols = [c for c in sub.columns if str(c[0]) == "label"]
         if label_cols:
             sub = sub.drop(columns=label_cols)
-        sub.to_parquet(Path(r"{cache_dir}") / f"{{d.strftime('%Y-%m')}}.parquet")
-    print("WROTE", len(raw))
+        # 非交易日 / 股票池当天没有行情 -> **不落盘**。写一个空文件会让
+        # 后续读者把它当成有效缓存（2024-01 被覆盖成 2 行就是这样发生的）。
+        if len(sub) == 0:
+            continue
+        # 日期写进文件内部：文件名只是外壳，内容自己也要能自证。
+        sub[("feature_date", "")] = d.strftime("%Y-%m-%d")
+        name = "feature_" + d.strftime("%Y-%m-%d") + ".parquet"
+        sub.to_parquet(Path(r"{cache_dir}") / name)
+        written += 1
+    print("WROTE", written)
 
 
 if __name__ == "__main__":
@@ -206,22 +281,23 @@ def compute_features(
     """Compute Alpha158 features at the given dates.
 
     Dates are grouped by quarter; the handler runs once per quarter over
-    [quarter_start-lookback, quarter_end], and month-end rows are sliced.
-    Results cached to data/derived/features/YYYY-MM.parquet (DERIVED layer).
+    [quarter_start-lookback, quarter_end], and the requested rows are sliced.
+    Results cached to data/derived/features/feature_<YYYY-MM-DD>.parquet
+    (DERIVED layer) — one file per DATE, self-describing (see
+    `read_feature_cache`).
+
+    `cache=False` 表示"不读缓存"，但计算结果**仍然只写它自己那一天的文件** ——
+    它绝不覆盖别的日期的缓存（旧实现的 `cache=False` 会把共享的月文件改写掉，
+    这正是 2026-09-18/09-24 两次前瞻观测吃到错误日期特征的机制）。
     """
     global ALPHA158_COLS
     FEATURE_CACHE.mkdir(parents=True, exist_ok=True)
     out: Dict[pd.Timestamp, pd.DataFrame] = {}
     todo: List[pd.Timestamp] = []
     for d in dates:
-        f = FEATURE_CACHE / f"{d.strftime('%Y-%m')}.parquet"
-        if cache and f.exists():
-            sub = pd.read_parquet(f)
-            # older cache files may carry the (label, LABEL0) column
-            label_cols = [c for c in sub.columns if str(c[0]) == "label"]
-            if label_cols:
-                sub = sub.drop(columns=label_cols)
-            out[d] = sub
+        sub = read_feature_cache(d) if cache else None
+        if sub is not None:
+            out[d] = strip_cache_metadata(sub)
         else:
             todo.append(d)
 
@@ -251,10 +327,14 @@ def compute_features(
                   f"{len(q_insts)}/{len(instruments)} instruments", flush=True)
         _compute_quarter_subprocess(q_insts, gd, kernels=kernels, verbose=verbose)
         for d in gd:
-            out[d] = pd.read_parquet(
-                FEATURE_CACHE / f"{d.strftime('%Y-%m')}.parquet"
-            )
-            if ALPHA158_COLS is None:
+            sub = read_feature_cache(d)
+            if sub is None:
+                # 该日没有行情（非交易日 / 整池停牌）：worker 不落盘，
+                # 这里也不编造空文件 —— 调用方按"这天没有特征"处理。
+                out[d] = pd.DataFrame()
+                continue
+            out[d] = strip_cache_metadata(sub)
+            if ALPHA158_COLS is None and not out[d].empty:
                 ALPHA158_COLS = list(out[d].columns)
     return out
 
