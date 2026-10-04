@@ -1,0 +1,12 @@
+{
+  "experiment_id": "daily_exit_paper_v1",
+  "strategy_version": "daily_exit_paper_v1",
+  "base_strategy": "strategy_v2",
+  "initial_capital": 100000.0,
+  "first_signal_date": "2026-09-30",
+  "config_sha256": "b1d42beee295f39a387f6c90352ca245962307f99cb4ea70ff3c71c62a608950",
+  "git_commit": "7be5eff9530200b145d55b7a3608c3384327c2aa",
+  "git_dirty": true,
+  "working_tree": "dirty",
+  "created_at": "2026-10-04T12:28:17.652809+00:00"
+}

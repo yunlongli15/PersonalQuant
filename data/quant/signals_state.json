@@ -1,6 +1,6 @@
 {
   "as_of": "2026-09-30",
-  "computed_at": "2026-10-04T20:04:44",
+  "computed_at": "2026-10-04T20:25:30",
   "n_symbols": 2978,
   "model": "experiments\\news\\strategy\\model.txt",
   "model_version": "strategy_v2/S3",
