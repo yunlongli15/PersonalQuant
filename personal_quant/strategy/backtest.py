@@ -134,7 +134,6 @@ class MonthlyBacktest:
                 fee = self.cost.sell_cost(value)
                 cash += value - fee
                 del positions[sym]
-                traded_value += value
                 fills_by_date.setdefault(t1, []).append(
                     {"symbol": sym, "shares": -sell, "price": res.fill_price,
                      "cash_delta": value - fee}
@@ -148,6 +147,15 @@ class MonthlyBacktest:
                 )
 
             px_t = self._px(list(set(positions) | set(picks.index)), t)
+            # 换手的**冻结口径**：只算保留标的的加/减仓成交额，
+            # 不含上面那些清仓卖出。这不是遗漏 —— 含清仓的口径在
+            # portfolio/backtest.py 里单独记为 turnover_full（见该文件
+            # 模块 docstring 第 14-15 行），两种口径都如实报告。
+            #
+            # 这里原本还有一行 `traded_value += value` 写在清仓分支里，
+            # 但紧接着就被这一行归零、而唯一读取点在下面 —— 那行从未生效，
+            # 却让读代码的人以为清仓被算进了换手。2026-10-05 删掉，
+            # 行为零变化（值在被读之前必然被覆盖）。
             traded_value = 0.0
             for sym in picks.index:
                 est_px = px_t.get(sym)
