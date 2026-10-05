@@ -40,8 +40,16 @@ def test_weekly_due_across_iso_weeks(jobstore):
     weekly = next(t for t in scheduler.SCHEDULE if t.cadence == "weekly")
     jobs.run_job(weekly.job, lambda: "ok", conn=jobstore)
     # same ISO week -> not due; a later week -> due
-    last = jobs.last_run(jobstore, weekly.job)["finished_at"][:10]
-    y, w, _ = datetime.fromisoformat(last).date().isocalendar()
+    #
+    # 这里原本写的是 `["finished_at"][:10]`，即直接截字符串当成日期用。
+    # 记录是 UTC 且带 `T` 分隔符，`[:10]` 拿到的是 **UTC 日期**，而
+    # is_due 比较的是**市场日**（Asia/Shanghai）—— 沪 00:00–08:00 之间
+    # 两者差一天。测试之所以一直绿，只是因为 10-05 和 10-06 恰好同属
+    # ISO 第 41 周；换成周一凌晨运行就会失败。这不是"改测试让它通过"，
+    # 是那一行的前提本身有错：它假设了被修掉的那个 UTC/本地混淆。
+    last = scheduler.utc_to_market_day(
+        jobs.last_run(jobstore, weekly.job)["finished_at"])
+    y, w, _ = last.isocalendar()
     same = datetime.fromisocalendar(y, w, 1)
     assert scheduler.is_due(weekly, jobstore, now=same) is False
     later = datetime.fromisocalendar(y, w + 1 if w < 52 else 1, 1)

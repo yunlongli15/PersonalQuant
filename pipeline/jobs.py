@@ -19,6 +19,7 @@ import threading
 import time
 import traceback
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
@@ -27,11 +28,26 @@ JOBS_DB = PROJECT_ROOT / "data" / "quant" / "jobs.db"
 
 _local = threading.local()
 
+
+def utc_now_iso() -> str:
+    """当前 UTC 时刻，**带显式时区偏移**。
+
+    SQLite 的 `datetime('now')` 也返回 UTC，但返回值没有时区标记
+    （`2026-10-05 16:02:52`），读的人无从判断它是 UTC 还是本地时间 ——
+    2026-10-06 的调度器事故正是这么来的：写进去的是 UTC，比较用的是
+    本地日期，00:00–08:00 CST 之间两者差一天。
+
+    新写入一律带 `+00:00`，语义不再靠约定。
+    """
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS jobs (
     job_id      INTEGER PRIMARY KEY AUTOINCREMENT,
     job_name    TEXT NOT NULL,
-    started_at  TEXT NOT NULL DEFAULT (datetime('now')),
+    started_at  TEXT NOT NULL
+                DEFAULT (strftime('%Y-%m-%dT%H:%M:%S+00:00','now')),
     finished_at TEXT,
     status      TEXT NOT NULL DEFAULT 'running',
     duration_s  REAL,
@@ -81,8 +97,9 @@ def run_job(name: str, fn: Callable[[], object],
             skip: bool = False) -> JobRun:
     """Run `fn`, recording start/finish/status. Re-raises on failure."""
     c = conn or connect()
-    cur = c.execute("INSERT INTO jobs (job_name, status) VALUES (?, 'running')",
-                    (name,))
+    cur = c.execute(
+        "INSERT INTO jobs (job_name, started_at, status) VALUES (?, ?, 'running')",
+        (name, utc_now_iso()))
     c.commit()
     job_id = int(cur.lastrowid)
     t0 = time.time()
@@ -91,9 +108,9 @@ def run_job(name: str, fn: Callable[[], object],
     try:
         detail = fn()
     except Exception as e:                       # noqa: BLE001 - recorded
-        c.execute("UPDATE jobs SET finished_at=datetime('now'), "
+        c.execute("UPDATE jobs SET finished_at=?, "
                   "status='FAILED', duration_s=?, error=? WHERE job_id=?",
-                  (time.time() - t0, f"{type(e).__name__}: {e}\n"
+                  (utc_now_iso(), time.time() - t0, f"{type(e).__name__}: {e}\n"
                    + traceback.format_exc(limit=3), job_id))
         c.commit()
         raise
@@ -110,9 +127,9 @@ def mark_interrupted(conn: Optional[sqlite3.Connection] = None) -> int:
     """
     c = conn or connect()
     cur = c.execute(
-        "UPDATE jobs SET status='INTERRUPTED', finished_at=datetime('now'), "
+        "UPDATE jobs SET status='INTERRUPTED', finished_at=?, "
         "detail='进程中断，未正常结束（不是失败，是没有跑完）' "
-        "WHERE status='running'")
+        "WHERE status='running'", (utc_now_iso(),))
     c.commit()
     return int(cur.rowcount)
 
@@ -121,17 +138,19 @@ def skip_job(name: str, reason: str,
              conn: Optional[sqlite3.Connection] = None) -> JobRun:
     """Record a job that was deliberately not run (e.g. offline mode)."""
     c = conn or connect()
-    cur = c.execute("INSERT INTO jobs (job_name, status) VALUES (?, ?)",
-                    (name, "SKIPPED"))
+    cur = c.execute(
+        "INSERT INTO jobs (job_name, started_at, status) VALUES (?, ?, ?)",
+        (name, utc_now_iso(), "SKIPPED"))
     c.commit()
     return _finish(c, int(cur.lastrowid), "SKIPPED", reason, None, 0.0)
 
 
 def _finish(conn, job_id: int, status: str, detail, error,
             duration: float) -> JobRun:
-    conn.execute("UPDATE jobs SET finished_at=datetime('now'), status=?, "
+    conn.execute("UPDATE jobs SET finished_at=?, status=?, "
                  "detail=?, error=?, duration_s=? WHERE job_id=?",
-                 (status, detail, error, duration, job_id))
+                 (utc_now_iso(), status, detail, error, duration,
+                  job_id))
     conn.commit()
     row = conn.execute("SELECT * FROM jobs WHERE job_id=?", (job_id,)).fetchone()
     return JobRun(job_id=row["job_id"], job_name=row["job_name"],

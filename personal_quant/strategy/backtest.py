@@ -50,11 +50,18 @@ class MonthlyBacktest:
 
     def _px(self, symbols, d: pd.Timestamp, field="close") -> pd.Series:
         """Last available price up to `d` per symbol (forward-fills
-        suspension days, so held names never NaN the NAV)."""
+        suspension days, so held names never NaN the NAV).
+
+        **「最后一个价格」必须是最后一个*真实*价格**：停牌日在 daily_bars
+        里是有行但 {field} 为 NULL 的，加一条 `{field} IS NOT NULL` 才真的
+        向前填充。少了这个条件，取到的就是停牌日的 NULL —— 持仓市值整块
+        变 NaN，而注释还写着"never NaN the NAV"（2026-10-06 实测如此）。
+        """
         if not symbols:
             return pd.Series(dtype=float)
         df = db.connect().execute(
             f"SELECT symbol, {field} v FROM daily_bars WHERE trade_date <= ? "
+            f"AND {field} IS NOT NULL "
             "AND symbol IN (SELECT unnest(?::VARCHAR[])) "
             "QUALIFY ROW_NUMBER() OVER (PARTITION BY symbol "
             "ORDER BY trade_date DESC) = 1",

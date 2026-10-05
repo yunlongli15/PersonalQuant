@@ -17,7 +17,8 @@ still performs one day's work.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timezone
+from zoneinfo import ZoneInfo
 from typing import Callable, Dict, List, Optional
 
 from . import jobs as jobstore
@@ -48,19 +49,59 @@ SCHEDULE: List[Task] = [
 ]
 
 
-def _last_success(conn, job_name: str) -> Optional[str]:
+#: 调度器使用的时区 = **市场时区**，写死，不跟随机器。
+#
+# 2026-10-06 事故：作业记录里的 `finished_at` 是 UTC（SQLite `datetime('now')`），
+# 而这里拿 `datetime.now()` 的本地日期去比。CST 00:00–08:00 之间 UTC 还停在
+# 前一天，于是"今天跑过没有"永远被判成没跑过，日常任务会重复执行。
+# 只在深夜复现，白天怎么测都是绿的。
+#
+# 修法不是"改成 UTC"也不是"改成机器本地"—— 两者都还是隐式的。定死成市场
+# 时区：任务的"今天"就是**上海的一天**，与机器在哪个时区无关。
+MARKET_TZ = ZoneInfo("Asia/Shanghai")
+
+
+def utc_to_market_day(ts: Optional[str]) -> Optional[date]:
+    """把作业记录里的时刻换算成市场时区的**日历日**。
+
+    记录可能是带偏移的 ISO8601（新写入，`2026-10-05T16:02:52+00:00`），
+    也可能是老格式的无标记 UTC（`2026-10-05 16:02:52`）。前者按标记走，
+    后者按 UTC 解释 —— SQLite 的 `datetime('now')` 写的就是 UTC，
+    这一点是确定的，不需要猜。
+    """
+    if not ts:
+        return None
+    t = datetime.fromisoformat(ts)
+    if t.tzinfo is None:
+        t = t.replace(tzinfo=timezone.utc)
+    return t.astimezone(MARKET_TZ).date()
+
+
+def _market_now(now: Optional[datetime]) -> datetime:
+    """把 `now` 归一到市场时区。
+
+    朴素时间按**市场时区**解释，不按机器时区 —— 否则同一份代码在两台
+    时区不同的机器上会给出不同的调度判定。
+    """
+    if now is None:
+        return datetime.now(MARKET_TZ)
+    if now.tzinfo is None:
+        return now.replace(tzinfo=MARKET_TZ)
+    return now.astimezone(MARKET_TZ)
+
+
+def _last_success(conn, job_name: str) -> Optional[date]:
     last = jobstore.last_run(conn, job_name)
     if not last or last["status"] != "SUCCESS":
         return None
-    return (last.get("finished_at") or "")[:10]
+    return utc_to_market_day(last.get("finished_at"))
 
 
 def is_due(task: Task, conn=None, now: Optional[datetime] = None) -> bool:
     """Whether a task should run now (manual tasks are never auto-due)."""
     if task.cadence == "manual":
         return False
-    now = now or datetime.now()
-    today = now.date().isoformat()
+    today = _market_now(now).date()
     last = _last_success(conn, task.job)
     if task.cadence == "daily":
         return last != today
@@ -68,13 +109,11 @@ def is_due(task: Task, conn=None, now: Optional[datetime] = None) -> bool:
         # due again once a new week has started (ISO week changes)
         if last is None:
             return True
-        return date.fromisoformat(last).isocalendar()[:2] != \
-            now.date().isocalendar()[:2]
+        return last.isocalendar()[:2] != today.isocalendar()[:2]
     if task.cadence == "monthly":
         if last is None:
             return True
-        return date.fromisoformat(last).month != now.date().month or \
-            date.fromisoformat(last).year != now.date().year
+        return (last.month, last.year) != (today.month, today.year)
     return False
 
 

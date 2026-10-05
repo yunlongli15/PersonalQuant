@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+import math
 from typing import Optional
 
 import pandas as pd
@@ -44,6 +45,26 @@ def next_trading_day(date: pd.Timestamp) -> Optional[pd.Timestamp]:
     return pd.Timestamp(r[0]) if r and r[0] is not None else None
 
 
+def _price(v) -> Optional[float]:
+    """价格取数：**NaN 一律当「没有价格」**，返回 None。
+
+    `daily_bars` 里停牌日是**有行但 OHLC 全为 NULL** 的（全库 57.7 万行，
+    约 3.2%）。`float(NaN)` 不抛错，于是下游所有 `is None` 的守卫全都
+    形同虚设 —— 2026-10-06 就是这么炸的：一只停牌股在 T+1 以 NaN 价
+    成交，`cash` 变成 NaN，**后面每一天的 NAV 都是 NaN**，
+    而回测一声不吭地跑完了。
+
+    在源头把 NaN 归一成 None，既有的 NO_TRADE 守卫才真正生效。
+    """
+    if v is None:
+        return None
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return None
+    return None if math.isnan(f) else f
+
+
 def t1_open_and_prev_close(
     symbol: str, signal_date: pd.Timestamp
 ) -> tuple[Optional[pd.Timestamp], Optional[float], Optional[float]]:
@@ -64,8 +85,8 @@ def t1_open_and_prev_close(
     row_t1 = df[df["trade_date"] == t1]
     if row_t1.empty:
         return t1, None, None
-    prev_close = float(row_t["close"].iloc[0]) if not row_t.empty else None
-    return t1, float(row_t1["open"].iloc[0]), prev_close
+    prev_close = _price(row_t["close"].iloc[0]) if not row_t.empty else None
+    return t1, _price(row_t1["open"].iloc[0]), prev_close
 
 
 def execute_order(
