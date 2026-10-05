@@ -33,10 +33,11 @@ from news.storage import (export_events_snapshot, replace_events,
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
-def load_documents() -> pd.DataFrame:
+def load_documents(table: str = "news_documents") -> pd.DataFrame:
+    """默认读 canonical 的 news_documents；v2 重建读 news_documents_v2。"""
     conn = db.connect()
     return conn.execute(
-        "SELECT * FROM news_documents WHERE status != 'failed' "
+        f"SELECT * FROM {table} WHERE status != 'failed' "
         "ORDER BY published_at"
     ).fetch_df()
 
@@ -46,9 +47,15 @@ def main() -> int:
     ap.add_argument("--llm", action="store_true",
                     help="enable the LLM tier (requires DEEPSEEK_API_KEY)")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--version", default="v1", choices=["v1", "v2"],
+                    help="v2 = 从 news_documents_v2 重建，写 news_events_v2"
+                         "（绝不覆盖 v1 的表与快照）")
     args = ap.parse_args()
 
-    docs_df = load_documents()
+    doc_table = "news_documents" if args.version == "v1"         else f"news_documents_{args.version}"
+    ev_table = "news_events" if args.version == "v1"         else f"news_events_{args.version}"
+    print(f"[build-events] 版本 {args.version}: {doc_table} -> {ev_table}")
+    docs_df = load_documents(doc_table)
     print(f"documents: {len(docs_df)}")
     if docs_df.empty:
         print("no documents yet — run scripts/news/update_news.py first")
@@ -139,12 +146,12 @@ def main() -> int:
         print(f"would write {len(events)} events (dry run)")
         return 0
 
-    n = replace_events(events)
-    export_events_snapshot(events)
+    n = replace_events(events, table=ev_table)
+    export_events_snapshot(events, version=args.version)
     # coverage: fetched symbols with their dataset start (first publication)
     cov = docs_df.groupby("symbol")["published_at"].min().reset_index()
     cov.columns = ["symbol", "start_date"]
-    write_coverage(cov)
+    write_coverage(cov, version=args.version)
     print(f"events: {n} -> DuckDB + snapshot; coverage: {len(cov)} symbols")
     return 0
 
