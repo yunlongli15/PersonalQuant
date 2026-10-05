@@ -239,8 +239,10 @@ def replace_events(events: List[NewsEvent],
     索引不一致（2026-10-04 遇到过 `DELETE` 因二级索引失配而失败，
     恢复办法见 reports/事故-20261004-新闻事件索引.md）。
     """
-    ensure_tables(extra_table=table if table != "news_events" else None,
-                  extra_events_table=table if table != "news_events" else None)
+    # 只建**事件**表。这里一度把 table 同时当成文档表传进去，于是先按
+    # 文档 schema 建出了同名表，后面事件表的 CREATE ... IF NOT EXISTS
+    # 就静默跳过了 —— 表建出来了，schema 是错的，要到 INSERT 时才炸。
+    ensure_tables(extra_events_table=table if table != "news_events" else None)
     # 行数据先在 Python 侧拼好，把事务窗口压到最小
     rows = [[getattr(e, c) for c in EVENT_COLS] for e in events]
     with db.transaction() as conn:
