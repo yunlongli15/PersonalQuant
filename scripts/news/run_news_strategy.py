@@ -82,11 +82,17 @@ def main() -> int:
     step4_pack = json.loads((PROJECT_ROOT / "experiments" / "factors"
                              / "factor_run_001" / "factor_pack_v1.json")
                             .read_text(encoding="utf-8"))
-    news_pack = json.loads((PROJECT_ROOT / "experiments" / "news"
-                            / "news_factor_run_001"
-                            / "factor_pack_news_v1.json")
+    # 新闻 pack 跟着数据版本走：v1 -> run_001/pack_v1，v2 -> run_002/pack_v2。
+    # **绝不跨版本取 pack** —— 否则"用 v2 数据"只是说说，模型读的还是旧因子。
+    news_run = ("news_factor_run_001" if args.news_version == "v1"
+                else "news_factor_run_002")
+    news_pack = json.loads((PROJECT_ROOT / "experiments" / "news" / news_run
+                            / f"factor_pack_news_{args.news_version}.json")
                            .read_text(encoding="utf-8"))
     features = (step4_pack["selected"] + news_pack["selected"])
+    if args.news_version == "v2":
+        print(f"[news] pack = {news_run}/factor_pack_news_v2.json "
+              f"（选中 {len(news_pack['selected'])} 个新闻因子）")
     print(f"{args.strategy_name} features: {features}")
 
     train_dates = rebalance_dates(ts["train"][0], ts["train"][1])
@@ -224,7 +230,10 @@ def main() -> int:
     with open(out_dir / "summary.json", "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2, default=str)
     save_manifest(build_manifest(config, args.strategy_name, extra={
-        "features": features}), out_dir)
+        "features": features,
+        "news_version": f"factor_pack_news_{args.news_version}",
+        "news_run": news_run,
+    }), out_dir)
     s = summary["strategy_metrics"]
     print(f"{args.strategy_name} test: ann={s['annualized_return']:.4f} "
           f"sharpe={s['sharpe']:.3f} mdd={s['max_drawdown']:.4f} "

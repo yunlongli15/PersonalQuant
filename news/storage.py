@@ -258,7 +258,8 @@ def export_events_snapshot(events: List[NewsEvent],
                            version: str = "v1") -> Path:
     """version='v2' 时写成 news_events_v2.parquet（绝不覆盖 v1）。"""
     DERIVED_NEWS.mkdir(parents=True, exist_ok=True)
-    out = EVENTS_SNAPSHOT if version == "v1" else         DERIVED_NEWS / f"news_events_{version}.parquet"
+    out = (EVENTS_SNAPSHOT if version == "v1"
+           else DERIVED_NEWS / f"news_events_{version}.parquet")
     df = pd.DataFrame([e.to_dict() for e in events])
     df.to_parquet(out, index=False)
     return out
@@ -267,7 +268,8 @@ def export_events_snapshot(events: List[NewsEvent],
 def write_coverage(coverage: pd.DataFrame, version: str = "v1") -> Path:
     """coverage: symbol, start_date (dataset window per fetched symbol)."""
     DERIVED_NEWS.mkdir(parents=True, exist_ok=True)
-    out = COVERAGE_SNAPSHOT if version == "v1" else         DERIVED_NEWS / f"news_coverage_{version}.parquet"
+    out = (COVERAGE_SNAPSHOT if version == "v1"
+           else DERIVED_NEWS / f"news_coverage_{version}.parquet")
     coverage.to_parquet(out, index=False)
     return out
 

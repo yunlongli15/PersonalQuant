@@ -117,3 +117,9 @@ secrets*
 
 # news v1 快照（37MB，v1 表本身仍在库里；这份只是留证，没必要入库）
 data/derived/news/v1_snapshot/
+
+# news v2 事件快照（115MB，**超过 GitHub 单文件 100MB 硬上限**，推不上去）。
+# 它是纯派生物：库里 news_documents_v2 是源头，一条命令重建：
+#     python scripts/news/build_events.py --version v2
+# 同目录下的 pack / coverage / factor store 都很小，正常入库。
+data/derived/news/news_events_v2.parquet

@@ -1,17 +1,21 @@
 # -*- coding: utf-8 -*-
-"""News factor evaluation -> factor_pack_news_v1 (selection 2018-2023 only).
+"""News factor evaluation -> factor_pack_news_{v1,v2} (selection 2018-2023 only).
 
-    python scripts/news/build_news_factors.py
+    python scripts/news/build_news_factors.py [--version v1|v2]
 
 Reuses the STEP 4 factor engine: every registered news factor is evaluated
 on research/valid/test with the full research universe; the pack selection
 uses RESEARCH + VALID only (same gates as STEP 4, news coverage threshold
 from config/news_v1.yaml). After selection, the factor store
-(data/derived/news/news_factors.parquet: symbol/signal_date/factor_name/
-factor_value/source_event_count/lookback_days/decay_half_life/
+(data/derived/news/news_factors{,_v2}.parquet: symbol/signal_date/
+factor_name/factor_value/source_event_count/lookback_days/decay_half_life/
 feature_version) is written for the selected factors over all signal
 dates (strategy/ablation input). Test results are recorded but NEVER used
 for selection.
+
+--version v2 reads the repaired announcement set (news_events_v2) and writes
+to a SEPARATE run dir + pack + store. v1 的产物一个字节都不动 —— 旧 pack 被
+config/production_freeze.yaml 冻结着，覆盖它等于伪造历史。
 """
 
 import argparse
@@ -33,6 +37,11 @@ from factors.reports import leaderboard_df
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 RUN_DIR = PROJECT_ROOT / "experiments" / "news" / "news_factor_run_001"
+#: v2 另开一个 run 目录 —— 实验记录不允许覆盖，旧 pack 还被冻结着。
+RUN_DIRS = {
+    "v1": RUN_DIR,
+    "v2": PROJECT_ROOT / "experiments" / "news" / "news_factor_run_002",
+}
 
 
 def news_factors():
@@ -43,7 +52,21 @@ def news_factors():
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--only", default=None)
+    ap.add_argument("--version", default="v1", choices=["v1", "v2"],
+                    help="读哪一版新闻数据：v1=原始（SSE 只含定期报告），"
+                         "v2=修复 SSE 采集后的重建集")
     args = ap.parse_args()
+
+    version = args.version
+    run_dir = RUN_DIRS[version]
+    pack_name = f"factor_pack_news_{version}.json"
+    store_name = "news_factors.parquet" if version == "v1" \
+        else f"news_factors_{version}.parquet"
+    if version == "v2":
+        from factors.base import set_news_version, news_version
+
+        set_news_version("v2")
+        print(f"[news] 使用 news_{news_version()}（修复 SSE 采集后的公告集）")
 
     import yaml
 
@@ -113,20 +136,20 @@ def main() -> int:
                                      universes, cfg_eff,
                                      compute=FACTORS[name])
 
-    RUN_DIR.mkdir(parents=True, exist_ok=True)
-    (RUN_DIR / "evaluations").mkdir(parents=True, exist_ok=True)
+    run_dir.mkdir(parents=True, exist_ok=True)
+    (run_dir / "evaluations").mkdir(parents=True, exist_ok=True)
     for name in names:
-        with open(RUN_DIR / "evaluations" / f"{name}.json", "w",
+        with open(run_dir / "evaluations" / f"{name}.json", "w",
                   encoding="utf-8") as f:
             json.dump({"research": research[name], "valid": valid[name],
                        "test": test[name]}, f, ensure_ascii=False,
                       default=str)
-    (RUN_DIR / "factor_pack_news_v1.json").write_text(
+    (run_dir / pack_name).write_text(
         json.dumps(pack, ensure_ascii=False, indent=2, default=str),
         encoding="utf-8")
     lb = leaderboard_df(research, "research")
-    lb.to_csv(RUN_DIR / "leaderboard_news.csv", index=False)
-    corr.to_csv(RUN_DIR / "correlation_news.csv")
+    lb.to_csv(run_dir / "leaderboard_news.csv", index=False)
+    corr.to_csv(run_dir / "correlation_news.csv")
 
     manifest = {
         "created": datetime.now().isoformat(timespec="seconds"),
@@ -137,11 +160,11 @@ def main() -> int:
         else len(data.news_cov),
         "periods": {k: ts[k] for k in ("research", "valid", "test")},
     }
-    (RUN_DIR / "manifest.json").write_text(
+    (run_dir / "manifest.json").write_text(
         json.dumps(manifest, indent=2, ensure_ascii=False, default=str),
         encoding="utf-8")
 
-    print(f"\nfactor_pack_news_v1: selected {len(pack['selected'])}/"
+    print(f"\n{pack_name}: selected {len(pack['selected'])}/"
           f"{len(names)}:")
     print("  " + ", ".join(pack["selected"]))
     for d in pack["discarded"]:
@@ -184,7 +207,7 @@ def main() -> int:
                   f"{ric['mean']:+.4f} (ICIR {ric['icir']:+.3f})",
                   flush=True)
     decay_df = pd.DataFrame(decay_rows)
-    (RUN_DIR / "decay_study.csv").write_text(
+    (run_dir / "decay_study.csv").write_text(
         decay_df.to_csv(index=False) if len(decay_df)
         else "half_life_days,research_rank_ic,research_icir,coverage\n",
         encoding="utf-8")
@@ -207,9 +230,9 @@ def main() -> int:
     store = pd.DataFrame(store_rows)
     store_dir = PROJECT_ROOT / "data" / "derived" / "news"
     store_dir.mkdir(parents=True, exist_ok=True)
-    store.to_parquet(store_dir / "news_factors.parquet", index=False)
+    store.to_parquet(store_dir / store_name, index=False)
     print(f"factor store: {len(store)} rows -> "
-          f"{store_dir / 'news_factors.parquet'}")
+          f"{store_dir / store_name}")
     return 0
 
 

@@ -52,8 +52,10 @@ def main() -> int:
                          "（绝不覆盖 v1 的表与快照）")
     args = ap.parse_args()
 
-    doc_table = "news_documents" if args.version == "v1"         else f"news_documents_{args.version}"
-    ev_table = "news_events" if args.version == "v1"         else f"news_events_{args.version}"
+    doc_table = ("news_documents" if args.version == "v1"
+                 else f"news_documents_{args.version}")
+    ev_table = ("news_events" if args.version == "v1"
+                else f"news_events_{args.version}")
     print(f"[build-events] 版本 {args.version}: {doc_table} -> {ev_table}")
     docs_df = load_documents(doc_table)
     print(f"documents: {len(docs_df)}")
