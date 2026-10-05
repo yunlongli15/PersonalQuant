@@ -117,11 +117,14 @@ def news_weight(df: pd.DataFrame, news_features: list) -> dict:
 # --- Top-K 重合度 -----------------------------------------------------------
 
 def topk_sets(run_dir: Path, top_k: int) -> dict:
+    """每月选中的股票集合（MonthlyBacktest 落盘的口径：prediction_date
+    / predicted_return）。"""
     p = _need(run_dir, "monthly_predictions.parquet")
     df = pd.read_parquet(p)
     out = {}
-    for d, g in df.groupby("date"):
-        out[pd.Timestamp(d)] = set(g.nlargest(top_k, "prediction")["symbol"])
+    for d, g in df.groupby("prediction_date"):
+        out[pd.Timestamp(d)] = set(
+            g.nlargest(top_k, "predicted_return")["symbol"])
     return out
 
 

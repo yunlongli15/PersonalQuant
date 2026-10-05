@@ -38,6 +38,12 @@ def main() -> int:
     ap.add_argument("--horizon", type=int, default=20, choices=[1, 5, 20],
                     help="预测周期（交易日）：20=月度（已验证），"
                          "5=周度（未验证）")
+    ap.add_argument("--strategy", default=None,
+                    help="要求信号来自这个策略（S3_v1 / S3_v2）。"
+                         "默认接受当前落盘的信号；指定后不匹配就报错退出，"
+                         "免得拿 A 版本的信号写出标着 B 版本的建议书。"
+                         "切换信号本身要用 "
+                         "`refresh_signals(strategy=...)`。")
     args = ap.parse_args()
 
     from pipeline import freshness
@@ -79,6 +85,12 @@ def main() -> int:
 
     from pipeline.signals import signals_state
     st = signals_state()
+    if args.strategy and st.get("strategy") != args.strategy:
+        raise SystemExit(
+            f"拒绝生成：落盘信号来自 {st.get('strategy')!r}，"
+            f"但要求 {args.strategy!r}。先用该策略刷新信号：\n"
+            f"  python -c \"from pipeline.signals import refresh_signals; "
+            f"refresh_signals(strategy='{args.strategy}')\"")
     fresh = {f.domain: f for f in freshness.data_status()}
     rows = plan["rows"]
     buys = [r for r in rows if r.get("shares", 0) > 0]
@@ -87,6 +99,13 @@ def main() -> int:
     L = []
     L.append(f"# 交易建议 · 基准信号日 {plan['as_of']} · "
              f"{plan.get('holding_period')}")
+    L.append("")
+    # 策略版本放在最顶上（spec §十八/§二十）。同一份目录里会并存多个版本的
+    # 建议书 —— 不标版本的话，事后根本分不清哪份是谁生成的。
+    L.append(f"> **策略版本 {st.get('strategy', '未知')}** · "
+             f"模型 `{st.get('model', '—')}` · "
+             f"新闻数据 `{st.get('news_version', '—')}` · "
+             f"特征 `{st.get('feature_version', '—')}`")
     L.append("")
     L.append(f"生成时间: {datetime.now():%Y-%m-%d %H:%M} · "
              f"**仅供研究，不构成投资建议，系统不会自动下单**")

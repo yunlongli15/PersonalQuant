@@ -232,8 +232,14 @@ def signals_state() -> dict:
 
 
 def refresh_signals(signal_date: Optional[str] = None,
-                    top_k: int = 20) -> dict:
-    """Job entry point: compute + persist the signal snapshot."""
+                    top_k: int = 20,
+                    strategy: Optional[str] = None) -> dict:
+    """Job entry point: compute + persist the signal snapshot.
+
+    strategy 默认 = PRODUCTION_STRATEGY。传别的名字只改这一次刷新的口径，
+    **不改生产默认** —— 回退/对比实验（例如 `--strategy S3_v1`）不需要
+    动代码，也不会让日常刷新跟着变。
+    """
     if signal_date is None:
         from pipeline.freshness import last_trading_day
 
@@ -241,9 +247,10 @@ def refresh_signals(signal_date: Optional[str] = None,
         if ltd is None:
             raise RuntimeError("trading calendar is empty")
         signal_date = str(ltd.date())
-    df = compute_signals(signal_date, top_k=top_k)
-    p = save_signals(df, signal_date)
-    return {"as_of": signal_date, "n_symbols": len(df), "path": str(p)}
+    df = compute_signals(signal_date, top_k=top_k, strategy=strategy)
+    p = save_signals(df, signal_date, strategy=strategy)
+    return {"as_of": signal_date, "n_symbols": len(df), "path": str(p),
+            "strategy": strategy_spec(strategy)["name"]}
 
 
 def save_portfolio_state(as_of: str, plan: dict) -> Path:
