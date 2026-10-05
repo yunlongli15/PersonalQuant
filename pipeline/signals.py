@@ -38,6 +38,47 @@ STEP4_PACK = (PROJECT_ROOT / "experiments" / "factors" / "factor_run_001"
 NEWS_PACK = (PROJECT_ROOT / "experiments" / "news" / "news_factor_run_001"
              / "factor_pack_news_v1.json")
 
+#: 策略注册表。切换生产策略 = 改 PRODUCTION_STRATEGY 这一行，
+#: 不要散落着改模型路径。
+#:   S3_v1 = 冻结的生产模型（news_v1 公告集）
+#:   S3_v2 = 修复 SSE 采集后用 news_v2 重训的同结构模型
+#: 见 reports/s3_v2_news_repair_and_backtest.md
+STRATEGIES = {
+    "S3_v1": {
+        "model": "experiments/news/strategy/model.txt",
+        "news_version": "v1",
+        "feature_version": "alpha158+factor_pack_v1+factor_pack_news_v1",
+    },
+    "S3_v2": {
+        "model": "experiments/news/strategy_s3_v2/model.txt",
+        "news_version": "v2",
+        "feature_version": "alpha158+factor_pack_v1+factor_pack_news_v2",
+    },
+}
+
+#: 生产默认策略。**切换前一直是 S3_v1**；只有回测/对比全部通过才改这里。
+PRODUCTION_STRATEGY = "S3_v1"
+
+
+def strategy_spec(name: Optional[str] = None) -> dict:
+    name = name or PRODUCTION_STRATEGY
+    if name not in STRATEGIES:
+        raise ValueError(f"未知策略 {name!r}；可选 {sorted(STRATEGIES)}")
+    spec = dict(STRATEGIES[name])
+    spec["name"] = name
+    spec["model_path"] = PROJECT_ROOT / spec["model"]
+    return spec
+
+
+def signal_path(as_of: str, strategy: Optional[str] = None) -> Path:
+    """信号的**版本化**路径。
+
+    钉版消费者（daily_exit_paper_v1）读这一份，所以生产策略切到 S3_v2
+    时，正在跑的实验读到的信号逐位不变。
+    """
+    name = strategy or PRODUCTION_STRATEGY
+    return QUANT_DIR / f"signals_{name}_{as_of}.parquet"
+
 
 def _feature_names() -> list:
     step4 = json.loads(STEP4_PACK.read_text(encoding="utf-8"))
@@ -62,18 +103,23 @@ def _symbol_names() -> pd.Series:
 
 
 def compute_signals(signal_date: str, top_k: int = 20,
-                    universe_config: Optional[dict] = None) -> pd.DataFrame:
-    """Frozen S3 predictions for every universe symbol at `signal_date`.
+                    universe_config: Optional[dict] = None,
+                    strategy: Optional[str] = None) -> pd.DataFrame:
+    """S3 predictions for every universe symbol at `signal_date`.
 
     Columns: symbol, prediction, raw_rank, name.
     Strictly PIT: features/labels/factors only use data <= signal_date
     (the STEP 3-6 machinery guarantees it; this function adds no data).
+
+    strategy 默认取 PRODUCTION_STRATEGY；同时决定读哪一版新闻数据。
     """
     import yaml
 
-    from factors.base import load_factor_data
+    from factors.base import load_factor_data, set_news_version
     from factors.normalization import fill_missing, normalize_panel
     from factors.registry import FACTOR_REGISTRY, FACTORS
+
+    set_news_version(strategy_spec(strategy)["news_version"])
     from personal_quant.strategy.features import (compute_features,
                                                   flatten_columns)
     from personal_quant.strategy.model import AlphaModel
@@ -113,7 +159,11 @@ def compute_signals(signal_date: str, top_k: int = 20,
                                  "sector_median", data.industries)
         f = f.join(panel.loc[d].rename(name), how="left")
 
-    model = AlphaModel.load(MODEL_PATH, dict(cfg["model"]["params"]),
+    _spec = strategy_spec(strategy)
+    if not _spec["model_path"].exists():
+        raise FileNotFoundError(
+            f"策略 {_spec['name']} 的模型不存在：{_spec['model']}")
+    model = AlphaModel.load(_spec["model_path"], dict(cfg["model"]["params"]),
                             seed=cfg["model"]["seed"])
     m = f.dropna(how="all")
     preds = pd.Series(model.predict(m[model.feature_columns]), index=m.index)
@@ -129,19 +179,26 @@ def compute_signals(signal_date: str, top_k: int = 20,
     return out
 
 
-def save_signals(df: pd.DataFrame, as_of: Optional[str] = None) -> Path:
+def save_signals(df: pd.DataFrame, as_of: Optional[str] = None,
+                 strategy: Optional[str] = None) -> Path:
     QUANT_DIR.mkdir(parents=True, exist_ok=True)
+    spec = strategy_spec(strategy)
     d = str(as_of or pd.Timestamp(df["signal_date"].iloc[0]).date())
     p = QUANT_DIR / f"signals_{d}.parquet"
     df.to_parquet(p, index=False)
     df.to_parquet(SIGNALS_LATEST, index=False)
+    # 版本化副本：钉版消费者（daily_exit_paper_v1）读它。
+    # 没有这一份的话，生产策略一切换，正在跑的实验每天读到的信号就变了。
+    df.to_parquet(signal_path(d, spec["name"]), index=False)
     state = {
         "as_of": d,
         "computed_at": datetime.now().isoformat(timespec="seconds"),
         "n_symbols": int(len(df)),
-        "model": str(MODEL_PATH.relative_to(PROJECT_ROOT)),
-        "model_version": "strategy_v2/S3",
-        "feature_version": "alpha158+factor_pack_v1+factor_pack_news_v1",
+        "model": str(spec["model"]),
+        "model_version": f"strategy_v2/{spec['name']}",
+        "feature_version": spec["feature_version"],
+        "strategy": spec["name"],
+        "news_version": spec["news_version"],
     }
     SIGNALS_STATE.write_text(json.dumps(state, indent=2, ensure_ascii=False),
                              encoding="utf-8")

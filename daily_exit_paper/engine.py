@@ -35,6 +35,11 @@ from . import ledger as L
 from . import state as S
 from . import store as ST
 
+#: 本实验**钉死**的信号来源。故意写成常量而不是配置项：配置有
+#: config_sha256 冻结，改配置会触发 ConfigDrift；而这里只是指定读哪一份
+#: 内容相同的快照。生产策略日后切到 S3_v2 时，本实验仍然只认 S3_v1。
+PINNED_STRATEGY = "S3_v1"
+
 INDEX_LIKE = {"000300.SH", "000852.SH", "000905.SH", "000906.SH",
               "000985.SH", "399300.SZ"}
 
@@ -69,9 +74,18 @@ class LiveMarket:
         return X.last_close_on_or_before(symbols, as_of)
 
     def signals(self, session) -> Optional[pd.DataFrame]:
-        """**该交易日**的信号快照（按日期一个文件，天生 PIT 安全）。"""
-        p = (C.PROJECT_ROOT / "data" / "quant"
-             / f"signals_{pd.Timestamp(session).date()}.parquet")
+        """**该交易日**的信号快照（按日期一个文件，天生 PIT 安全）。
+
+        读的是**版本化**的那一份（signals_<策略>_<日期>.parquet），
+        不是生产默认的那一份。原因：本实验的信号是冻结规则的一部分，
+        生产策略日后切到 S3_v2 时，这份文件内容逐位不变，实验不受影响。
+        找不到版本化文件时退回旧的版本无关文件（历史日期）。
+        """
+        d = pd.Timestamp(session).date()
+        root = C.PROJECT_ROOT / "data" / "quant"
+        p = root / f"signals_{PINNED_STRATEGY}_{d}.parquet"
+        if not p.exists():
+            p = root / f"signals_{d}.parquet"
         if not p.exists():
             return None
         df = pd.read_parquet(p)
