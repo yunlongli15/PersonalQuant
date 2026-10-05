@@ -58,11 +58,46 @@ DOCUMENT_DDL = """
 """
 
 
-def ensure_tables(extra_table: Optional[str] = None) -> None:
-    """建表。extra_table 用于 news_v2 这类版本化重建（同 schema，不同表名）。"""
+EVENT_DDL = """
+    CREATE TABLE IF NOT EXISTS {t} (
+        event_id            VARCHAR PRIMARY KEY,
+        document_id         VARCHAR,
+        symbol              VARCHAR,
+        event_type          VARCHAR,
+        publication_time    TIMESTAMP,
+        availability_time   TIMESTAMP,
+        availability_unknown BOOLEAN,
+        event_time          TIMESTAMP,
+        direction           VARCHAR,
+        importance          DOUBLE,
+        sentiment           DOUBLE,
+        confidence          DOUBLE,
+        novelty             DOUBLE,
+        financial_impact    DOUBLE,
+        risk                DOUBLE,
+        extraction_method   VARCHAR,
+        extraction_model    VARCHAR,
+        extraction_version  VARCHAR
+    )
+"""
+
+
+def ensure_tables(extra_table: Optional[str] = None,
+                  extra_events_table: Optional[str] = None) -> None:
+    """建表。extra_* 用于 news_v2 这类版本化重建（同 schema，不同表名）。
+
+    索引名也必须跟着表名走 —— 否则第二张表上的 CREATE INDEX IF NOT EXISTS
+    会因为"同名索引已存在"而静默跳过，那张表就没有索引（2026-10-04 那次
+    news_events 二级索引失配就是这类问题的近亲）。
+    """
     conn = db.connect()
     if extra_table:
         conn.execute(DOCUMENT_DDL.format(t=extra_table))
+    if extra_events_table:
+        conn.execute(EVENT_DDL.format(t=extra_events_table))
+        conn.execute(
+            f"CREATE INDEX IF NOT EXISTS idx_{extra_events_table}_symbol "
+            f"ON {extra_events_table}(symbol)")
     conn.execute("""
         CREATE TABLE IF NOT EXISTS news_documents (
             document_id    VARCHAR PRIMARY KEY,
@@ -190,7 +225,8 @@ def _bulk_upsert(conn, docs: List[NewsDocument], table: str) -> dict:
     return {"inserted": after - before, "duplicates": len(df) - (after - before)}
 
 
-def replace_events(events: List[NewsEvent]) -> int:
+def replace_events(events: List[NewsEvent],
+                   table: str = "news_events") -> int:
     """整表重建：先清空 news_events，再把新事件全部插回去。
 
     **必须在一个事务里做**（db.transaction）：这两步以前是两条各自自动
@@ -203,30 +239,35 @@ def replace_events(events: List[NewsEvent]) -> int:
     索引不一致（2026-10-04 遇到过 `DELETE` 因二级索引失配而失败，
     恢复办法见 reports/事故-20261004-新闻事件索引.md）。
     """
-    ensure_tables()
+    ensure_tables(extra_table=table if table != "news_events" else None,
+                  extra_events_table=table if table != "news_events" else None)
     # 行数据先在 Python 侧拼好，把事务窗口压到最小
     rows = [[getattr(e, c) for c in EVENT_COLS] for e in events]
     with db.transaction() as conn:
-        conn.execute("DELETE FROM news_events")
+        conn.execute(f"DELETE FROM {table}")
         if rows:
             conn.executemany(
-                f"INSERT INTO news_events ({', '.join(EVENT_COLS)}) "
+                f"INSERT INTO {table} ({', '.join(EVENT_COLS)}) "
                 f"VALUES ({', '.join(['?'] * len(EVENT_COLS))})", rows)
     return len(rows)
 
 
-def export_events_snapshot(events: List[NewsEvent]) -> Path:
+def export_events_snapshot(events: List[NewsEvent],
+                           version: str = "v1") -> Path:
+    """version='v2' 时写成 news_events_v2.parquet（绝不覆盖 v1）。"""
     DERIVED_NEWS.mkdir(parents=True, exist_ok=True)
+    out = EVENTS_SNAPSHOT if version == "v1" else         DERIVED_NEWS / f"news_events_{version}.parquet"
     df = pd.DataFrame([e.to_dict() for e in events])
-    df.to_parquet(EVENTS_SNAPSHOT, index=False)
-    return EVENTS_SNAPSHOT
+    df.to_parquet(out, index=False)
+    return out
 
 
-def write_coverage(coverage: pd.DataFrame) -> Path:
+def write_coverage(coverage: pd.DataFrame, version: str = "v1") -> Path:
     """coverage: symbol, start_date (dataset window per fetched symbol)."""
     DERIVED_NEWS.mkdir(parents=True, exist_ok=True)
-    coverage.to_parquet(COVERAGE_SNAPSHOT, index=False)
-    return COVERAGE_SNAPSHOT
+    out = COVERAGE_SNAPSHOT if version == "v1" else         DERIVED_NEWS / f"news_coverage_{version}.parquet"
+    coverage.to_parquet(out, index=False)
+    return out
 
 
 def load_events_snapshot() -> pd.DataFrame:
