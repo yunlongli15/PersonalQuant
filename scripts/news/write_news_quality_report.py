@@ -174,12 +174,12 @@ def main() -> int:
             if a is not None and b is not None:
                 mult = f"**{b/a:.1f}x**" if a else "—"
                 L.append(f"| {ex} 公告数 | {a:,} | {b:,} | {mult} |")
-        for src in ("sse", "szse"):
+        for src, why in (("sse", "修复前几乎只有定期报告"), ("szse", "未受影响")):
             a = v1_doc.get(f"{src}_periodic_pct")
             b = v2_doc.get(f"{src}_periodic_pct")
             if a is not None and b is not None:
                 L.append(f"| {src.upper()} 定期报告占比 | {a:.1f}% | "
-                         f"**{b:.1f}%** | 修复前几乎只有定期报告 |")
+                         f"**{b:.1f}%** | {why} |")
         L += ["", "> 定期报告占比是这次修复最直接的证据：修之前沪市 97.8% 是"
                   "定期报告，修完降到与深市同档。", ""]
 
