@@ -103,12 +103,16 @@ def main() -> int:
                          "them at 100 rows/day)")
     ap.add_argument("--max-stocks", type=int, default=0,
                     help="SZ backfill cap (0 = all)")
+    ap.add_argument("--table", default="news_documents",
+                    help="写入哪张表（默认 canonical；版本化重建用 "
+                         "news_documents_v2）")
     args = ap.parse_args()
 
     state = load_state()
     sse = SSEProvider()
     szse = SZSEProvider()
-    ensure_tables()
+    ensure_tables(extra_table=None if args.table == "news_documents"
+                  else args.table)
 
     if args.dry_run:
         print("=== DRY RUN: provider reachability ===")
@@ -141,22 +145,33 @@ def main() -> int:
     if args.backfill_sse:
         start = pd.Timestamp(args.start or "2018-01-01")
         days = trading_days_between(start, settled_end)
+        # 断点续跑：把已完成的日期记进 state，重跑时跳过。没有这一层的话，
+        # 一次两小时的回补中途断掉就得从 2015 年重来。
+        resume_key = f"sse_done_{args.table}"
+        done = set(state.get(resume_key) or [])
+        # trading_days_between 返回的是 datetime.date（不是 Timestamp）
+        todo = [d for d in days if str(d)[:10] not in done]
         print(f"[backfill-sse] {len(days)} trading days "
-              f"{days[0]}..{days[-1]} (tail after "
-              f"{settled_end.date()} left to incremental)")
-        for i, d in enumerate(days):
+              f"{days[0]}..{days[-1]}；其中已完成 {len(days)-len(todo)}，"
+              f"本次待抓 {len(todo)}（表={args.table}）")
+        n_new = 0
+        for i, d in enumerate(todo):
             # SZSE per-day pagination is too heavy (30/page); SZ coverage
             # comes from the per-stock backfill mode instead
             docs = fetch_day(sse, szse, d, state, which=("sse",))
             if docs:
-                stats = upsert_documents(docs)
-                print(f"[backfill-sse] {d}: {stats['inserted']} new, "
-                      f"{stats['duplicates']} dup", flush=True)
+                stats = upsert_documents(docs, table=args.table, bulk=True)
+                n_new += stats["inserted"]
+            done.add(str(d)[:10])
+            state[resume_key] = sorted(done)
             state["last_successful_date"] = str(d)
-            if (i + 1) % 100 == 0:
+            if (i + 1) % 20 == 0:
                 save_state(state)
-                print(f"[backfill-sse] progress {i+1}/{len(days)}", flush=True)
+                print(f"[backfill-sse] {i+1}/{len(todo)}  {d}  "
+                      f"新增 {n_new} 条", flush=True)
         save_state(state)
+        print(f"[backfill-sse] 完成：新增 {n_new} 条，"
+              f"已完成 {len(done)} 天（表={args.table}）")
         return 0
 
     if args.repair_truncated:

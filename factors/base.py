@@ -31,6 +31,25 @@ SCALE_PATH = config.PARQUET_SUBDIRS["market"] / "market_scale.parquet"
 FINANCIAL_SNAPSHOT = DERIVED / "financial_metrics.parquet"
 CALENDAR_CACHE = DERIVED / "calendar.parquet"
 TURNOVER_CACHE = DERIVED / "em_turnover.parquet"
+
+#: 新闻数据版本。v1 = 原始（SSE 只含定期报告）；v2 = 修复 SSE 采集后重建。
+#: 默认 v1 —— 只有调用方显式 set_news_version("v2") 才会读 v2，
+#: 免得旧结果是哪一版说不清。
+_NEWS_VERSION = "v1"
+
+
+def set_news_version(version: str) -> None:
+    """切新闻数据版本：'v1' | 'v2'。切换会清掉已缓存的面板。"""
+    global _NEWS_VERSION
+    if version not in ("v1", "v2"):
+        raise ValueError(f"未知的新闻版本 {version!r}（只支持 v1 / v2）")
+    if version != _NEWS_VERSION:
+        _NEWS_VERSION = version
+        _data_cache.clear()
+
+
+def news_version() -> str:
+    return _NEWS_VERSION
 INDUSTRY_CACHE = DERIVED / "industries.parquet"
 
 _lock = threading.Lock()
@@ -241,10 +260,14 @@ def load_factor_data(
                 index="trade_date", columns="symbol", values="turnover_pct"
             ).reindex(cal)
         # STEP 5 news events (snapshot written by scripts/news/build_events.py)
+        # news_v2 = 修复 SSE 采集后的公告集（见 reports/news_data_quality_v2.md）。
+        # 版本由 set_news_version() 显式指定，**默认仍是 v1** —— 绝不隐式切换，
+        # 否则旧结果会在不知不觉中变了。
+        _nvsuf = "" if _NEWS_VERSION == "v1" else f"_{_NEWS_VERSION}"
         news_snap = PROJECT_ROOT / "data" / "derived" / "news" / \
-            "news_events.parquet"
+            f"news_events{_nvsuf}.parquet"
         news_cov_snap = PROJECT_ROOT / "data" / "derived" / "news" / \
-            "news_coverage.parquet"
+            f"news_coverage{_nvsuf}.parquet"
         if news_snap.exists():
             data.news = pd.read_parquet(news_snap)
         if news_cov_snap.exists():

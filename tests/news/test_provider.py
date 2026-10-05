@@ -73,3 +73,72 @@ def test_business_code_never_imports_requests_directly():
             offenders.append(f.name)
     assert offenders == ["base.py"], \
         f"direct requests calls outside base: {offenders}"
+
+
+# ---------------------------------------------------------------------------
+# SSE 公告类型回归（2026-10-05）
+#
+# 修之前请求里写死 reportType2="DQBG"（定期报告），于是**只有**年报/半年报/
+# 季报进了库 —— 实测 2026-09-29：带 DQBG 返回 0 条，不带返回 814 条。
+# 后果是沪市（约半个市场）的质押/减持/诉讼/立案/冻结等公告全部缺失，
+# 全库负向事件里沪市只占 1 条，news_risk_20d 对沪市股票恒为 0。
+#
+# 这里不联网：拦下 BaseNewsProvider.get，直接检查发出去的参数。
+# ---------------------------------------------------------------------------
+
+def _captured_params(monkeypatch, payload=None):
+    """拦截 SSE 的 HTTP 调用，把 params 抓下来。"""
+    seen = {}
+
+    class _Resp:
+        def json(self):
+            return payload or {"pageHelp": {"data": [], "total": 0}}
+
+    def fake_get(self, url, params=None, headers=None, **kw):
+        seen.update(params or {})
+        return _Resp()
+
+    monkeypatch.setattr(BaseNewsProvider, "get", fake_get)
+    monkeypatch.setattr(BaseNewsProvider, "load_cache", lambda self, k: None)
+    monkeypatch.setattr(BaseNewsProvider, "save_cache", lambda self, k, p: None)
+    return seen
+
+
+def test_sse_does_not_restrict_to_periodic_reports(monkeypatch):
+    """必须不能是 DQBG —— 那是把 99% 的公告挡在门外的那个值。"""
+    params = _captured_params(monkeypatch)
+    SSEProvider().fetch_announcements("2026-09-29", "2026-09-29")
+    assert params.get("reportType2") != "DQBG", (
+        "reportType2 又被限制成定期报告了 —— 普通公告会一条都进不来")
+    assert params.get("reportType2") == "ALL"
+
+
+def test_sse_still_sends_the_other_required_params(monkeypatch):
+    params = _captured_params(monkeypatch)
+    SSEProvider().fetch_announcements("2026-09-29", "2026-09-29")
+    assert params.get("reportType") == "ALL"
+    assert params.get("securityType"), "不传 securityType 会返回 0 条"
+    assert params.get("beginDate") == "2026-09-29"
+    # 分页：pageNo 被 API 忽略，必须走 beginPage/endPage
+    assert params.get("pageHelp.beginPage") == "1"
+    assert params.get("pageHelp.endPage") == "1"
+
+
+def test_sse_cache_key_is_versioned(monkeypatch):
+    """缓存键必须带版本号 —— 否则改了参数还会读回旧参数下的缓存，
+    修复会“看起来生效”却一条新数据都没有（2026-10-05 踩过）。"""
+    keys = []
+    monkeypatch.setattr(BaseNewsProvider, "load_cache",
+                        lambda self, k: keys.append(k) or None)
+    monkeypatch.setattr(BaseNewsProvider, "save_cache",
+                        lambda self, k, p: None)
+
+    class _Resp:
+        def json(self):
+            return {"pageHelp": {"data": [], "total": 0}}
+    monkeypatch.setattr(BaseNewsProvider, "get",
+                        lambda self, *a, **kw: _Resp())
+
+    SSEProvider().fetch_announcements("2026-09-29", "2026-09-29")
+    assert keys, "应当查询过缓存"
+    assert all("_v2_" in k for k in keys), f"缓存键没带版本：{keys}"
