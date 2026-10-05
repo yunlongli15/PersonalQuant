@@ -59,6 +59,29 @@ PROD_PREDS = (PROJECT_ROOT / "experiments" / "news" / "strategy"
               / "predictions.parquet")
 
 
+def production_preds() -> Path:
+    """**当前生产策略**自己的样本外预测。
+
+    以前这里写死 S3_v1 的路径。生产策略换成 production_clean_v1 之后，
+    如果再拿 S3 的分数去建条件分布，就是把 clean 模型的分数排名映射到
+    污染模型的收益分布上 —— 校准和打分函数不是一回事，预测会静默错位。
+    """
+    from pipeline.signals import PRODUCTION_STRATEGY, strategy_spec
+
+    return strategy_spec(PRODUCTION_STRATEGY)["model_path"].parent         / "predictions.parquet"
+
+
+def research_walkforward_applies() -> bool:
+    """走查研究段（2018-2021）只对 S3 成立 —— 那是 S3 的分数。
+
+    换成别的打分函数时必须整段丢弃，不能"补一段"进来：
+    两种分数分布混在一张校准表里，等于让分位数桶同时代表两件事。
+    """
+    from pipeline.signals import PRODUCTION_STRATEGY
+
+    return PRODUCTION_STRATEGY == "S3_v1"
+
+
 @dataclass
 class ForecastModelInfo:
     """Versioning metadata (spec §43)."""
@@ -78,6 +101,26 @@ class ForecastModelInfo:
         return d
 
 
+def model_info() -> ForecastModelInfo:
+    """按**当前生产策略**填版本信息（而不是写死 S3）。
+
+    改生产策略时这份元数据跟着走 —— 否则预测文件里会写着
+    "base_model: S3"，而分数其实来自 clean 模型。
+    """
+    try:
+        from pipeline.signals import PRODUCTION_STRATEGY, strategy_spec
+
+        spec = strategy_spec(PRODUCTION_STRATEGY)
+        label = spec.get("features_label") or spec["feature_version"]
+        return ForecastModelInfo(
+            name=f"forecast_v1[{PRODUCTION_STRATEGY}]",
+            base_model=f"{PRODUCTION_STRATEGY} ({label})",
+            model_file=spec["model"],
+            features=label)
+    except Exception:                                          # noqa: BLE001
+        return ForecastModelInfo()
+
+
 # ---------------------------------------------------------------------------
 # inputs
 # ---------------------------------------------------------------------------
@@ -93,8 +136,9 @@ def load_labels(horizons: Sequence[int] = HORIZONS) -> pd.DataFrame:
 def load_score_history() -> pd.DataFrame:
     """OOS score history: walk-forward research (2018-2021) + production
     model predictions (2022+). Both are out-of-sample by construction."""
-    sources = [("research_walkforward", RESEARCH_PREDS),
-               ("production_model", PROD_PREDS)]
+    sources = [("production_model", production_preds())]
+    if research_walkforward_applies():
+        sources.insert(0, ("research_walkforward", RESEARCH_PREDS))
     frames = []
     for label, p in sources:
         if not p.exists():
@@ -335,7 +379,7 @@ def refresh_forecasts(signal_date: Optional[str] = None,
     p = FORECAST_DIR / f"forecast_{as_of}.parquet"
     df.to_parquet(p, index=False)
     df.to_parquet(FORECAST_DIR / "forecast_latest.parquet", index=False)
-    info = ForecastModelInfo()
+    info = model_info()
     state = {"as_of": as_of,
              "computed_at": datetime.now().isoformat(timespec="seconds"),
              "n_symbols": int(df["symbol"].nunique()) if len(df) else 0,

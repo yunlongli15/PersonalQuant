@@ -100,12 +100,14 @@ def main() -> int:
     L.append(f"# 交易建议 · 基准信号日 {plan['as_of']} · "
              f"{plan.get('holding_period')}")
     L.append("")
-    # 策略版本放在最顶上（spec §十八/§二十）。同一份目录里会并存多个版本的
-    # 建议书 —— 不标版本的话，事后根本分不清哪份是谁生成的。
-    L.append(f"> **策略版本 {st.get('strategy', '未知')}** · "
-             f"模型 `{st.get('model', '—')}` · "
-             f"新闻数据 `{st.get('news_version', '—')}` · "
-             f"特征 `{st.get('feature_version', '—')}`")
+    # 策略版本放在最顶上（spec §十八/§二十 / PHASE 7 §十四）。同一份目录里
+    # 会并存多个版本的建议书 —— 不标版本的话，事后根本分不清哪份是谁生成的。
+    _uses_news = st.get("uses_news", True)
+    L.append(f"> **Strategy: {st.get('strategy', '未知')}**  ")
+    L.append(f"> Features: {st.get('features_label', st.get('feature_version', '—'))}  ")
+    L.append(f"> News factors: {'ENABLED' if _uses_news else '**DISABLED**'}  ")
+    L.append(f"> Horizon: {args.horizon} trading days  ")
+    L.append(f"> Model: `{st.get('model', '—')}`")
     L.append("")
     L.append(f"生成时间: {datetime.now():%Y-%m-%d %H:%M} · "
              f"**仅供研究，不构成投资建议，系统不会自动下单**")

@@ -45,24 +45,45 @@ NEWS_PACK = NEWS_PACKS["v1"]        # 向后兼容的别名
 
 #: 策略注册表。切换生产策略 = 改 PRODUCTION_STRATEGY 这一行，
 #: 不要散落着改模型路径。
-#:   S3_v1 = 冻结的生产模型（news_v1 公告集）
-#:   S3_v2 = 修复 SSE 采集后用 news_v2 重训的同结构模型
-#: 见 reports/s3_v2_news_repair_and_backtest.md
+#:
+#:   production_clean_v1 = **当前生产**。Alpha158 only，无自定义特征、
+#:                         **不使用任何新闻因子**（PHASE 7 选定）
+#:   S3_v1               = 旧生产基线。新闻特征选自带残缺的语料，
+#:                         标记 CONTAMINATED，仅作历史参照
+#:   S3_v2               = 修复新闻后重训，回测严重退化，已否决
+#:
+#: `custom_features` 省略（None）= 按 news_version 从 factor_pack 推；
+#: 显式给列表 = 以它为准。生产策略必须显式写死，不能靠推导 ——
+#: 推导链一旦改动，生产特征集会跟着悄悄变。
 STRATEGIES = {
+    "production_clean_v1": {
+        "model": "experiments/clean/clean_A/model.txt",
+        "custom_features": [],
+        "news_version": "v1",          # 不读新闻；取值只为让口径确定
+        "feature_version": "alpha158",
+        "uses_news": False,
+        "features_label": "Alpha158",
+    },
     "S3_v1": {
         "model": "experiments/news/strategy/model.txt",
+        "custom_features": None,
         "news_version": "v1",
         "feature_version": "alpha158+factor_pack_v1+factor_pack_news_v1",
+        "uses_news": True,
+        "features_label": "Alpha158 + factor_pack_v1 + 新闻 v1",
     },
     "S3_v2": {
         "model": "experiments/news/strategy_s3_v2/model.txt",
+        "custom_features": None,
         "news_version": "v2",
         "feature_version": "alpha158+factor_pack_v1+factor_pack_news_v2",
+        "uses_news": True,
+        "features_label": "Alpha158 + factor_pack_v1 + 新闻 v2",
     },
 }
 
-#: 生产默认策略。**切换前一直是 S3_v1**；只有回测/对比全部通过才改这里。
-PRODUCTION_STRATEGY = "S3_v1"
+#: 生产默认策略（PHASE 7 §十二/§二十三）。
+PRODUCTION_STRATEGY = "production_clean_v1"
 
 
 def strategy_spec(name: Optional[str] = None) -> dict:
@@ -86,16 +107,24 @@ def signal_path(as_of: str, strategy: Optional[str] = None) -> Path:
 
 
 def _feature_names(strategy: Optional[str] = None) -> list:
-    """自定义特征 = STEP4 pack + 该策略对应版本的新闻 pack。
+    """该策略要算的自定义特征。
+
+    - `custom_features` 显式给了列表 -> 用它（生产策略走这条）；
+    - 给了空列表 -> 没有自定义特征（production_clean_v1 就是这种，
+      只用 Alpha158）；
+    - 为 None -> 按 news_version 从 STEP4 pack + 新闻 pack 推。
 
     **必须跟着 strategy 走**：写死 v1 的话，S3_v2 会在只有
     `regulatory_event_count_20d` 的模型上喂进 v1 的三个新闻因子，
     模型要么 KeyError，要么拿到错的列 —— 这正是"切换策略"最容易
     悄悄出错的地方。
     """
+    spec = strategy_spec(strategy)
+    explicit = spec.get("custom_features")
+    if explicit is not None:
+        return list(explicit)
     step4 = json.loads(STEP4_PACK.read_text(encoding="utf-8"))
-    nv = strategy_spec(strategy)["news_version"]
-    news = json.loads(NEWS_PACKS[nv].read_text(encoding="utf-8"))
+    news = json.loads(NEWS_PACKS[spec["news_version"]].read_text(encoding="utf-8"))
     return step4["selected"] + news["selected"]
 
 
@@ -129,8 +158,6 @@ def compute_signals(signal_date: str, top_k: int = 20,
     import yaml
 
     from factors.base import load_factor_data, set_news_version
-    from factors.normalization import fill_missing, normalize_panel
-    from factors.registry import FACTOR_REGISTRY, FACTORS
 
     set_news_version(strategy_spec(strategy)["news_version"])
     from personal_quant.strategy.features import (compute_features,
@@ -161,16 +188,24 @@ def compute_signals(signal_date: str, top_k: int = 20,
         raise RuntimeError(f"no features for {signal_date}")
     f = flatten_columns(f)
 
-    data = load_factor_data("2014-06-01", signal_date)
-    for name in _feature_names(strategy):
-        panel = FACTORS[name](data, dates=[d]).reindex(pd.DatetimeIndex([d]))
-        if FACTOR_REGISTRY[name]["category"] == "news":
-            panel = fill_missing(normalize_panel(panel, "rank"), "drop",
-                                 data.industries)
-        else:
-            panel = fill_missing(normalize_panel(panel, "rank"),
-                                 "sector_median", data.industries)
-        f = f.join(panel.loc[d].rename(name), how="left")
+    # 自定义特征。没有的话**不加载因子数据** —— load_factor_data 要把
+    # 事件快照和行情面板全读进来（几十秒、数 GB），
+    # production_clean_v1 只用 Alpha158，白读一遍纯属浪费。
+    names = _feature_names(strategy)
+    if names:
+        from factors.normalization import fill_missing, normalize_panel
+        from factors.registry import FACTOR_REGISTRY, FACTORS
+
+        data = load_factor_data("2014-06-01", signal_date)
+        for name in names:
+            panel = FACTORS[name](data, dates=[d]).reindex(pd.DatetimeIndex([d]))
+            if FACTOR_REGISTRY[name]["category"] == "news":
+                panel = fill_missing(normalize_panel(panel, "rank"), "drop",
+                                     data.industries)
+            else:
+                panel = fill_missing(normalize_panel(panel, "rank"),
+                                     "sector_median", data.industries)
+            f = f.join(panel.loc[d].rename(name), how="left")
 
     _spec = strategy_spec(strategy)
     if not _spec["model_path"].exists():
@@ -212,6 +247,9 @@ def save_signals(df: pd.DataFrame, as_of: Optional[str] = None,
         "feature_version": spec["feature_version"],
         "strategy": spec["name"],
         "news_version": spec["news_version"],
+        "uses_news": spec.get("uses_news", True),
+        "features_label": spec.get("features_label", spec["feature_version"]),
+        "custom_features": list(_feature_names(spec["name"])),
     }
     SIGNALS_STATE.write_text(json.dumps(state, indent=2, ensure_ascii=False),
                              encoding="utf-8")

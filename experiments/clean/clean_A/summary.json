@@ -1,0 +1,82 @@
+{
+  "strategy": "clean_A",
+  "created": "2026-10-06T00:30:57",
+  "features": [],
+  "uses_news": false,
+  "strategy_metrics": {
+    "label": "clean_A",
+    "cumulative_return": 0.7382251731900897,
+    "annualized_return": 0.31916779486698243,
+    "annualized_volatility": 0.3016357984619631,
+    "sharpe": 1.038644692760505,
+    "max_drawdown": -0.20268743723767269,
+    "calmar": 1.574679709886134,
+    "win_rate_monthly": 0.6086956521739131,
+    "n_days": 485,
+    "avg": 0.427521340155768,
+    "total": 9.832990823582664,
+    "n": 23,
+    "n_trades": 838
+  },
+  "ic": {
+    "valid": {
+      "period": "valid",
+      "n_months": 24,
+      "ic_mean": 0.041504631825130416,
+      "ic_std": 0.06541432408627004,
+      "icir": 0.6344884305521994,
+      "ic_positive_ratio": 0.7916666666666666,
+      "rank_ic_mean": 0.03692872447250145,
+      "rank_icir": 0.3573613793155852,
+      "rank_ic_positive_ratio": 0.6666666666666666
+    },
+    "test": {
+      "period": "test",
+      "n_months": 24,
+      "ic_mean": 0.037960266506166705,
+      "ic_std": 0.06143981617263473,
+      "icir": 0.6178447279123566,
+      "ic_positive_ratio": 0.75,
+      "rank_ic_mean": 0.04844043233526849,
+      "rank_icir": 0.713268864903022,
+      "rank_ic_positive_ratio": 0.7083333333333334
+    }
+  },
+  "quantile_summary": [
+    {
+      "quantile": 1,
+      "mean_return": 0.011553969132364728,
+      "n": 46210
+    },
+    {
+      "quantile": 2,
+      "mean_return": 0.018211209255241556,
+      "n": 46221
+    },
+    {
+      "quantile": 3,
+      "mean_return": 0.01823304989617706,
+      "n": 46229
+    },
+    {
+      "quantile": 4,
+      "mean_return": 0.02008588918639968,
+      "n": 46221
+    },
+    {
+      "quantile": 5,
+      "mean_return": 0.02073923062001389,
+      "n": 46246
+    }
+  ],
+  "top_bottom_spread": {
+    "spread_mean": 0.009185261487649162,
+    "spread_positive_ratio": 0.7291666666666666,
+    "n_months": 48
+  },
+  "fit": {
+    "best_iteration": 17,
+    "train_rmse": 0.14914895586730778,
+    "valid_rmse": 0.1330120969075679
+  }
+}

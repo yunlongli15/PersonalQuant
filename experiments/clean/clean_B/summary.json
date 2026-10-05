@@ -1,0 +1,90 @@
+{
+  "strategy": "clean_B",
+  "created": "2026-10-06T00:32:44",
+  "features": [
+    "amount_20",
+    "momentum_60",
+    "price_vs_ma20",
+    "reversal_20",
+    "volatility_20",
+    "volume_ratio_20_60",
+    "volume_ratio_5_20"
+  ],
+  "uses_news": false,
+  "strategy_metrics": {
+    "label": "clean_B",
+    "cumulative_return": 0.5900626726184293,
+    "annualized_return": 0.2615786697946898,
+    "annualized_volatility": 0.31601067345475364,
+    "sharpe": 0.8582227679247264,
+    "max_drawdown": -0.2834838076811139,
+    "calmar": 0.9227287862908035,
+    "win_rate_monthly": 0.5217391304347826,
+    "n_days": 485,
+    "avg": 0.4384715345802306,
+    "total": 10.084845295345303,
+    "n": 23,
+    "n_trades": 851
+  },
+  "ic": {
+    "valid": {
+      "period": "valid",
+      "n_months": 24,
+      "ic_mean": 0.036560444923263734,
+      "ic_std": 0.059734785032086075,
+      "icir": 0.6120461453678216,
+      "ic_positive_ratio": 0.7916666666666666,
+      "rank_ic_mean": 0.033666847329530264,
+      "rank_icir": 0.33268847337532886,
+      "rank_ic_positive_ratio": 0.625
+    },
+    "test": {
+      "period": "test",
+      "n_months": 24,
+      "ic_mean": 0.037777790037194635,
+      "ic_std": 0.07039495739942062,
+      "icir": 0.5366547751828821,
+      "ic_positive_ratio": 0.7083333333333334,
+      "rank_ic_mean": 0.051317202907489236,
+      "rank_icir": 0.6297603769680745,
+      "rank_ic_positive_ratio": 0.75
+    }
+  },
+  "quantile_summary": [
+    {
+      "quantile": 1,
+      "mean_return": 0.013399183546425775,
+      "n": 46210
+    },
+    {
+      "quantile": 2,
+      "mean_return": 0.01711520055202224,
+      "n": 46221
+    },
+    {
+      "quantile": 3,
+      "mean_return": 0.017483888610930382,
+      "n": 46229
+    },
+    {
+      "quantile": 4,
+      "mean_return": 0.019826129474192083,
+      "n": 46221
+    },
+    {
+      "quantile": 5,
+      "mean_return": 0.020999851090891752,
+      "n": 46246
+    }
+  ],
+  "top_bottom_spread": {
+    "spread_mean": 0.007600667544465978,
+    "spread_positive_ratio": 0.6875,
+    "n_months": 48
+  },
+  "fit": {
+    "best_iteration": 18,
+    "train_rmse": 0.14842554210421097,
+    "valid_rmse": 0.1329250290280979
+  }
+}

@@ -63,3 +63,45 @@ def test_signal_paths_are_versioned_and_disjoint():
 
 def test_production_strategy_is_a_registered_one():
     assert signals.PRODUCTION_STRATEGY in signals.STRATEGIES
+
+
+# ---------------------------------------------------------------------------
+# PHASE 7：干净生产策略
+# ---------------------------------------------------------------------------
+
+def test_production_clean_has_no_custom_and_no_news_features():
+    """生产策略只用 Alpha158 —— 自定义特征必须真的为空，且不读新闻。
+
+    这是 PHASE 7 的核心承诺。它一旦被"顺手加一个特征"破坏，
+    影响的不是研究结论，而是**每天真实的推荐**。
+    """
+    spec = signals.strategy_spec("production_clean_v1")
+    assert spec["uses_news"] is False
+    assert spec["custom_features"] == []
+    assert signals._feature_names("production_clean_v1") == []
+    assert spec["feature_version"] == "alpha158"
+
+
+def test_production_model_exists_and_is_the_clean_one():
+    spec = signals.strategy_spec()
+    assert spec["name"] == signals.PRODUCTION_STRATEGY
+    assert "clean" in spec["model"], \
+        f"生产模型指向 {spec['model']}，看起来不是 clean 候选"
+    assert spec["model_path"].exists(), f"生产模型不存在：{spec['model']}"
+
+
+def test_news_strategies_are_still_switchable():
+    """旧策略必须还能切回去做历史对比（§十五）。"""
+    for name in ("S3_v1", "S3_v2"):
+        s = signals.strategy_spec(name)
+        assert s["uses_news"] is True
+        assert s["model_path"].exists(), f"{name} 的模型不存在"
+        assert signals.signal_path("2026-09-30", name).name == \
+            f"signals_{name}_2026-09-30.parquet"
+
+
+def test_clean_and_news_strategies_have_disjoint_feature_sets():
+    clean = set(signals._feature_names("production_clean_v1"))
+    for name in ("S3_v1", "S3_v2"):
+        news = set(signals._feature_names(name))
+        assert not (clean & news), f"生产策略混进了 {name} 的特征"

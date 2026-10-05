@@ -214,6 +214,11 @@ def main() -> int:
     res.nav.to_frame("nav").to_parquet(out_dir / "nav.parquet")
     res.turnover.to_frame("turnover").to_parquet(out_dir / "turnover.parquet")
     res.predictions.to_parquet(out_dir / "monthly_predictions.parquet")
+    # 逐笔成交一并落盘：费用/换手/小账户摩擦的分析全靠它。
+    # 以前只存 nav/turnover，做对比时"另一版没存 trades"会让整列指标
+    # 变成"—"，看起来像没算，其实是没存。
+    if not res.trades.empty:
+        res.trades.to_parquet(out_dir / "trades.parquet")
 
     summary = {
         "strategy": args.strategy_name,
