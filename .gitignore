@@ -114,3 +114,6 @@ experiments/paper_live/
 .env.*
 *.key
 secrets*
+
+# news v1 快照（37MB，v1 表本身仍在库里；这份只是留证，没必要入库）
+data/derived/news/v1_snapshot/
