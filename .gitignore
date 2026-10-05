@@ -123,3 +123,9 @@ data/derived/news/v1_snapshot/
 #     python scripts/news/build_events.py --version v2
 # 同目录下的 pack / coverage / factor store 都很小，正常入库。
 data/derived/news/news_events_v2.parquet
+
+# 研究层的事件缓存（66MB，加了 taxonomy 的派生表）。纯缓存：
+# 库里 news_events_v2 是源头，`load_research_events(rebuild=True)` 17 秒重建。
+# 同目录的 .taxonomy.json（版本戳）和 news_factor_daily.parquet（研究产出）
+# 都很小，正常入库。
+data/derived/news/news_events_research.parquet

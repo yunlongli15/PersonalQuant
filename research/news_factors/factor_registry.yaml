@@ -1,0 +1,575 @@
+feature_version: news_research_0.1
+news_version: v2
+generated_at: '2026-10-06T00:09:58'
+pit_rule: event.availability_time <= as_of_date（按 Asia/Shanghai 的日期对齐到交易日；available 未知的事件被丢弃）
+window_unit: trading_days
+factors:
+- name: negative_event_count_5d
+  definition: 实质性负面事件数，过去 5 个交易日
+  source_fields:
+  - n_neg
+  window: 5
+  direction: negative
+  economic_hypothesis: 负面事件提高信息不确定性并压制短期估值，窗口内越多越负
+  pit_rule: same as above
+  kind: sum
+  control: false
+  status: weak
+  ic_selection: -0.003759971352367591
+  retention:
+    exchange: 1.6981882363550875
+    liquidity: 1.3082603408545843
+  corr_total_announcements: 0.1914004430134917
+  reasons:
+  - 筛选期 |IC| 0.0038 < 0.005
+- name: negative_event_count_20d
+  definition: 实质性负面事件数，过去 20 个交易日
+  source_fields:
+  - n_neg
+  window: 20
+  direction: negative
+  economic_hypothesis: 负面事件提高信息不确定性并压制短期估值，窗口内越多越负
+  pit_rule: same as above
+  kind: sum
+  control: false
+  status: weak
+  ic_selection: -0.004535234816985355
+  retention:
+    exchange: 0.3595484609184392
+    liquidity: 0.8826543660432117
+  corr_total_announcements: 0.3017598116418552
+  reasons:
+  - 筛选期 |IC| 0.0045 < 0.005
+- name: negative_event_count_60d
+  definition: 实质性负面事件数，过去 60 个交易日
+  source_fields:
+  - n_neg
+  window: 60
+  direction: negative
+  economic_hypothesis: 负面事件提高信息不确定性并压制短期估值，窗口内越多越负
+  pit_rule: same as above
+  kind: sum
+  control: false
+  status: moderate
+  ic_selection: -0.013332846116032651
+  retention:
+    exchange: 1.3235840885504195
+    liquidity: 0.9949986894967928
+  corr_total_announcements: 0.44949294319591226
+  reasons: []
+- name: negative_event_severity_20d
+  definition: 实质性负面事件的严重度之和（按 taxonomy 先验加权），20 日
+  source_fields:
+  - sev_neg
+  window: 20
+  direction: negative
+  economic_hypothesis: 同样是一件事，立案调查与一般诉讼的冲击量级差一个数量级；按严重度加权的信息量高于简单计数
+  pit_rule: same as above
+  kind: sum
+  control: false
+  status: weak
+  ic_selection: -0.004177348632057045
+  retention:
+    exchange: 0.5401160431195023
+    liquidity: 0.8938566915925419
+  corr_total_announcements: 0.3028618255232475
+  reasons:
+  - 筛选期 |IC| 0.0042 < 0.005
+- name: regulatory_negative_count_20d
+  definition: regulatory 类事件数，20 日
+  source_fields:
+  - t_regulatory
+  window: 20
+  direction: negative
+  economic_hypothesis: regulatory 是具体风险来源，比混合计数更干净
+  pit_rule: same as above
+  kind: sum
+  control: false
+  status: low_discrimination
+  ic_selection: -0.020066444454430267
+  retention:
+    exchange: 0.7967154554982361
+    liquidity: 0.8503351563839394
+  corr_total_announcements: 0.1475698511144932
+  reasons:
+  - LOW_DISCRIMINATION：94.6% 的股票取同一值 —— 横截面几乎没有排序能力，不推荐入模
+- name: litigation_negative_count_20d
+  definition: litigation 类事件数，20 日
+  source_fields:
+  - t_litigation
+  window: 20
+  direction: negative
+  economic_hypothesis: litigation 是具体风险来源，比混合计数更干净
+  pit_rule: same as above
+  kind: sum
+  control: false
+  status: low_discrimination
+  ic_selection: -0.004199581527541671
+  retention:
+    exchange: 8.067179254908488
+    liquidity: 2.8104065817925155
+  corr_total_announcements: 0.016566057431991597
+  reasons:
+  - LOW_DISCRIMINATION：99.8% 的股票取同一值 —— 横截面几乎没有排序能力，不推荐入模
+- name: investigation_count_20d
+  definition: investigation 类事件数，20 日
+  source_fields:
+  - t_investigation
+  window: 20
+  direction: negative
+  economic_hypothesis: investigation 是具体风险来源，比混合计数更干净
+  pit_rule: same as above
+  kind: sum
+  control: false
+  status: low_discrimination
+  ic_selection: -0.009940800603629221
+  retention:
+    exchange: -3.765194095860579
+    liquidity: 1.3830934408457296
+  corr_total_announcements: 0.02475246097718292
+  reasons:
+  - LOW_DISCRIMINATION：99.8% 的股票取同一值 —— 横截面几乎没有排序能力，不推荐入模
+- name: penalty_count_20d
+  definition: penalty 类事件数，20 日
+  source_fields:
+  - t_penalty
+  window: 20
+  direction: negative
+  economic_hypothesis: penalty 是具体风险来源，比混合计数更干净
+  pit_rule: same as above
+  kind: sum
+  control: false
+  status: low_discrimination
+  ic_selection: 0.0003699894549310432
+  retention:
+    exchange: .nan
+    liquidity: .nan
+    note: 池化 IC 近零，比值无意义
+  corr_total_announcements: 0.013907334967231821
+  reasons:
+  - LOW_DISCRIMINATION：99.8% 的股票取同一值 —— 横截面几乎没有排序能力，不推荐入模
+- name: pledge_risk_count_20d
+  definition: pledge 类事件数，20 日
+  source_fields:
+  - t_pledge
+  window: 20
+  direction: negative
+  economic_hypothesis: pledge 是具体风险来源，比混合计数更干净
+  pit_rule: same as above
+  kind: sum
+  control: false
+  status: low_discrimination
+  ic_selection: 0.0023558249030607306
+  retention:
+    exchange: .nan
+    liquidity: .nan
+    note: 池化 IC 近零，比值无意义
+  corr_total_announcements: 0.08301794748617529
+  reasons:
+  - LOW_DISCRIMINATION：95.8% 的股票取同一值 —— 横截面几乎没有排序能力，不推荐入模
+- name: shareholder_reduction_count_20d
+  definition: shareholder_reduce 类事件数，20 日
+  source_fields:
+  - t_sh_reduce
+  window: 20
+  direction: negative
+  economic_hypothesis: shareholder_reduce 是具体风险来源，比混合计数更干净
+  pit_rule: same as above
+  kind: sum
+  control: false
+  status: low_discrimination
+  ic_selection: .nan
+  retention:
+    exchange: .nan
+    liquidity: .nan
+    note: 池化 IC 近零，比值无意义
+  corr_total_announcements: .nan
+  reasons:
+  - LOW_DISCRIMINATION：100.0% 的股票取同一值 —— 横截面几乎没有排序能力，不推荐入模
+- name: material_negative_count_20d
+  definition: 剔除程序性公告后的负面事件数，20 日
+  source_fields:
+  - n_neg
+  window: 20
+  direction: negative
+  economic_hypothesis: '**核心对照**：若 negative_event_count 的 IC 主要来自程序性公告，那么把程序性剔除后 IC 应显著下降；不下降才说明信号是真的'
+  pit_rule: same as above
+  kind: sum
+  control: false
+  status: weak
+  ic_selection: -0.004535234816985355
+  retention:
+    exchange: 0.3595484609184392
+    liquidity: 0.8826543660432117
+  corr_total_announcements: 0.3017598116418552
+  reasons:
+  - 筛选期 |IC| 0.0045 < 0.005
+- name: debt_default_count_20d
+  definition: 债务违约/破产重整/冻结类事件数，20 日
+  source_fields:
+  - t_debt_default
+  window: 20
+  direction: negative
+  economic_hypothesis: 存续性风险事件，预期是最强的单点负面冲击
+  pit_rule: same as above
+  kind: sum
+  control: false
+  status: low_discrimination
+  ic_selection: 0.004211484525290149
+  retention:
+    exchange: .nan
+    liquidity: .nan
+    note: 池化 IC 近零，比值无意义
+  corr_total_announcements: 0.12471901101255413
+  reasons:
+  - LOW_DISCRIMINATION：93.5% 的股票取同一值 —— 横截面几乎没有排序能力，不推荐入模
+- name: positive_event_count_5d
+  definition: 实质性正面事件数，过去 5 个交易日
+  source_fields:
+  - n_pos
+  window: 5
+  direction: positive
+  economic_hypothesis: 正面事件（增持/回购/中标/分红）是管理层与市场之间的正向信号
+  pit_rule: same as above
+  kind: sum
+  control: false
+  status: invalid
+  ic_selection: 0.0005854610878280916
+  retention:
+    exchange: 2.5208106819474927
+    liquidity: 1.9515760266561921
+  corr_total_announcements: 0.22494710334320336
+  reasons:
+  - 两筛选期符号相反（+0.0048 / -0.0036）
+- name: positive_event_count_20d
+  definition: 实质性正面事件数，过去 20 个交易日
+  source_fields:
+  - n_pos
+  window: 20
+  direction: positive
+  economic_hypothesis: 正面事件（增持/回购/中标/分红）是管理层与市场之间的正向信号
+  pit_rule: same as above
+  kind: sum
+  control: false
+  status: invalid
+  ic_selection: 0.004435198989834527
+  retention:
+    exchange: 0.660649232886688
+    liquidity: 2.710779233749884
+  corr_total_announcements: 0.3573253994753227
+  reasons:
+  - 两筛选期符号相反（+0.0154 / -0.0066）
+- name: positive_event_count_60d
+  definition: 实质性正面事件数，过去 60 个交易日
+  source_fields:
+  - n_pos
+  window: 60
+  direction: positive
+  economic_hypothesis: 正面事件（增持/回购/中标/分红）是管理层与市场之间的正向信号
+  pit_rule: same as above
+  kind: sum
+  control: false
+  status: invalid
+  ic_selection: -0.006035334628336292
+  retention:
+    exchange: .nan
+    liquidity: .nan
+    note: 池化 IC 近零，比值无意义
+  corr_total_announcements: 0.48377378077459815
+  reasons:
+  - 两筛选期符号相反（+0.0105 / -0.0226）
+- name: repurchase_count_20d
+  definition: buyback 类事件数，20 日
+  source_fields:
+  - t_buyback
+  window: 20
+  direction: positive
+  economic_hypothesis: buyback 的正向含义比混合计数更明确
+  pit_rule: same as above
+  kind: sum
+  control: false
+  status: low_discrimination
+  ic_selection: .nan
+  retention:
+    exchange: .nan
+    liquidity: .nan
+    note: 池化 IC 近零，比值无意义
+  corr_total_announcements: .nan
+  reasons:
+  - LOW_DISCRIMINATION：100.0% 的股票取同一值 —— 横截面几乎没有排序能力，不推荐入模
+- name: shareholder_increase_count_20d
+  definition: shareholder_increase 类事件数，20 日
+  source_fields:
+  - t_sh_increase
+  window: 20
+  direction: positive
+  economic_hypothesis: shareholder_increase 的正向含义比混合计数更明确
+  pit_rule: same as above
+  kind: sum
+  control: false
+  status: low_discrimination
+  ic_selection: .nan
+  retention:
+    exchange: .nan
+    liquidity: .nan
+    note: 池化 IC 近零，比值无意义
+  corr_total_announcements: .nan
+  reasons:
+  - LOW_DISCRIMINATION：100.0% 的股票取同一值 —— 横截面几乎没有排序能力，不推荐入模
+- name: major_contract_count_20d
+  definition: major_contract 类事件数，20 日
+  source_fields:
+  - t_contract
+  window: 20
+  direction: positive
+  economic_hypothesis: major_contract 的正向含义比混合计数更明确
+  pit_rule: same as above
+  kind: sum
+  control: false
+  status: low_discrimination
+  ic_selection: -0.007314349686082053
+  retention:
+    exchange: 0.532293826356692
+    liquidity: 0.6710311672881408
+  corr_total_announcements: 0.051158008288507785
+  reasons:
+  - LOW_DISCRIMINATION：97.9% 的股票取同一值 —— 横截面几乎没有排序能力，不推荐入模
+- name: equity_incentive_count_20d
+  definition: equity_incentive 类事件数，20 日
+  source_fields:
+  - t_equity_incentive
+  window: 20
+  direction: positive
+  economic_hypothesis: equity_incentive 的正向含义比混合计数更明确
+  pit_rule: same as above
+  kind: sum
+  control: false
+  status: low_discrimination
+  ic_selection: 0.009647745322790533
+  retention:
+    exchange: 1.0634782110201548
+    liquidity: 1.3427315905600987
+  corr_total_announcements: 0.23546344684249887
+  reasons:
+  - LOW_DISCRIMINATION：92.2% 的股票取同一值 —— 横截面几乎没有排序能力，不推荐入模
+- name: news_intensity_20d
+  definition: 实质性公告数 / 该股过去 120 日自身均值
+  source_fields:
+  - n_substantive
+  window: 20
+  direction: unknown
+  economic_hypothesis: 相对自身历史的异常放量比绝对条数更能反映信息冲击；绝对条数在很大程度上只是公司规模与活跃度的代理
+  pit_rule: same as above
+  kind: ratio
+  control: false
+  status: invalid
+  ic_selection: 0.0031090466600188008
+  retention:
+    exchange: .nan
+    liquidity: .nan
+    note: 池化 IC 近零，比值无意义
+  corr_total_announcements: 0.3656959000432105
+  reasons:
+  - 两筛选期符号相反（+0.0068 / -0.0006）
+- name: abnormal_news_intensity_20d
+  definition: 实质性公告数的自身 z 分数（基线 120 日）
+  source_fields:
+  - n_substantive
+  window: 20
+  direction: unknown
+  economic_hypothesis: 用自身历史标准化，消除公司间固定差异
+  pit_rule: same as above
+  kind: zscore
+  control: false
+  status: moderate
+  ic_selection: 0.007319463055212645
+  retention:
+    exchange: .nan
+    liquidity: .nan
+    note: 池化 IC 近零，比值无意义
+  corr_total_announcements: 0.168091155475542
+  reasons:
+  - 2024-2026 段符号翻转
+- name: first_negative_event_20d
+  definition: 过去 180 日首次出现负面事件（0/1），20 日窗口内
+  source_fields:
+  - n_neg
+  window: 20
+  direction: negative
+  economic_hypothesis: '**重点候选**：首次出现的负面事件信息量最大；第 10 次重复的边际信息接近于零。计数会把两者混为一谈'
+  pit_rule: same as above
+  kind: first
+  control: false
+  status: low_discrimination
+  ic_selection: 0.005541811363928938
+  retention:
+    exchange: 5.975597298973789
+    liquidity: 1.3127137739506363
+  corr_total_announcements: 0.001112639993474679
+  reasons:
+  - LOW_DISCRIMINATION：97.5% 的股票取同一值 —— 横截面几乎没有排序能力，不推荐入模
+- name: new_event_type_count_20d
+  definition: 过去 180 日未出现过的主题数，20 日窗口内
+  source_fields:
+  - n_types
+  window: 20
+  direction: unknown
+  economic_hypothesis: 新类型的公告意味着出现了此前没有的经营/治理维度
+  pit_rule: same as above
+  kind: sum
+  control: false
+  status: invalid
+  ic_selection: -0.010978378138950298
+  retention:
+    exchange: 1.1497252659164772
+    liquidity: 0.12854582941661585
+  corr_total_announcements: 0.6259391672355725
+  reasons:
+  - 组内塌陷：保留率 交易所 1.15 / 流动性 0.13（<0.3 = 信号来自组间，不是横截面信息）
+- name: weighted_negative_event_20d
+  definition: 负面事件按 0.5^(龄/10交易日) 指数衰减加权
+  source_fields:
+  - n_neg
+  window: 20
+  direction: negative
+  economic_hypothesis: 同样一条负面公告，昨天发生与 20 天前发生对当前定价的含义不同；权重公式取最简单可复现的指数衰减，不做参数搜索
+  pit_rule: same as above
+  kind: decay
+  control: false
+  status: weak
+  ic_selection: -0.0036246837518541276
+  retention:
+    exchange: 0.48385261592604595
+    liquidity: 0.9055958600412272
+  corr_total_announcements: 0.29931261268445214
+  reasons:
+  - 筛选期 |IC| 0.0036 < 0.005
+- name: negative_event_days_20d
+  definition: 窗口内**有**负面事件的天数（不是条数）
+  source_fields:
+  - n_neg
+  window: 20
+  direction: negative
+  economic_hypothesis: 一天发 5 条和 5 天各发 1 条含义不同：后者说明风险在持续
+  pit_rule: same as above
+  kind: sum
+  control: false
+  status: weak
+  ic_selection: -0.004535234816985355
+  retention:
+    exchange: 0.3595484609184392
+    liquidity: 0.8826543660432117
+  corr_total_announcements: 0.3017598116418552
+  reasons:
+  - 筛选期 |IC| 0.0045 < 0.005
+- name: positive_negative_balance_20d
+  definition: (正面数 - 负面数) / (正面数 + 负面数 + 1)，20 日
+  source_fields:
+  - n_pos
+  - n_neg
+  window: 20
+  direction: positive
+  economic_hypothesis: 净情绪方向；分母加 1 是拉普拉斯式平滑，避免无事件股票的 0/0
+  pit_rule: same as above
+  kind: balance
+  control: false
+  status: invalid
+  ic_selection: 0.005241797856990977
+  retention:
+    exchange: -0.10381572116610174
+    liquidity: 1.7850212764446396
+  corr_total_announcements: 0.05539387450711955
+  reasons:
+  - 两筛选期符号相反（+0.0119 / -0.0015）
+- name: positive_negative_balance_60d
+  definition: (正面数 - 负面数) / (正面数 + 负面数 + 1)，60 日
+  source_fields:
+  - n_pos
+  - n_neg
+  window: 60
+  direction: positive
+  economic_hypothesis: 净情绪方向；分母加 1 是拉普拉斯式平滑，避免无事件股票的 0/0
+  pit_rule: same as above
+  kind: balance
+  control: false
+  status: invalid
+  ic_selection: 0.004826497228922595
+  retention:
+    exchange: 1.1482781009814045
+    liquidity: 1.9883649596008297
+  corr_total_announcements: 0.06663053919202633
+  reasons:
+  - 两筛选期符号相反（+0.0169 / -0.0072）
+- name: negative_positive_ratio_20d
+  definition: 负面数 / (正面数 + 1)，20 日
+  source_fields:
+  - n_pos
+  - n_neg
+  window: 20
+  direction: negative
+  economic_hypothesis: 与 balance 互补：对负面更敏感的非对称刻画
+  pit_rule: same as above
+  kind: ratio2
+  control: false
+  status: weak
+  ic_selection: -0.004060073541229143
+  retention:
+    exchange: 0.5595976524772234
+    liquidity: 1.0408013360925994
+  corr_total_announcements: 0.2560975487984925
+  reasons:
+  - 筛选期 |IC| 0.0041 < 0.005
+- name: negative_event_streak_60d
+  definition: 截至 T 连续出现负面事件的最大天数（60 日窗口内）
+  source_fields:
+  - n_neg
+  window: 60
+  direction: negative
+  economic_hypothesis: 连续暴露说明问题未解决，与单次冲击应当区分
+  pit_rule: same as above
+  kind: streak
+  control: false
+  status: moderate
+  ic_selection: -0.011979935384693816
+  retention:
+    exchange: 1.479409306432561
+    liquidity: 0.9518104315376636
+  corr_total_announcements: 0.3903325972004505
+  reasons: []
+- name: procedural_count_20d
+  definition: 程序性公告数（股东大会/章程/法律意见书/内控制度），20 日
+  source_fields:
+  - n_procedural
+  window: 20
+  direction: unknown
+  economic_hypothesis: '**阴性对照**：行政流程公告按经济逻辑不该有预测力。它若拿到显著 IC，说明这套检验在捕风捉影，全表的结论都要打折'
+  pit_rule: same as above
+  kind: sum
+  control: true
+  status: weak
+  ic_selection: -0.002461303403834915
+  retention:
+    exchange: 4.668051522302359
+    liquidity: -2.125819206300116
+  corr_total_announcements: 0.49135757290604726
+  reasons:
+  - 筛选期 |IC| 0.0025 < 0.005
+- name: unknown_count_20d
+  definition: taxonomy 未能归类的公告数，20 日
+  source_fields:
+  - n_unknown
+  window: 20
+  direction: unknown
+  economic_hypothesis: 第二个阴性对照：分类失败的残余不该携带信息
+  pit_rule: same as above
+  kind: sum
+  control: true
+  status: moderate
+  ic_selection: -0.013868936814419022
+  retention:
+    exchange: 1.0137292523412864
+    liquidity: 0.3985034750702535
+  corr_total_announcements: 0.4067926365745464
+  reasons:
+  - 部分来自组间差异（保留率 1.01 / 0.40）
+  - '**阴性对照**：本不该有信号'
