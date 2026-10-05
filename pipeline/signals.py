@@ -35,8 +35,13 @@ PORTFOLIO_STATE = QUANT_DIR / "portfolio_state.json"
 MODEL_PATH = PROJECT_ROOT / "experiments" / "news" / "strategy" / "model.txt"
 STEP4_PACK = (PROJECT_ROOT / "experiments" / "factors" / "factor_run_001"
               / "factor_pack_v1.json")
-NEWS_PACK = (PROJECT_ROOT / "experiments" / "news" / "news_factor_run_001"
-             / "factor_pack_news_v1.json")
+NEWS_PACKS = {
+    "v1": (PROJECT_ROOT / "experiments" / "news" / "news_factor_run_001"
+           / "factor_pack_news_v1.json"),
+    "v2": (PROJECT_ROOT / "experiments" / "news" / "news_factor_run_002"
+           / "factor_pack_news_v2.json"),
+}
+NEWS_PACK = NEWS_PACKS["v1"]        # 向后兼容的别名
 
 #: 策略注册表。切换生产策略 = 改 PRODUCTION_STRATEGY 这一行，
 #: 不要散落着改模型路径。
@@ -80,9 +85,17 @@ def signal_path(as_of: str, strategy: Optional[str] = None) -> Path:
     return QUANT_DIR / f"signals_{name}_{as_of}.parquet"
 
 
-def _feature_names() -> list:
+def _feature_names(strategy: Optional[str] = None) -> list:
+    """自定义特征 = STEP4 pack + 该策略对应版本的新闻 pack。
+
+    **必须跟着 strategy 走**：写死 v1 的话，S3_v2 会在只有
+    `regulatory_event_count_20d` 的模型上喂进 v1 的三个新闻因子，
+    模型要么 KeyError，要么拿到错的列 —— 这正是"切换策略"最容易
+    悄悄出错的地方。
+    """
     step4 = json.loads(STEP4_PACK.read_text(encoding="utf-8"))
-    news = json.loads(NEWS_PACK.read_text(encoding="utf-8"))
+    nv = strategy_spec(strategy)["news_version"]
+    news = json.loads(NEWS_PACKS[nv].read_text(encoding="utf-8"))
     return step4["selected"] + news["selected"]
 
 
@@ -149,7 +162,7 @@ def compute_signals(signal_date: str, top_k: int = 20,
     f = flatten_columns(f)
 
     data = load_factor_data("2014-06-01", signal_date)
-    for name in _feature_names():
+    for name in _feature_names(strategy):
         panel = FACTORS[name](data, dates=[d]).reindex(pd.DatetimeIndex([d]))
         if FACTOR_REGISTRY[name]["category"] == "news":
             panel = fill_missing(normalize_panel(panel, "rank"), "drop",
