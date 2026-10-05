@@ -51,6 +51,29 @@ def load_configs():
 
 
 def main() -> int:
+    import argparse
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--news-version", default="v1", choices=["v1", "v2"],
+                    help="读哪一版新闻数据：v1=原始（SSE 只含定期报告），"
+                         "v2=修复 SSE 采集后的重建集")
+    ap.add_argument("--out-dir", default=None,
+                    help="输出目录（默认写死的那一个；S3_v2 必须另指一个，"
+                         "绝不能覆盖冻结的生产模型）")
+    ap.add_argument("--strategy-name", default="strategy_v1_news",
+                    help="写进 manifest 的策略名")
+    args = ap.parse_args()
+
+    out_dir = Path(args.out_dir) if args.out_dir else OUT_DIR
+    if args.news_version == "v2":
+        from factors.base import set_news_version, news_version
+        set_news_version("v2")
+        print(f"[news] 使用 news_{news_version()}（修复 SSE 采集后的公告集）")
+    if out_dir == OUT_DIR and args.news_version != "v1":
+        raise SystemExit(
+            "拒绝执行：用 news_v2 训练却要写进默认目录，会覆盖冻结的生产模型"
+            f"（{OUT_DIR}）。请用 --out-dir 另指一个。")
+
     config, news_cfg = load_configs()
     ts = config["time_split"]
     cost_model = TransactionCostModel.from_config(config)
@@ -64,7 +87,7 @@ def main() -> int:
                             / "factor_pack_news_v1.json")
                            .read_text(encoding="utf-8"))
     features = (step4_pack["selected"] + news_pack["selected"])
-    print(f"strategy_v1_news features: {features}")
+    print(f"{args.strategy_name} features: {features}")
 
     train_dates = rebalance_dates(ts["train"][0], ts["train"][1])
     valid_dates = rebalance_dates(ts["valid"][0], ts["valid"][1])
@@ -123,8 +146,8 @@ def main() -> int:
                     train_df["label"],
                     valid_df.drop(columns=["label", "date", "symbol"]),
                     valid_df["label"])
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    model.save(OUT_DIR / "model.txt")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    model.save(out_dir / "model.txt")
 
     pred_frames = []
     for d in valid_dates + test_dates:
@@ -145,9 +168,9 @@ def main() -> int:
         pred_frames.append(m.reset_index()[["date", "symbol", "prediction",
                                            "label"]])
     preds = pd.concat(pred_frames, ignore_index=True)
-    preds.to_parquet(OUT_DIR / "predictions.parquet")
+    preds.to_parquet(out_dir / "predictions.parquet")
     ic_df = compute_ic(preds)
-    ic_df.to_parquet(OUT_DIR / "ic.parquet")
+    ic_df.to_parquet(out_dir / "ic.parquet")
     vs, ve, ts_, te_ = (pd.Timestamp(x) for x in (
         ts["valid"][0], ts["valid"][1], ts["test"][0], ts["test"][1]))
     ic_by_period = {
@@ -157,7 +180,7 @@ def main() -> int:
                                  (ic_df["date"] <= te_)], "test"),
     }
     qa = quantile_analysis(preds[preds["date"] >= vs])
-    qa.to_parquet(OUT_DIR / "quantiles.parquet")
+    qa.to_parquet(out_dir / "quantiles.parquet")
 
     feat_cache = {}
     for d in all_dates:
@@ -181,29 +204,29 @@ def main() -> int:
 
     bt = MonthlyBacktest(config, cost_model, 1_000_000.0)
     res = bt.run(ts["test"][0], ts["test"][1], predictor,
-                 model_version="strategy_v1_news")
-    res.nav.to_frame("nav").to_parquet(OUT_DIR / "nav.parquet")
-    res.turnover.to_frame("turnover").to_parquet(OUT_DIR / "turnover.parquet")
-    res.predictions.to_parquet(OUT_DIR / "monthly_predictions.parquet")
+                 model_version=args.strategy_name)
+    res.nav.to_frame("nav").to_parquet(out_dir / "nav.parquet")
+    res.turnover.to_frame("turnover").to_parquet(out_dir / "turnover.parquet")
+    res.predictions.to_parquet(out_dir / "monthly_predictions.parquet")
 
     summary = {
-        "strategy": "strategy_v1_news",
+        "strategy": args.strategy_name,
         "created": datetime.now().isoformat(timespec="seconds"),
         "features": features,
         "strategy_metrics": mt.summarize(res.nav, None, res.turnover,
                                          len(res.trades),
-                                         "strategy_v1_news"),
+                                         args.strategy_name),
         "ic": ic_by_period,
         "quantile_summary": quantile_summary(qa).to_dict("records"),
         "top_bottom_spread": top_bottom_spread(qa),
         "fit": fit,
     }
-    with open(OUT_DIR / "summary.json", "w", encoding="utf-8") as f:
+    with open(out_dir / "summary.json", "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2, default=str)
-    save_manifest(build_manifest(config, "strategy_v1_news", extra={
-        "features": features}), OUT_DIR)
+    save_manifest(build_manifest(config, args.strategy_name, extra={
+        "features": features}), out_dir)
     s = summary["strategy_metrics"]
-    print(f"strategy_v1_news test: ann={s['annualized_return']:.4f} "
+    print(f"{args.strategy_name} test: ann={s['annualized_return']:.4f} "
           f"sharpe={s['sharpe']:.3f} mdd={s['max_drawdown']:.4f} "
           f"IC={ic_by_period['test']['ic_mean']:.4f}")
     return 0
