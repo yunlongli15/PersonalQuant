@@ -16,15 +16,38 @@ from daily_exit_paper import config as C
 
 
 def test_config_validates(cfg):
+    """配置自洽性。**不写死具体身份值**。
+
+    原先这里断言 `strategy_version == "daily_exit_paper_v1"` —— 那只是
+    "默认配置恰好是 v1"的同义反复。默认改成 clean 之后它就红了，
+    而它想守的东西（配置自洽）其实与哪个实验无关。
+    身份字段改成与**配置文件名**对齐，两个实验各自的配置都受这条约束。
+    """
     s = C.validate(cfg)
-    assert s["strategy_version"] == "daily_exit_paper_v1"
-    assert s["base_signal_strategy"] == "strategy_v2"
+    assert s["strategy_version"] == C.CONFIG_PATH.stem
+    assert s["base_signal_strategy"] in ("strategy_v2", "production_clean_v1")
+    # 写了 signal_strategy 就必须与 base 一致 —— 两者分叉意味着
+    # "实验自称是什么"和"它实际读哪套信号"不是一回事
+    if "signal_strategy" in s:
+        assert s["signal_strategy"] == s["base_signal_strategy"]
     assert s["signal_horizon_days"] == 20
     assert s["top_k"] == 20
     assert s["risk_profile"] == "balanced"
     assert s["exit"]["signal_exit_enabled"] is False
     assert s["exit_resolution"]["intraday_conflict"] == "stop_first"
     assert s["execution"]["partial_fill"] == "unsupported"
+
+
+def test_both_experiment_configs_validate():
+    """两个实验的配置**都要**能过校验 —— 别只顾着默认那一个。"""
+    root = C.PROJECT_ROOT / "config"
+    paths = sorted(root.glob("daily_exit_paper*.yaml"))
+    assert len(paths) >= 2, f"只找到 {paths}"
+    for p in paths:
+        s = C.validate(C.load_config(p))
+        assert s["strategy_version"] == p.stem
+        assert s["paths"]["root"].endswith(s["strategy_version"]), (
+            f"{p.name} 的目录 {s['paths']['root']} 与实验名对不上")
 
 
 def test_frozen_values_match_the_inherited_sources(cfg):

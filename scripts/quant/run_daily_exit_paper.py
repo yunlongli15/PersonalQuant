@@ -67,13 +67,26 @@ def main() -> int:
                     help="本次最多推进几个交易日（默认不限，用于追赶）")
     ap.add_argument("--json", action="store_true", help="输出机器可读结果")
     ap.add_argument("--config", default=None,
-                    help="实验配置路径（默认 config/daily_exit_paper_v1.yaml）。"
+                    help="实验配置路径（默认 = 当前生产模型的那个实验，"
+                         "见 daily_exit_paper/config.py 的 CONFIG_PATH）。"
                          "每个实验有自己的配置、目录和账本，"
-                         "用这个参数选择跑哪一个。")
+                         "用这个参数选择跑哪一个；"
+                         "已停的 daily_exit_paper_v1 用 "
+                         "--config config/daily_exit_paper_v1.yaml 查看。")
     args = ap.parse_args()
 
-    cfg = C.load_config(Path(args.config) if args.config else None)
+    cfg_path = Path(args.config) if args.config else C.CONFIG_PATH
+    # 相对路径先补成绝对：下面打印时要 relative_to(PROJECT_ROOT)，
+    # 传 "config/xxx.yaml" 这种相对路径会直接抛 ValueError。
+    if not cfg_path.is_absolute():
+        cfg_path = C.PROJECT_ROOT / cfg_path
+    cfg = C.load_config(cfg_path)
     s_cfg = C.validate(cfg)
+    # 明确说出"这次跑的是哪个实验"。两个实验并存之后，
+    # 光看输出里的数字分不出是谁的账本 —— 必须让它自报家门。
+    print(f"实验 {s_cfg['strategy_version']}"
+          f"（信号来源 {s_cfg.get('signal_strategy', engine.PINNED_STRATEGY)}）"
+          f"\n配置 {cfg_path.relative_to(C.PROJECT_ROOT)}\n")
     root = C.PROJECT_ROOT / s_cfg["paths"]["root"]
     store = ST.ExperimentStore(root)
     market = engine.LiveMarket(
@@ -119,7 +132,8 @@ def main() -> int:
     try:
         res = engine.run(run_date=args.date, capital=args.capital,
                          dry_run=args.dry_run, cfg=cfg, store=store,
-                         market=market, max_sessions=args.max_sessions)
+                         market=market, max_sessions=args.max_sessions,
+                         config_path=cfg_path)
     except (engine.EngineError, C.ConfigError, C.ConfigDrift,
             ledger.ReconciliationError, ST.AlreadyWritten) as e:
         print(f"[REFUSED] {type(e).__name__}: {e}")

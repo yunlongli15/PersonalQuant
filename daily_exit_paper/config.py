@@ -17,7 +17,18 @@ from typing import Optional
 import yaml
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-CONFIG_PATH = PROJECT_ROOT / "config" / "daily_exit_paper_v1.yaml"
+
+#: 默认配置 = **当前生产模型的那个前瞻实验**。
+#:
+#: 2026-10-06 起是 clean 实验：生产策略已切到 production_clean_v1，
+#: 每日要推进的自然是它。原先默认指向 daily_exit_paper_v1 ——
+#: 那个实验按决定停在了 2026-09-30，于是裸跑命令天天报错，
+#: 而"默认跑一个已经停掉的实验"本身就是错的。
+#:
+#: v1 的配置一个字没改，仍然可以显式跑：
+#:     --config config/daily_exit_paper_v1.yaml
+#: 两个实验各有自己的目录、账本、config 哈希，互不影响。
+CONFIG_PATH = PROJECT_ROOT / "config" / "daily_exit_paper_clean_v1.yaml"
 
 #: 参与冻结校验的键（实验中途不得改变的任何东西）。
 FROZEN_KEYS = (

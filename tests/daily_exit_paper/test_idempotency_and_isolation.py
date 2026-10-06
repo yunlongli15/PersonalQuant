@@ -115,7 +115,11 @@ def test_experiment_metadata_records_what_matters(cfg, store):
               "initial_capital", "first_signal_date", "config_sha256",
               "git_commit", "working_tree", "created_at"):
         assert exp.get(k) is not None, k
-    assert exp["base_strategy"] == "strategy_v2"
+    # 记录的基线策略必须**等于配置里写的那个**。
+    # 原先写死 "strategy_v2" —— 那是"默认配置恰好是 v1"的同义反复，
+    # 换个实验就红。真正要守的是"记下来的和配置一致"。
+    assert exp["base_strategy"] == C.spec(cfg)["base_signal_strategy"]
+    assert exp["strategy_version"] == C.spec(cfg)["strategy_version"]
     # first_signal_date 记的是**实验第一天用的信号日**，不是程序安装日
     assert exp["first_signal_date"] == str(D0.date())
     assert exp["working_tree"] in ("clean", "dirty")

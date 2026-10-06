@@ -110,9 +110,17 @@ def test_verify_config_validates_the_given_file():
         C.verify_config(expected_sha=C.config_sha256(V1_CFG), path=CLEAN_CFG)
 
 
-def test_default_hash_unchanged_for_v1():
-    """不传 path 时仍走 CONFIG_PATH —— v1 的口径逐位不变。"""
-    assert C.config_sha256() == C.config_sha256(V1_CFG)
+def test_default_config_is_the_production_experiment():
+    """默认配置必须指向**当前生产模型**的那个实验。
+
+    2026-10-06 之前默认指向 v1；v1 停掉之后裸跑命令天天报错，
+    而"默认跑一个已经停掉的实验"本身就是错的。
+    """
+    assert C.CONFIG_PATH == CLEAN_CFG, (
+        f"默认配置指向 {C.CONFIG_PATH.name}，应指向 clean 那个实验")
+    assert C.config_sha256() == C.config_sha256(CLEAN_CFG)
+    # v1 仍然可以显式跑，只是不再是默认
+    assert C.config_sha256(V1_CFG) != C.config_sha256(CLEAN_CFG)
 
 
 # ---------------------------------------------------------------------------

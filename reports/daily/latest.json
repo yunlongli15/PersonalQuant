@@ -1,9 +1,9 @@
 {
-  "run_id": "2026-09-30_010303",
+  "run_id": "2026-09-30_154135",
   "date": "2026-09-30",
   "status": "WARNING",
-  "generated_at": "2026-10-06T01:03:12+08:00",
-  "duration_s": 8.99,
+  "generated_at": "2026-10-06T15:41:45+08:00",
+  "duration_s": 9.29,
   "dry_run": false,
   "backfill": false,
   "summary": {
@@ -27,7 +27,7 @@
   "strategy": {
     "version": "1.0.0",
     "freeze_date": "2026-09-19",
-    "git_commit": "42e7e782d66548a5dd03e63806c6b20d3bc5fa40",
+    "git_commit": "e4c1807d76d54b98a1fac35a6f103205b89abc42",
     "production_enabled": true,
     "strategy_version": "strategy_v2",
     "feature_version": "alpha158+factor_pack_v1",
@@ -97,7 +97,7 @@
       "status": "OK",
       "detail": "新闻最新 2026-09-30；覆盖 4932 只",
       "error": "",
-      "duration_s": 4.77,
+      "duration_s": 4.91,
       "depends_on": [
         "environment"
       ]
@@ -547,8 +547,8 @@
     ]
   },
   "timestamps": {
-    "started": "2026-10-06T01:03:03+08:00",
-    "ended": "2026-10-06T01:03:12+08:00",
+    "started": "2026-10-06T15:41:35+08:00",
+    "ended": "2026-10-06T15:41:45+08:00",
     "market_latest": "2026-09-30",
     "signal": "2026-09-30"
   }
