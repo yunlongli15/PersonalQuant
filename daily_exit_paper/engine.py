@@ -35,10 +35,21 @@ from . import ledger as L
 from . import state as S
 from . import store as ST
 
-#: 本实验**钉死**的信号来源。故意写成常量而不是配置项：配置有
-#: config_sha256 冻结，改配置会触发 ConfigDrift；而这里只是指定读哪一份
-#: 内容相同的快照。生产策略日后切到 S3_v2 时，本实验仍然只认 S3_v1。
+#: 本实验**钉死**的信号来源。
+#:
+#: 2026-10-06 修正：原先这里是个常量、且 signals() 在找不到版本化文件时
+#: 会**回退到不带策略名的 signals_<日期>.parquet**。那个回退在生产策略
+#: 就是 S3_v1 时无害（同一个东西）；一旦生产切到 production_clean_v1，
+#: 它就会把 **clean 模型的信号读进一个钉死 S3_v1 的实验**，而且完全静默。
+#:
+#: 现在：信号策略从实验配置的 `signal_strategy` 读（缺省仍是 S3_v1，
+#: 保证已在跑的 v1 实验口径逐位不变）；回退分支只在**找不到版本化文件
+#: 且生产策略恰好就是本实验那个**时才允许，否则直接报错。
 PINNED_STRATEGY = "S3_v1"
+
+
+class SignalSourceError(RuntimeError):
+    """实验拿不到属于自己策略的信号 —— 宁可不跑，也不读错的数据。"""
 
 INDEX_LIKE = {"000300.SH", "000852.SH", "000905.SH", "000906.SH",
               "000985.SH", "399300.SZ"}
@@ -59,8 +70,11 @@ class LiveMarket:
     记忆化 —— **只在本次进程内缓存**，不落盘、不跨运行复用。
     """
 
-    def __init__(self):
+    def __init__(self, signal_strategy: Optional[str] = None):
         self._cal: Optional[pd.DatetimeIndex] = None
+        #: 本实例读哪一套信号 / 预测。由实验配置的 `signal_strategy` 决定，
+        #: 缺省 = 模块常量（= S3_v1，保证 daily_exit_paper_v1 口径不变）。
+        self.signal_strategy = signal_strategy or PINNED_STRATEGY
 
     def calendar(self) -> pd.DatetimeIndex:
         if self._cal is None:
@@ -78,24 +92,58 @@ class LiveMarket:
 
         读的是**版本化**的那一份（signals_<策略>_<日期>.parquet），
         不是生产默认的那一份。原因：本实验的信号是冻结规则的一部分，
-        生产策略日后切到 S3_v2 时，这份文件内容逐位不变，实验不受影响。
-        找不到版本化文件时退回旧的版本无关文件（历史日期）。
+        生产策略切换后，这份文件内容逐位不变，实验不受影响。
+
+        **版本无关的回退只在安全时启用**：`signals_<日期>.parquet` 是
+        "当前生产策略的信号"，只有在生产策略**恰好就是本实验那个**时，
+        它才等价于版本化文件。生产一旦切走，回退就是数据污染 ——
+        此时直接报错，绝不静默读别的模型的信号。
         """
         d = pd.Timestamp(session).date()
         root = C.PROJECT_ROOT / "data" / "quant"
-        p = root / f"signals_{PINNED_STRATEGY}_{d}.parquet"
+        strat = self.signal_strategy
+        p = root / f"signals_{strat}_{d}.parquet"
         if not p.exists():
+            from pipeline.signals import PRODUCTION_STRATEGY
+
+            if PRODUCTION_STRATEGY != strat:
+                raise SignalSourceError(
+                    f"{d} 没有版本化信号 signals_{strat}_{d}.parquet，"
+                    f"而当前生产策略是 {PRODUCTION_STRATEGY} —— "
+                    f"不带策略名的 signals_{d}.parquet 属于"
+                    f"{PRODUCTION_STRATEGY}，读它等于把别的模型的信号"
+                    f"记进一个钉死 {strat} 的实验。"
+                    f"要推进本实验，先为 {strat} 生成信号快照。")
             p = root / f"signals_{d}.parquet"
-        if not p.exists():
-            return None
+            if not p.exists():
+                return None
         df = pd.read_parquet(p)
         want = pd.Timestamp(session)
         df = df[pd.to_datetime(df["signal_date"]) == want]
         return df if len(df) else None
 
     def forecasts(self, session, horizon: int) -> Dict[str, float]:
-        p = (C.PROJECT_ROOT / "data" / "quant" / "forecasts"
-             / f"forecast_{pd.Timestamp(session).date()}.parquet")
+        """该交易日、该 horizon 的条件期望收益（target/stop 的来源）。
+
+        与 signals 同样的纪律：**条件分布是"给定某个模型分数"的分布**，
+        换模型就换了一份东西。优先读版本化文件
+        `forecast_<策略>_<日期>.parquet`；只有在生产策略恰好就是本实验
+        那个时才允许回退到不带策略名的那份。
+        """
+        d = pd.Timestamp(session).date()
+        base = C.PROJECT_ROOT / "data" / "quant" / "forecasts"
+        strat = self.signal_strategy
+        p = base / f"forecast_{strat}_{d}.parquet"
+        if not p.exists():
+            from pipeline.signals import PRODUCTION_STRATEGY
+
+            if PRODUCTION_STRATEGY != strat:
+                raise SignalSourceError(
+                    f"{d} 没有版本化预测 forecast_{strat}_{d}.parquet，"
+                    f"而当前生产策略是 {PRODUCTION_STRATEGY} —— "
+                    f"不带策略名的那份由 {PRODUCTION_STRATEGY} 的分数标定，"
+                    f"用它给钉死 {strat} 的实验定 target/stop 是错的。")
+            p = base / f"forecast_{d}.parquet"
         if not p.exists():
             return {}
         df = pd.read_parquet(p)
@@ -215,11 +263,15 @@ def _exit_levels(entry_px: float, expected_return: float, vol: float,
 
 def run(run_date=None, capital: Optional[float] = None, dry_run: bool = False,
         cfg: Optional[dict] = None, store: Optional[ST.ExperimentStore] = None,
-        market=None, max_sessions: Optional[int] = None) -> RunResult:
+        market=None, max_sessions: Optional[int] = None,
+        config_path=None) -> RunResult:
     """把实验推进到 `run_date`（默认：数据里最后一个已观测交易日）。"""
-    cfg = cfg if cfg is not None else C.load_config()
+    cfg = cfg if cfg is not None else C.load_config(config_path)
     s_cfg = C.validate(cfg)
-    market = market or LiveMarket()
+    # 本实验读哪一套信号：由配置决定。缺省 S3_v1 —— daily_exit_paper_v1
+    # 的配置里没有这个键，因此它的口径逐位不变。
+    strat = s_cfg.get("signal_strategy") or PINNED_STRATEGY
+    market = market or LiveMarket(signal_strategy=strat)
 
     cal = market.calendar()
     if len(cal) == 0:
@@ -238,6 +290,7 @@ def run(run_date=None, capital: Optional[float] = None, dry_run: bool = False,
 
     # ---- STEP 2：实验元数据（本金锁定 + 配置哈希 + 起始信号日）-----------
     exp = _ensure_experiment(store, s_cfg, capital, dry_run,
+                             config_path=config_path,
                              first_signal_date=str(run_d.date()))
     initial_capital = float(exp["initial_capital"])
 
@@ -326,14 +379,15 @@ def _previous_session(cal: pd.DatetimeIndex, d) -> Optional[str]:
 
 def _ensure_experiment(store: ST.ExperimentStore, s_cfg: dict,
                        capital: Optional[float], dry_run: bool,
-                       first_signal_date: Optional[str] = None) -> dict:
+                       first_signal_date: Optional[str] = None,
+                       config_path=None) -> dict:
     """首次创建实验元数据；之后校验本金与配置哈希（**都不可变**）。
 
     元数据里 `first_signal_date` 记的是**实验第一天用的信号日**，
     不是"程序安装日"—— 这两件事完全不同，混起来事后就说不清实验从哪天算起。
     """
     exp = store.read_experiment()
-    sha = C.config_sha256()
+    sha = C.config_sha256(config_path)
     if exp is None:
         if capital is None:
             raise EngineError(
@@ -363,7 +417,8 @@ def _ensure_experiment(store: ST.ExperimentStore, s_cfg: dict,
             f"不能改成 {float(capital):,.2f}。\n"
             f"需要不同本金 → 新建实验版本（例如 daily_exit_paper_v1.1），"
             f"新目录、新账本；绝不把改过本金的记录继续称作 v1")
-    C.verify_config(expected_sha=exp.get("config_sha256"))
+    C.verify_config(expected_sha=exp.get("config_sha256"),
+                    path=config_path)
     return exp
 
 

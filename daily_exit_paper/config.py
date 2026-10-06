@@ -83,9 +83,17 @@ def trading_spec(cfg: Optional[dict] = None) -> dict:
 
 
 def verify_config(cfg: Optional[dict] = None,
-                  expected_sha: Optional[str] = None) -> str:
-    """当前配置哈希 vs 实验记录里的哈希。不一致 -> raise ConfigDrift。"""
-    current = config_sha256()
+                  expected_sha: Optional[str] = None,
+                  path: Optional[Path] = None) -> str:
+    """当前配置哈希 vs 实验记录里的哈希。不一致 -> raise ConfigDrift。
+
+    **path 必须传**：`config_sha256()` 的默认值是模块常量 CONFIG_PATH
+    （= v1 的配置）。不传路径的话，第二个实验会拿 **v1 的文件**去校验
+    自己记的哈希 —— 漂移检测看着在跑，验的却是别人的文件；
+    而自己那份配置被改了反而查不出来。2026-10-06 实测两个实验记到了
+    同一个 sha256 才发现。
+    """
+    current = config_sha256(path)
     recorded = expected_sha
     if recorded is None:
         recorded = (spec(cfg).get("freeze") or {}).get("config_sha256")
@@ -132,4 +140,15 @@ def validate(cfg: Optional[dict] = None) -> dict:
               "transfer_fee", "slippage"):
         if k not in s["transaction_costs"]:
             raise ConfigError(f"transaction_costs 缺键：{k}")
+    # 信号来源：缺省 = S3_v1（daily_exit_paper_v1 的配置没有这个键，
+    # 口径因此逐位不变）。写了就必须是注册表里认得的策略 ——
+    # 拼错一个字母会让实验静默读不到信号，而不是报错。
+    strat = s.get("signal_strategy")
+    if strat is not None:
+        from pipeline.signals import STRATEGIES
+
+        if strat not in STRATEGIES:
+            raise ConfigError(
+                f"signal_strategy={strat!r} 不在策略注册表里："
+                f"{sorted(STRATEGIES)}")
     return s

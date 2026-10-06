@@ -25,6 +25,7 @@ from typing import Dict, Optional
 import pandas as pd
 
 from . import execution as X
+from .engine import SignalSourceError
 
 PASS = "PASS"
 FAIL = "FAIL"
@@ -147,12 +148,22 @@ def _signal_check(market, sig_date, s_cfg) -> Dict:
     if sig_date is None:
         return _check(FAIL, "没有信号快照可检查")
     d = pd.Timestamp(sig_date)
-    sig = market.signals(d)
+    # 「拿不到属于本策略的信号」是**检查失败**，不是异常：
+    # preflight 的职责就是把上线前的阻塞项列出来（`--preflight` 据此返回 1），
+    # 而 `--show-state` / `--reconcile` 这些**只读**命令还要能读到既有记录。
+    # 之前这里是直接抛出的，结果是实验停摆后连历史都查不了。
+    try:
+        sig = market.signals(d)
+    except SignalSourceError as e:
+        return _check(FAIL, f"信号来源不可用：{e}")
     if sig is None or sig.empty:
         return _check(FAIL, f"{sig_date} 的信号快照读不出来或为空")
 
     horizon = int(s_cfg["signal_horizon_days"])
-    fc = market.forecasts(d, horizon)
+    try:
+        fc = market.forecasts(d, horizon)
+    except SignalSourceError as e:
+        return _check(FAIL, f"预测来源不可用：{e}")
     if not fc:
         return _check(FAIL, f"{sig_date} 没有 horizon={horizon} 的预测 —— "
                             f"没有预期收益就无法锚定目标价")

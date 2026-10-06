@@ -66,13 +66,18 @@ def main() -> int:
     ap.add_argument("--max-sessions", type=int, default=None,
                     help="本次最多推进几个交易日（默认不限，用于追赶）")
     ap.add_argument("--json", action="store_true", help="输出机器可读结果")
+    ap.add_argument("--config", default=None,
+                    help="实验配置路径（默认 config/daily_exit_paper_v1.yaml）。"
+                         "每个实验有自己的配置、目录和账本，"
+                         "用这个参数选择跑哪一个。")
     args = ap.parse_args()
 
-    cfg = C.load_config()
+    cfg = C.load_config(Path(args.config) if args.config else None)
     s_cfg = C.validate(cfg)
     root = C.PROJECT_ROOT / s_cfg["paths"]["root"]
     store = ST.ExperimentStore(root)
-    market = engine.LiveMarket()
+    market = engine.LiveMarket(
+        signal_strategy=s_cfg.get("signal_strategy") or engine.PINNED_STRATEGY)
 
     # 上线前只读检查：**永远先跑**。三个时间（系统运行日 / 行情最新日 /
     # 信号日）必须分开说清楚，否则最容易把"历史"当成"今天"。
@@ -149,7 +154,14 @@ def main() -> int:
                                      previous_value=_prev_equity(
                                          store, res.run_date),
                                      preflight=pf, overrides=overrides)
-        out_dir = C.PROJECT_ROOT / "reports" / "daily_exit_paper_v1"
+        # 日报目录跟着**实验身份**走，不能写死。写死的话第二个实验
+        # 会把第一个实验的历史日报覆盖掉（2026-10-06 实测发生）。
+        # 缺省用 strategy_version —— 对 v1 而言正好等于原来的
+        # "daily_exit_paper_v1"，因此**不需要改 v1 的配置**
+        # （改配置会变哈希 -> ConfigDrift）。
+        _rep = ((s_cfg.get("paths") or {}).get("reports")
+                or s_cfg["strategy_version"])
+        out_dir = C.PROJECT_ROOT / "reports" / _rep
         out_dir.mkdir(parents=True, exist_ok=True)
         (out_dir / f"daily_{res.run_date}.md").write_text(md,
                                                           encoding="utf-8")

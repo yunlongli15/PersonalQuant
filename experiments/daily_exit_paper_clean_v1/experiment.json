@@ -1,0 +1,12 @@
+{
+  "experiment_id": "daily_exit_paper_clean_v1",
+  "strategy_version": "daily_exit_paper_clean_v1",
+  "base_strategy": "production_clean_v1",
+  "initial_capital": 100000.0,
+  "first_signal_date": "2026-09-30",
+  "config_sha256": "6ff9387de2e201263834f9af30c637e592965cf2d502257e2d502db5ed014507",
+  "git_commit": "121315163eed72af8a4ecb7b4440cae8a5004ee0",
+  "git_dirty": true,
+  "working_tree": "dirty",
+  "created_at": "2026-10-06T06:30:53.466181+00:00"
+}

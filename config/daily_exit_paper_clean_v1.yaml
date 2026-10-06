@@ -1,0 +1,96 @@
+# daily_exit_paper_clean_v1 —— 独立的前瞻 paper-trading 实验（PHASE 7）
+#
+# 与 config/daily_exit_paper_v1.yaml **完全独立**：不同的目录、不同的账本、
+# 不同的信号来源。两者互不读写。
+#
+# ── 与 v1 的唯一差别 ──────────────────────────────────────────────────
+#   signal_strategy / base_signal_strategy = production_clean_v1
+#   （v1 用的是 strategy_v2 = S3 alpha）
+# 其余**逐字相同**：出场规则、仓位、成本、股票池、time_stop 全部照抄。
+# 这样两个实验的差异只来自信号源，横向可比。
+#
+# ── 版本纪律（与 v1 相同）─────────────────────────────────────────────
+# 任何交易参数一旦用了就不能中途改。改了 = 新版本、新目录、新记录。
+#
+# ── 为什么信号要单独写一个键 ──────────────────────────────────────────
+# `base_signal_strategy` 记录的是"这个实验属于哪个策略版本"（冻结元数据）；
+# `signal_strategy` 是引擎真正去读哪一套 signals_<策略>_<日期>.parquet。
+# 两者分开，是因为 base 是给人和报告看的，signal 是给取数用的；
+# 合在一起会让"改一下读哪份文件"看起来像"改实验身份"。
+#
+daily_exit_paper:
+  version: "1.0"
+  strategy_version: daily_exit_paper_clean_v1
+  base_signal_strategy: production_clean_v1   # 本实验的身份（冻结元数据）
+  signal_strategy: production_clean_v1        # 引擎实际读哪套信号
+
+  # ---------------------------------------------------------------- 信号
+  signal_horizon_days: 20               # 继承 strategy_v2
+  top_k: 20                             # 继承 strategy_v2（同时是最大持仓数）
+  risk_profile: balanced                # 继承 trade_plan 既有默认档
+
+  # ---------------------------------------------------------------- 入场
+  entry:
+    mode: limit                         # T+1 限价入场（唯一模式）
+    price_field: entry_high             # 限价 = 可接受区间的上沿
+    execution_lag_days: 1               # T 收盘信号 → T+1 开盘执行（T+1 铁律）
+
+  # ---------------------------------------------------------------- 出场
+  exit:
+    target_enabled: true
+    stop_enabled: true
+    time_stop_enabled: true
+    signal_exit_enabled: false          # v1 关闭：不再看好也不卖
+
+  exit_resolution:
+    intraday_conflict: stop_first       # 同日双触发 -> 按止损（保守）
+    gap_policy: conservative            # 跳空一律以实际开盘价成交
+
+  time_stop:
+    days: 40                            # = signal_horizon_days × 2（继承）
+
+  # ---------------------------------------------------------------- 股票池
+  universe:
+    exclude_index_like: true            # 指数伪标的（000300.SH 等 6 个）
+    exclude_restricted: true            # 板块门槛（科创板 688 / 创业板 300…）
+    experience_months: null             # null = 交易经验未核实，只提示不禁止
+
+  # ---------------------------------------------------------------- 仓位
+  sizing:
+    mode: equal_slots                   # 可用现金在空缺席位上等权
+    invest_target: 0.95                 # 继承 strategy_v2 constraints
+    lot_size: 100
+
+  # ---------------------------------------------------------------- 本金
+  capital:
+    mode: explicit                      # 必须由 --capital 显式指定
+    initial_capital: null               # 首次运行后锁定进 experiment.json
+
+  # ---------------------------------------------------------------- 人工干预
+  manual_override:
+    enabled: true
+    default_action: ADOPT_ALL           # 不干预 = 完全采纳系统建议
+
+  # ---------------------------------------------------------------- 执行模型
+  execution:
+    price_granularity: daily            # 只用日线 OHLC，不用分钟数据
+    partial_fill: unsupported           # 明确：全量成交或全量不成交
+
+  # ---------------------------------------------------------------- 成本
+  # 与 config/paper_live.yaml:69-74 **逐字相同**（同一个 TransactionCostModel）。
+  # 禁止第二套费率：任何地方出现 0.00025 这样的字面量都是 bug。
+  transaction_costs:
+    commission_rate: 0.00025
+    min_commission: 5.0
+    stamp_duty: 0.0005
+    transfer_fee: 0.00001
+    slippage: 0.0005
+
+  # ---------------------------------------------------------------- 路径
+  paths:
+    root: experiments/daily_exit_paper_clean_v1
+
+  # ---------------------------------------------------------------- 冻结哈希
+  # 由本实验自己的 config_sha256() 计算（去掉本块之后再哈希，避免自指）。
+  # 空 dict = 尚未冻结（首次运行时写入）。
+  freeze: {}

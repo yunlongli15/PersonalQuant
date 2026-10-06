@@ -379,6 +379,15 @@ def refresh_forecasts(signal_date: Optional[str] = None,
     p = FORECAST_DIR / f"forecast_{as_of}.parquet"
     df.to_parquet(p, index=False)
     df.to_parquet(FORECAST_DIR / "forecast_latest.parquet", index=False)
+    # **版本化副本**（与 signals 同一套思路）。条件分布是"给定某个模型
+    # 分数的收益分布"——换模型就换了一份东西。不做版本化的话，切换生产
+    # 策略会把正在跑的前瞻实验读到的 target/stop 悄悄换掉：2026-10-06
+    # 实测就是这样，`forecast_2026-09-30.parquet` 被 clean 的校准覆盖了，
+    # 而 daily_exit_paper_v1 钉的是 S3_v1。
+    from pipeline.signals import PRODUCTION_STRATEGY
+
+    (FORECAST_DIR / f"forecast_{PRODUCTION_STRATEGY}_{as_of}.parquet") \
+        .write_bytes(p.read_bytes())
     info = model_info()
     state = {"as_of": as_of,
              "computed_at": datetime.now().isoformat(timespec="seconds"),
