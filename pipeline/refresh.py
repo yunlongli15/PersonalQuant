@@ -72,23 +72,43 @@ def market_update(**kw) -> str:
     snapshot, so refreshing means taking the newest snapshot. The
     previous snapshot is kept as qlib_data_old/."""
     _maybe_offline()
+    from collections import deque
     import subprocess
 
     script = PROJECT_ROOT / "scripts" / "quant" / \
         "update_market_snapshot.py"
-    # encoding 必须显式写：text=True 默认用系统区域编码（本机 GBK），
-    # 子进程输出里的中文会让读取线程抛 UnicodeDecodeError 而**静默丢掉
-    # 全部输出**（2026-09-27 实际发生）。
-    r = subprocess.run([sys.executable, str(script),
-                        "--years", kw.get("years", "")],
-                       cwd=str(PROJECT_ROOT), capture_output=True, text=True,
-                       encoding="utf-8", errors="replace",
-                       timeout=7200)
-    tail = (r.stdout or "").strip().splitlines()[-1:] or [""]
-    if r.returncode != 0:
+    # 输出**边跑边转发**，同时留一份末尾用于报错。
+    #
+    # 以前是 capture_output=True：567 MB 的包要下 20~30 分钟，而这段时间
+    # 终端只显示"运行中"，看起来就是卡死 —— 偏偏下载函数自己的注释里
+    # 还写着 "500+ MB with no output looks hung"，父进程把它想显示的东西
+    # 全吞了。用 Popen 逐行转发即可两头兼顾。
+    #
+    # encoding 必须显式写：默认用系统区域编码（本机 GBK），子进程输出里的
+    # 中文会让读取线程抛 UnicodeDecodeError 而**静默丢掉全部输出**
+    # （2026-09-27 实际发生）。
+    proc = subprocess.Popen(
+        [sys.executable, str(script), "--years", kw.get("years", "")],
+        cwd=str(PROJECT_ROOT), stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT, text=True,
+        encoding="utf-8", errors="replace")
+    tail: deque = deque(maxlen=400)          # 按行留末尾，够拼错误信息
+    try:
+        for line in proc.stdout:
+            line = line.rstrip("\n")
+            tail.append(line)
+            print(f"    {line}", flush=True)
+        proc.wait(timeout=7200)
+    except subprocess.TimeoutExpired:                          # pragma: no cover
+        proc.kill()
+        raise RuntimeError("market snapshot update timed out (2h)")
+    last = next((x for x in reversed(tail) if x.strip()), "")
+    if proc.returncode != 0:
         raise RuntimeError(f"market snapshot update failed: "
-                           f"{(r.stderr or r.stdout)[-400:]}")
-    return tail[0]
+                           f"{chr(10).join(list(tail)[-12:])[-1200:]}")
+    # 返回子进程的**最后一行非空输出**（原来取的是 tail[0]，因为那时 tail
+    # 是只留了 1 行的 list；现在它是 deque，tail[0] 会变成最老的那行）。
+    return last
 
 
 def factor_rebase_repair(**kw) -> str:

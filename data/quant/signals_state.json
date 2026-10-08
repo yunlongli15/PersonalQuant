@@ -1,7 +1,7 @@
 {
-  "as_of": "2026-09-30",
-  "computed_at": "2026-10-06T15:24:20",
-  "n_symbols": 2978,
+  "as_of": "2026-10-08",
+  "computed_at": "2026-10-08T21:25:16",
+  "n_symbols": 2956,
   "model": "experiments/clean/clean_A/model.txt",
   "model_version": "strategy_v2/production_clean_v1",
   "feature_version": "alpha158",

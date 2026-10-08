@@ -20,6 +20,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+from typing import Optional
 import time
 import urllib.request
 from pathlib import Path
@@ -33,10 +34,36 @@ BACKUP = PROJECT_ROOT / "qlib_data_old"
 API = "https://api.github.com/repos/chenditc/investment_data/releases/latest"
 
 
-def latest_release() -> dict:
-    req = urllib.request.Request(API, headers={"User-Agent": "Mozilla/5.0"})
-    with urllib.request.urlopen(req, timeout=30) as r:
-        return json.loads(r.read())
+def latest_release(attempts: int = 3) -> dict:
+    """最新 release。**带重试**。
+
+    这是整条刷新链的**第一个**网络调用，以前却是最少保护的那个：
+    单次 30 秒超时就抛出去，而 `market_update` 一失败整条
+    `refresh_all.py` 就中断 —— 后面 9 个根本不需要联网的作业
+    （factor_rebuild / signal / forecast / portfolio）一个都没跑。
+
+    2026-10-08 用户实际遇到：`WinError 10060` 连接超时，
+    同一分钟手工测 GitHub 是 0.5 秒 200 —— 纯抖动，重试即可。
+
+    旁边的 `manifest_info()` 一直是带重试的，最外层反而没有 ——
+    这个不对称就是问题本身。抖动不该等价于"今晚没数据"。
+    """
+    last: Optional[Exception] = None
+    for attempt in range(1, attempts + 1):
+        try:
+            req = urllib.request.Request(
+                API, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return json.loads(r.read())
+        except Exception as e:                                 # noqa: BLE001
+            last = e
+            if attempt < attempts:
+                time.sleep(2 * attempt)          # 2s, 4s —— 退避，不狂打
+    raise RuntimeError(
+        f"GitHub API 连续 {attempts} 次不可达（最后一次："
+        f"{type(last).__name__}: {last}）。这多半是网络问题，"
+        f"稍后重跑 `python scripts/quant/refresh_all.py` 即可；"
+        f"确实要离线跑就用 `PQ_MODE=offline`（联网作业会记为 SKIPPED）。")
 
 
 def current_version() -> str:
@@ -72,31 +99,68 @@ def manifest_info(rel: dict) -> dict:
     return {}
 
 
-def download(url: str, dest: Path) -> Path:
-    """Chunked download with progress — 500+ MB with no output looks hung."""
+def download(url: str, dest: Path, attempts: int = 3) -> Path:
+    """分块下载 + 进度。**带重试，且断点续传。**
+
+    这里以前是**没有重试**的，而它偏偏是整条链里最容易失败的一步：
+    567 MB 的包，任何一次抖动都直接抛出去打断整个 `refresh_all.py`。
+    2026-10-08 实测连挂两次（`WinError 10060`），同一时刻手工测
+    GitHub 却是 0.5 秒 200 —— 纯抖动，重试即可。
+
+    重试时用 HTTP Range 从 `.part` 的断点接着下：567 MB 重头再来一次
+    要十几分钟，而服务端忽略 Range（返回 200 而不是 206）时自动退回
+    从头下，不会把半截文件当完整的用。
+    """
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = dest.with_suffix(".part")
-    with urllib.request.urlopen(
-            urllib.request.Request(url,
-                                   headers={"User-Agent": "Mozilla/5.0"}),
-            timeout=120) as r, open(tmp, "wb") as f:
-        total = int(r.headers.get("Content-Length") or 0)
-        done, last = 0, 0.0
-        while True:
-            chunk = r.read(1024 * 1024)
-            if not chunk:
-                break
-            f.write(chunk)
-            done += len(chunk)
-            now = time.time()
-            if now - last >= 3.0:
-                last = now
-                pct = f"{done / total:5.1%}" if total else "  ?  "
-                print(f"  下载中 {pct}  {done/1e6:6.1f} / "
-                      f"{total/1e6:.0f} MB", flush=True)
-    tmp.replace(dest)
-    print(f"  下载完成 {done/1e6:.1f} MB", flush=True)
-    return dest
+    last_err: Optional[Exception] = None
+    for attempt in range(1, attempts + 1):
+        try:
+            have = tmp.stat().st_size if tmp.exists() else 0
+            req = urllib.request.Request(
+                url, headers={"User-Agent": "Mozilla/5.0"})
+            if have:
+                req.add_header("Range", f"bytes={have}-")
+            with urllib.request.urlopen(req, timeout=120) as r:
+                # 206 = 按 Range 续传；200 = 服务端忽略了 Range，从头来
+                resuming = have > 0 and getattr(r, "status", 200) == 206
+                if have and not resuming:
+                    have = 0
+                total = (int(r.headers.get("Content-Length") or 0) + have)
+                mode = "ab" if resuming else "wb"
+                done, last = have, 0.0
+                if resuming:
+                    print(f"  续传自 {have/1e6:.1f} MB", flush=True)
+                with open(tmp, mode) as f:
+                    while True:
+                        chunk = r.read(1024 * 1024)
+                        if not chunk:
+                            break
+                        f.write(chunk)
+                        done += len(chunk)
+                        now = time.time()
+                        if now - last >= 3.0:
+                            last = now
+                            pct = f"{done / total:5.1%}" if total else "  ?  "
+                            print(f"  下载中 {pct}  {done/1e6:6.1f} / "
+                                  f"{total/1e6:.0f} MB", flush=True)
+            if total and done != total:
+                raise IOError(f"下载不完整：{done} / {total} 字节")
+            tmp.replace(dest)
+            print(f"  下载完成 {done/1e6:.1f} MB", flush=True)
+            return dest
+        except Exception as e:                                 # noqa: BLE001
+            last_err = e
+            if attempt < attempts:
+                wait = 5 * attempt
+                print(f"  下载中断（{type(e).__name__}: {e}）—— "
+                      f"{wait}s 后从断点重试 {attempt}/{attempts - 1}",
+                      flush=True)
+                time.sleep(wait)
+    raise RuntimeError(
+        f"快照下载连续 {attempts} 次失败（最后一次："
+        f"{type(last_err).__name__}: {last_err}）。断点已保留在 "
+        f"{tmp}，重跑会从这里续传；确实要离线跑用 PQ_MODE=offline。")
 
 
 def main() -> int:
