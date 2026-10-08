@@ -261,3 +261,23 @@ def test_override_summary_counts_executions_separately(cfg, store):
     s = D.override_summary(store)
     assert s["executions_recorded"] == 1
     assert s["decisions"] == 0        # 没写 decisions 就是 0
+
+
+def test_execution_records_carry_a_side(cfg, store):
+    """成交记录必须分得出买和卖。
+
+    只存 symbol/price/shares 的话，买入和卖出在记录里长得一模一样 ——
+    事后无法还原你是建仓还是清仓。引擎自己的 order_id 是带 side 的
+    （`...:002674.SZ:BUY`），这一层要对得上。
+    """
+    mkt = _market()
+    engine.run(run_date=D0, capital=CAP, cfg=cfg, store=store, market=mkt)
+    D.record_execution(store, D0, [
+        {"symbol": A, "side": "BUY", "filled": True, "price": 9.9,
+         "shares": 100},
+        {"symbol": B, "side": "SELL", "filled": True, "price": 10.5,
+         "shares": 200},
+    ])
+    ex = store.read_snapshot("executions", D0)["executions"]
+    sides = {(e["symbol"], e.get("side")) for e in ex}
+    assert sides == {(A, "BUY"), (B, "SELL")}

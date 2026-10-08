@@ -39,16 +39,23 @@ from daily_exit_paper import decisions as D
 from daily_exit_paper import store as ST
 
 
-def _parse_fill(spec: str) -> dict:
+def _parse_fill(spec: str, side: str) -> dict:
+    """`SYMBOL:PRICE:SHARES` -> 一条成交记录。
+
+    `side` 必须记下来：只存 symbol/price/shares 的话，买入和卖出在记录里
+    长得一模一样 —— 事后无法还原你到底是建仓还是清仓。引擎自己的
+    order_id 就是带 side 的（`...:002674.SZ:BUY`），这一层要对得上。
+    """
+    flag = "--fill" if side == "BUY" else "--sell"
     parts = spec.split(":")
     if len(parts) != 3:
-        raise SystemExit(f"--fill 格式应为 SYMBOL:PRICE:SHARES，得到 {spec!r}")
+        raise SystemExit(f"{flag} 格式应为 SYMBOL:PRICE:SHARES，得到 {spec!r}")
     sym, price, shares = parts
     try:
         price = float(price)
         shares = int(shares)
     except ValueError:
-        raise SystemExit(f"--fill 的价/股数不是数字：{spec!r}")
+        raise SystemExit(f"{flag} 的价/股数不是数字：{spec!r}")
     if price <= 0:
         raise SystemExit(f"{sym}: 成交价必须为正，得到 {price}")
     if shares <= 0:
@@ -56,7 +63,8 @@ def _parse_fill(spec: str) -> dict:
     if shares % 100:
         raise SystemExit(f"{sym}: A 股按手成交，股数必须是 100 的整数倍"
                          f"（得到 {shares}）")
-    return {"symbol": sym, "filled": True, "price": price, "shares": shares}
+    return {"symbol": sym, "side": side, "filled": True,
+            "price": price, "shares": shares}
 
 
 def main() -> int:
@@ -67,7 +75,11 @@ def main() -> int:
     ap.add_argument("--signal-date", default=None,
                     help="信号日（默认：实验里最后一个有建议的信号日）")
     ap.add_argument("--fill", action="append", default=[],
-                    metavar="SYM:PRICE:SHARES", help="成交（可重复）")
+                    metavar="SYM:PRICE:SHARES", help="买入成交（可重复）")
+    ap.add_argument("--sell", action="append", default=[],
+                    metavar="SYM:PRICE:SHARES",
+                    help="卖出成交（可重复）。出场由引擎逐日评估，"
+                         "你按日报提示在实际账户卖完之后回填在这里")
     ap.add_argument("--skip", action="append", default=[],
                     metavar="SYM", help="我选择不买（可重复）")
     ap.add_argument("--no-fill", action="append", default=[],
@@ -121,25 +133,34 @@ def main() -> int:
     execs, problems = [], []
     seen = set()
     for spec in args.fill:
-        r = _parse_fill(spec)
+        r = _parse_fill(spec, "BUY")
         execs.append(r)
         seen.add(r["symbol"])
+    # 卖出不强制出现在**当日建议**里：出场是引擎按 target/stop/time-stop
+    # 逐日算出来的，可能落在一个没有新挂单的交易日。所以只做形状校验，
+    # 不拿"今日买入建议"去卡它 —— 那会把合法的卖出误判成打错字。
+    sell_syms = []
+    for spec in args.sell:
+        r = _parse_fill(spec, "SELL")
+        execs.append(r)
+        sell_syms.append(r["symbol"])
     for sym in args.skip:
         if sym in seen:
             problems.append(f"{sym} 同时出现在多个状态里")
-        execs.append({"symbol": sym, "filled": False, "reason": "user_skip"})
+        execs.append({"symbol": sym, "side": "BUY", "filled": False,
+                      "reason": "user_skip"})
         seen.add(sym)
     for sym in args.no_fill:
         if sym in seen:
             problems.append(f"{sym} 同时出现在多个状态里")
-        execs.append({"symbol": sym, "filled": False,
+        execs.append({"symbol": sym, "side": "BUY", "filled": False,
                       "reason": "ordered_but_not_filled"})
         seen.add(sym)
 
     unknown = [s for s in seen if s not in entries]
     if unknown:
-        problems.append(f"以下标的不在 {sig_date} 的建议里（是不是打错了）："
-                        f"{unknown}")
+        problems.append(f"以下标的既不在 {sig_date} 的建议里，"
+                        f"也不是卖出（是不是打错了）：{unknown}")
     if problems:
         for p in problems:
             print(f"[REFUSED] {p}")
@@ -153,7 +174,8 @@ def main() -> int:
     print(f"将写入 {len(execs)} 条：")
     for e in execs:
         if e.get("filled"):
-            print(f"  成交   {e['symbol']}  {e['price']:.2f} x {e['shares']}")
+            print(f"  {'买入' if e.get('side') == 'BUY' else '卖出'}   "
+                  f"{e['symbol']}  {e['price']:.2f} x {e['shares']}")
         else:
             tag = "我选择不买" if e.get("reason") == "user_skip" \
                 else "下单未成交"
