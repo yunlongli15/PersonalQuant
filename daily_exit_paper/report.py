@@ -217,7 +217,10 @@ def render_daily_markdown(result, s_cfg: dict, exp: dict,
                           previous_value: Optional[float] = None,
                           preflight: Optional[dict] = None,
                           overrides: Optional[List[dict]] = None) -> str:
-    """`reports/daily_exit_paper_v1/daily_<DATE>.md`（spec §26）。
+    """`reports/<实验名>/daily_<DATE>.md`（spec §26）。
+
+    目录与标题都取自实验配置，不写死 —— 两个实验并存时，写死会让
+    clean 的日报顶着 v1 的名字落盘（2026-10-08 实测如此）。
 
     只陈述**事实**（现金 / 持仓 / 成交 / 费用），不做任何"策略好不好"的
     结论 —— 前几天几笔的成败说明不了任何事（spec §23 / §24）。
@@ -238,7 +241,10 @@ def render_daily_markdown(result, s_cfg: dict, exp: dict,
                if state["initial_capital"] else None)
     sell_fees = sum(float(e.get("fee") or 0) for e in exits)
 
-    L = [f"# daily_exit_paper_v1 — {result.run_date}", ""]
+    # 标题跟着**实验身份**走，不能写死。写死的话 clean 实验的日报
+    # 抬头会是 "daily_exit_paper_v1"，而下面那行 Experiment 写的却是
+    # daily_exit_paper_clean_v1 —— 同一份文件自称两个名字。
+    L = [f"# {s_cfg['strategy_version']} — {result.run_date}", ""]
     L += [f"- Experiment: `{exp.get('experiment_id') or '—'}`",
           f"- System run date: {pf.get('system_run_date') or '—'}",
           f"- Market data last date: {pf.get('market_data_last_date') or result.run_date}",
