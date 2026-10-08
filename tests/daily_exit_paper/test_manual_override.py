@@ -201,3 +201,63 @@ def test_report_renders_the_override_block(cfg, store):
     assert "MANUAL OVERRIDES (1)" in text
     assert "不想买" in text
     assert "系统 BUY → 用户 SKIP" in text
+
+
+# ---------------------------------------------------------------------------
+# executions 层：**纯记录**，绝不能改变实验
+# ---------------------------------------------------------------------------
+
+def test_recording_an_execution_does_not_change_the_experiment(cfg, store):
+    """回填实际成交之后，重跑同一天必须产出**完全一样**的挂单。
+
+    这是 `scripts/quant/record_paper_execution.py` 的核心承诺：用户只是
+    "记一笔我在券商模拟盘做了什么"，实验该怎样还怎样。写错层（写成
+    decisions）就会真的改掉实验，所以这条必须钉死。
+    """
+    mkt = _market()
+    engine.run(run_date=D0, capital=CAP, cfg=cfg, store=store, market=mkt)
+    before = [dict(o) for o in S.pending_list(store.read_state())]
+    rec_before = store.read_snapshot("recommendations", D0)
+
+    # 回填：A 成交、B 我选择不买
+    D.record_execution(store, D0, [
+        {"symbol": A, "filled": True, "price": 9.9, "shares": 100},
+        {"symbol": B, "filled": False, "reason": "user_skip"},
+    ], note="券商模拟盘")
+
+    ex = store.read_snapshot("executions", D0)
+    assert ex["layer"] == "actual_execution"
+    assert len(ex["executions"]) == 2
+
+    # 系统建议一字未改
+    assert store.read_snapshot("recommendations", D0) == rec_before
+    # decisions 层没有被本操作创建
+    assert D.load_decision(store, D0) is None
+    # 账本里的挂单没有因为回填而改变
+    after = [dict(o) for o in S.pending_list(store.read_state())]
+    assert after == before, f"回填成交改变了挂单：{before} -> {after}"
+
+
+def test_execution_layer_never_overwrites_the_recommendation(cfg, store):
+    """建议层是只读的 —— 回填不改它，这是三层分离的前提。"""
+    mkt = _market()
+    engine.run(run_date=D0, capital=CAP, cfg=cfg, store=store, market=mkt)
+    rec = store.read_snapshot("recommendations", D0)
+    assert rec["decision_layer"] == "system_recommendation"
+    prices_before = {e["symbol"]: e["limit_price"] for e in rec["entries"]}
+
+    D.record_execution(store, D0, [
+        {"symbol": A, "filled": True, "price": 1.0, "shares": 100}])
+    rec2 = store.read_snapshot("recommendations", D0)
+    assert {e["symbol"]: e["limit_price"] for e in rec2["entries"]} == \
+        prices_before, "回填的成交价被写回了系统建议"
+
+
+def test_override_summary_counts_executions_separately(cfg, store):
+    mkt = _market()
+    engine.run(run_date=D0, capital=CAP, cfg=cfg, store=store, market=mkt)
+    D.record_execution(store, D0, [
+        {"symbol": A, "filled": True, "price": 9.9, "shares": 100}])
+    s = D.override_summary(store)
+    assert s["executions_recorded"] == 1
+    assert s["decisions"] == 0        # 没写 decisions 就是 0
