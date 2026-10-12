@@ -21,13 +21,19 @@ unchanged on top.
 from __future__ import annotations
 
 import threading
-from typing import Dict
+from typing import Dict, List
 
 import numpy as np
 import pandas as pd
 
 from .. import config
-from ..providers.qlib_baseline import QLIB_DATA_DIR
+#: `read_daily_bars` merges the same-session overlay
+#: (scripts/quant/update_daily_overlay.py). The merge lives in
+#: providers/qlib_baseline.py so `factors/` can use the exact same reader —
+#: factors must not import strategy modules, and a reader that skipped the
+#: overlay would silently rank on T-1.
+from ..providers.qlib_baseline import (QLIB_DATA_DIR, overlay_dates,
+                                       read_daily_bars)
 
 # price fields are served adjusted; volume/amount as-is
 PRICE_FIELDS = {"open", "high", "low", "close", "vwap"}
@@ -52,16 +58,13 @@ class CanonicalFeatureProvider:
         # predicate pushdown). DuckDB in-memory connections crash inside
         # qlib's joblib workers (GIL/thread-state interaction), so the
         # feature provider does not use DuckDB at all.
-        import pyarrow.parquet as pq
-
         lo = pd.Timestamp(start_time) - pd.Timedelta(days=180)
         hi = pd.Timestamp(end_time)
-        tbl = pq.read_table(
-            str(config.PARQUET_SUBDIRS["daily"]),
-            filters=[("trade_date", ">=", lo.to_pydatetime()),
-                     ("trade_date", "<=", hi.to_pydatetime())],
-        )
-        df = tbl.to_pandas()
+        # canonical ∪ same-session overlay (see providers.qlib_baseline).
+        # The overlay is a separate directory on purpose: the upstream
+        # snapshot files are never rewritten, so removing one directory
+        # reverts this.
+        df = read_daily_bars(lo, hi)
         for c in PRICE_FIELDS:
             # adjusted prices for features; float32 keeps worker memory low
             df[c] = (df[c] * df["factor"]).astype(np.float32)
@@ -137,14 +140,24 @@ def init_qlib_with_canonical(kernels: int = 10) -> None:
     as qlib.init kwargs — qlib.init resets the config to defaults first, and
     C.register() wires the provider into the FeatureD wrapper. qlib's own
     multiprocessing workers rebuild the same provider from config in child
-    processes (C.register_from_C). Calendar and instruments stay local
-    (qlib_data, same source as canonical).
+    processes (C.register_from_C). Instruments stay local (qlib_data, same
+    source as canonical); the CALENDAR gets the overlay's extra sessions
+    appended (see CanonicalCalendarProvider).
     """
     import qlib
     from qlib.constant import REG_CN
 
     if getattr(qlib, "_initialized", False):
         return
+    kwargs = {}
+    if overlay_dates():
+        # Only override when there is something to add: the stock
+        # LocalCalendarProvider is otherwise left exactly as upstream.
+        kwargs["calendar_provider"] = {
+            "class": "CanonicalCalendarProvider",
+            "module_path": __name__,
+            "kwargs": {},
+        }
     qlib.init(
         provider_uri=str(QLIB_DATA_DIR),
         region=REG_CN,
@@ -161,4 +174,56 @@ def init_qlib_with_canonical(kernels: int = 10) -> None:
         # it, so the qlib-level caches are disabled.
         expression_cache=None,
         dataset_cache=None,
+        **kwargs,
     )
+
+
+def _make_calendar_provider_cls():
+    """Build `CanonicalCalendarProvider` lazily (qlib import is heavy)."""
+    from qlib.data.data import LocalCalendarProvider
+
+    class CanonicalCalendarProvider(LocalCalendarProvider):
+        """`qlib_data/calendars/day.txt` PLUS the overlay's extra sessions.
+
+        Alpha158's handler turns time ranges into calendar INDEX positions,
+        so a session missing from the calendar simply produces no row — the
+        model would silently rank on T-1 even though the feature provider
+        could serve T. The overlay's dates are strictly LATER than anything
+        in the shipped calendar, so appending them cannot shift any existing
+        index and the official data is left untouched on disk.
+        """
+
+        def load_calendar(self, freq, future):
+            base = super().load_calendar(freq, future)
+            if freq != "day":
+                return base
+            have = set(base)
+            extra = [d for d in overlay_dates() if d not in have]
+            if not extra:
+                return base
+            return sorted(list(base) + extra)
+
+    # qlib resolves providers by `getattr(module, name)` and joblib may
+    # pickle the class, both of which look up this exact qualified name.
+    # A class defined in a function otherwise carries a `<locals>` qualname
+    # that pickle cannot resolve.
+    CanonicalCalendarProvider.__qualname__ = "CanonicalCalendarProvider"
+    CanonicalCalendarProvider.__module__ = __name__
+    return CanonicalCalendarProvider
+
+
+def __getattr__(name: str):
+    """Resolve `CanonicalCalendarProvider` on demand (PEP 562).
+
+    It must NOT be a module-level `= None` placeholder: qlib's joblib
+    workers re-import this module in a child process and resolve the class
+    with `getattr`, which finds an existing attribute even when its value is
+    None — and then calls `None(...)`. Leaving the name absent makes
+    `getattr` fall through to here instead, in the parent and in every
+    child alike.
+    """
+    if name == "CanonicalCalendarProvider":
+        cls = _make_calendar_provider_cls()
+        globals()[name] = cls          # cache: later getattrs skip this path
+        return cls
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

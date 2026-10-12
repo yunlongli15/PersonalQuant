@@ -23,6 +23,21 @@ from ..storage.parquet import register_source
 
 def ingest_calendar() -> pd.DataFrame:
     cal = load_calendar()
+    # Sessions the same-session overlay contributed (see
+    # scripts/quant/update_daily_overlay.py). This function CLEARS and
+    # refills the calendar from the snapshot, so without re-applying them a
+    # snapshot swap would silently delete a session the overlay had already
+    # made the model use. They are strictly later than the shipped calendar,
+    # so re-adding them cannot duplicate or reorder anything.
+    from ..strategy.qlib_provider import overlay_dates
+
+    extra = [d for d in overlay_dates() if d > cal["trade_date"].max()]
+    if extra:
+        cal = pd.concat(
+            [cal, pd.DataFrame({"exchange": "CN",
+                                "trade_date": pd.to_datetime(extra),
+                                "is_open": True})],
+            ignore_index=True)
     # One transaction: an empty trading_calendar means "no trading day at all"
     # to the whole system, so the clear-and-refill must not be interruptible.
     with db.transaction() as conn:

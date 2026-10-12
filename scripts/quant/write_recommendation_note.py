@@ -82,6 +82,13 @@ def main() -> int:
             "rule": sug["rule"], "chosen_top_k": sug["chosen_top_k"],
             "scans": sug["scans"]}
     save_plan(plan)
+    # 状态与计划一起落盘，**赶在下面读数据新鲜度之前**：freshness 的
+    # "Portfolio" 域读的就是 portfolio_state.json，晚一步写的话，这份
+    # 刚生成的建议会警告"Portfolio 数据过期，请先跑 refresh_all" ——
+    # 而它自己就是那个刷新链的产物，自相矛盾。
+    from pipeline.signals import save_portfolio_state
+
+    save_portfolio_state(plan["as_of"], plan)
 
     from pipeline.signals import signals_state
     st = signals_state()

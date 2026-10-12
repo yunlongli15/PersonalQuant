@@ -1,0 +1,473 @@
+{
+  "run_id": "2026-10-09_220038",
+  "date": "2026-10-09",
+  "status": "WARNING",
+  "generated_at": "2026-10-09T22:02:15+08:00",
+  "duration_s": 97.16,
+  "dry_run": false,
+  "backfill": false,
+  "summary": {
+    "n_tasks": 14,
+    "n_warnings": 2,
+    "n_errors": 0,
+    "failed": [],
+    "blocked": [],
+    "forward_observation": true
+  },
+  "portfolio": {
+    "market_value": 10169.999313354492,
+    "cash": 123156.21,
+    "total_value": 133326.2093133545,
+    "n_positions": 1,
+    "cumulative_return": null,
+    "twr": 0.06676127117617292,
+    "mwr_xirr": 1.1959033403470034,
+    "max_drawdown": null
+  },
+  "strategy": {
+    "version": "1.0.0",
+    "freeze_date": "2026-09-19",
+    "git_commit": "da37b1b6f18783ef59457542b90acae88157ddb9",
+    "production_enabled": true,
+    "strategy_version": "strategy_v2",
+    "feature_version": "alpha158+factor_pack_v1",
+    "news_feature_version": "factor_pack_news_v1",
+    "model_version": "s3",
+    "allocation_method": "equal_weight",
+    "execution_model": "T1_open",
+    "forward_holdout_start": "2026-09-18",
+    "top_k": 20,
+    "rebalance_frequency": "monthly",
+    "transaction_costs": {
+      "commission_rate": 0.00025,
+      "min_commission": 5.0,
+      "stamp_duty": 0.0005,
+      "transfer_fee": 1e-05,
+      "slippage": 0.0005
+    },
+    "historical_test": [
+      "2024-01-01",
+      "2025-12-31"
+    ],
+    "hashes": {
+      "paper_live_config": "4c30f7d93e7a8a7a7f76b8ea3e94b867144adc507faaf3d1d8d90b0e92c21851",
+      "strategy_v2_config": "a6555258ab3696267335020fa4ac9547a9ed218766c84350e0fef2c028cb1cad",
+      "strategy_v1_config": "f93df33c9761c0313927652c718f6fa7b49a55c0667a984082f4dbe53e4f5a93",
+      "factor_selection_v2_config": "06719de4acc98281115c77784ccc83fc003c61cbb1964964db8fa57ad1ecf6c0",
+      "feature_pack_v1": "e1e1c5efef42687dc7626723bf427fbf2e533bd83c96d318d264244b60e2ed38",
+      "news_factor_pack": "b4decd5c38ee5217ea8fe88b56f598b0263383b15087b42487a859ed425db7ec",
+      "production_model": "769f67656a713fef42747070266209e6037ba92595a6fde6601b2a5f2ed737f2"
+    }
+  },
+  "paper_live": {
+    "status": "WARNING",
+    "is_rebalance": false,
+    "n_predictions": 2965,
+    "n_orders": 0,
+    "n_fills": 0,
+    "portfolio_value": 500000.0,
+    "execution_date": null,
+    "pending": false,
+    "idempotent": false
+  },
+  "risk": {
+    "nav_based": {
+      "volatility": 4.597808193633451,
+      "max_drawdown": -0.011763930670224187,
+      "worst_day": -0.006487187302597008,
+      "var_95_1d": null,
+      "cvar_95_1d": null,
+      "n_days": 8
+    },
+    "holdings_based": {
+      "n_positions": 1,
+      "invested_value": 10169.999313354492,
+      "hhi": 1.0,
+      "effective_n": 1.0,
+      "top_weight": 1.0,
+      "top5_weight": 1.0,
+      "cash_ratio": 0.9237209295476771,
+      "basis": "已投资权重（不含现金）；现金见 cash_ratio"
+    }
+  },
+  "news": {
+    "latest": "2026-10-09",
+    "task": {
+      "name": "news",
+      "status": "OK",
+      "detail": "新闻最新 2026-10-08；覆盖 4968 只",
+      "error": "",
+      "duration_s": 65.74,
+      "depends_on": [
+        "environment"
+      ]
+    }
+  },
+  "alerts": [
+    {
+      "level": "WARNING",
+      "code": "DATA_WARNING",
+      "detail": "检查项告警：['industry_snapshot']",
+      "action": "none（只报警，不调整任何东西）"
+    },
+    {
+      "level": "WARNING",
+      "code": "DATA_WARNING",
+      "detail": "Top1 预测 z=4.85 极端偏高；仍然使用冻结策略，不调整",
+      "action": "none（只报警，不调整任何东西）"
+    }
+  ],
+  "alert_summary": {
+    "n": 2,
+    "by_level": {
+      "WARNING": 2
+    },
+    "codes": [
+      "DATA_WARNING"
+    ]
+  },
+  "data": {
+    "market_latest": "2026-10-09",
+    "freshness": [
+      {
+        "domain": "Market Data",
+        "status": "OK",
+        "latest": "2026-10-09",
+        "expected": "2026-10-09",
+        "age_days": 0,
+        "detail": null
+      },
+      {
+        "domain": "Valuation",
+        "status": "OK",
+        "latest": "2026-10-09",
+        "expected": "2026-10-09",
+        "age_days": 0,
+        "detail": null
+      },
+      {
+        "domain": "Financial Reports",
+        "status": "OK",
+        "latest": "2026-04-30",
+        "expected": "2026-10-09",
+        "age_days": 162,
+        "detail": "fiscal availability date (announcement)"
+      },
+      {
+        "domain": "News",
+        "status": "OK",
+        "latest": "2026-10-08",
+        "expected": "2026-10-09",
+        "age_days": 1,
+        "detail": null
+      },
+      {
+        "domain": "Factors",
+        "status": "OK",
+        "latest": "2026-10-09",
+        "expected": "2026-10-09",
+        "age_days": 0,
+        "detail": null
+      },
+      {
+        "domain": "Forecast",
+        "status": "OK",
+        "latest": "2026-10-09",
+        "expected": "2026-10-09",
+        "age_days": 0,
+        "detail": "as_of = 信号日"
+      },
+      {
+        "domain": "Portfolio",
+        "status": "OK",
+        "latest": "2026-10-09",
+        "expected": "2026-10-09",
+        "age_days": 0,
+        "detail": "as_of = 信号日"
+      }
+    ]
+  },
+  "recommendation": {
+    "signal_date": "2026-10-09",
+    "n_rows": 8,
+    "total_buy_value": 33135.61,
+    "rows": [
+      {
+        "symbol": "603800.SH",
+        "name": "洪田股份",
+        "action": "BUY",
+        "prediction": 0.051976201346838044,
+        "rank": 2,
+        "current_price": 48.35,
+        "entry_low": 46.899,
+        "entry_high": 49.075,
+        "recommended_entry_price": 47.987,
+        "current_weight": 0.0727,
+        "target_weight": 0.1187,
+        "delta_weight": 0.046,
+        "target_value": 7834.2,
+        "estimated_shares": 100,
+        "estimated_trade_value": 4798.74,
+        "estimated_fee": null,
+        "target_price": 49.919,
+        "stop_loss": 43.299,
+        "reasons": [],
+        "board": "主板",
+        "can_buy": true,
+        "restriction_reason": "",
+        "reason_fields": {
+          "rank": 2,
+          "prediction": 0.051976201346838044,
+          "target_weight": 0.1187,
+          "volatility": null,
+          "industry": null,
+          "expected_net_return": 0.0366,
+          "holding_days": 20
+        }
+      },
+      {
+        "symbol": "001331.SZ",
+        "name": "胜通能源",
+        "action": "BUY",
+        "prediction": 0.04867279230066468,
+        "rank": 4,
+        "current_price": 35.33,
+        "entry_low": 34.27,
+        "entry_high": 35.86,
+        "recommended_entry_price": 35.065,
+        "current_weight": 0.1063,
+        "target_weight": 0.1187,
+        "delta_weight": 0.012399999999999994,
+        "target_value": 7834.2,
+        "estimated_shares": 200,
+        "estimated_trade_value": 7013.0,
+        "estimated_fee": null,
+        "target_price": 36.477,
+        "stop_loss": 31.604,
+        "reasons": [],
+        "board": "主板",
+        "can_buy": true,
+        "restriction_reason": "",
+        "reason_fields": {
+          "rank": 4,
+          "prediction": 0.04867279230066468,
+          "target_weight": 0.1187,
+          "volatility": null,
+          "industry": null,
+          "expected_net_return": 0.0373,
+          "holding_days": 20
+        }
+      },
+      {
+        "symbol": "603986.SH",
+        "name": "兆易创新",
+        "action": "SKIP",
+        "prediction": 0.0442295984237331,
+        "rank": 8,
+        "current_price": 326.46,
+        "entry_low": 316.666,
+        "entry_high": 331.357,
+        "recommended_entry_price": 324.012,
+        "current_weight": 0.0,
+        "target_weight": 0.1187,
+        "delta_weight": 0.1187,
+        "target_value": 7834.2,
+        "estimated_shares": 0,
+        "estimated_trade_value": 0.0,
+        "estimated_fee": null,
+        "target_price": 336.255,
+        "stop_loss": 292.638,
+        "reasons": [
+          "SKIP: target value below one 100-share lot"
+        ],
+        "board": "主板",
+        "can_buy": true,
+        "restriction_reason": "",
+        "reason_fields": {
+          "rank": 8,
+          "prediction": 0.0442295984237331,
+          "target_weight": 0.1187,
+          "volatility": null,
+          "industry": null,
+          "expected_net_return": 0.0358,
+          "holding_days": 20
+        }
+      },
+      {
+        "symbol": "002943.SZ",
+        "name": "宇晶股份",
+        "action": "BUY",
+        "prediction": 0.04387471160386729,
+        "rank": 9,
+        "current_price": 26.25,
+        "entry_low": 25.462,
+        "entry_high": 26.644,
+        "recommended_entry_price": 26.053,
+        "current_weight": 0.1184,
+        "target_weight": 0.1187,
+        "delta_weight": 0.0002999999999999947,
+        "target_value": 7834.2,
+        "estimated_shares": 300,
+        "estimated_trade_value": 7815.94,
+        "estimated_fee": null,
+        "target_price": 27.005,
+        "stop_loss": 23.609,
+        "reasons": [],
+        "board": "主板",
+        "can_buy": true,
+        "restriction_reason": "",
+        "reason_fields": {
+          "rank": 9,
+          "prediction": 0.04387471160386729,
+          "target_weight": 0.1187,
+          "volatility": null,
+          "industry": null,
+          "expected_net_return": 0.0337,
+          "holding_days": 20
+        }
+      },
+      {
+        "symbol": "603256.SH",
+        "name": "宏和科技",
+        "action": "SKIP",
+        "prediction": 0.04265370560329956,
+        "rank": 12,
+        "current_price": 117.5,
+        "entry_low": 113.975,
+        "entry_high": 119.262,
+        "recommended_entry_price": 116.619,
+        "current_weight": 0.0,
+        "target_weight": 0.1187,
+        "delta_weight": 0.1187,
+        "target_value": 7834.2,
+        "estimated_shares": 0,
+        "estimated_trade_value": 0.0,
+        "estimated_fee": null,
+        "target_price": 120.449,
+        "stop_loss": 103.401,
+        "reasons": [
+          "SKIP: target value below one 100-share lot"
+        ],
+        "board": "主板",
+        "can_buy": true,
+        "restriction_reason": "",
+        "reason_fields": {
+          "rank": 12,
+          "prediction": 0.04265370560329956,
+          "target_weight": 0.1187,
+          "volatility": null,
+          "industry": null,
+          "expected_net_return": 0.0308,
+          "holding_days": 20
+        }
+      },
+      {
+        "symbol": "002409.SZ",
+        "name": "雅克科技",
+        "action": "SKIP",
+        "prediction": 0.03972993905137498,
+        "rank": 18,
+        "current_price": 112.07,
+        "entry_low": 108.708,
+        "entry_high": 113.751,
+        "recommended_entry_price": 111.229,
+        "current_weight": 0.0,
+        "target_weight": 0.1187,
+        "delta_weight": 0.1187,
+        "target_value": 7834.2,
+        "estimated_shares": 0,
+        "estimated_trade_value": 0.0,
+        "estimated_fee": null,
+        "target_price": 114.234,
+        "stop_loss": 100.303,
+        "reasons": [
+          "SKIP: target value below one 100-share lot"
+        ],
+        "board": "主板",
+        "can_buy": true,
+        "restriction_reason": "",
+        "reason_fields": {
+          "rank": 18,
+          "prediction": 0.03972993905137498,
+          "target_weight": 0.1187,
+          "volatility": null,
+          "industry": null,
+          "expected_net_return": 0.025,
+          "holding_days": 20
+        }
+      },
+      {
+        "symbol": "603005.SH",
+        "name": "晶方科技",
+        "action": "BUY",
+        "prediction": 0.03821632075357917,
+        "rank": 21,
+        "current_price": 25.1,
+        "entry_low": 24.347,
+        "entry_high": 25.477,
+        "recommended_entry_price": 24.912,
+        "current_weight": 0.1132,
+        "target_weight": 0.1187,
+        "delta_weight": 0.005500000000000005,
+        "target_value": 7834.2,
+        "estimated_shares": 300,
+        "estimated_trade_value": 7473.53,
+        "estimated_fee": null,
+        "target_price": 25.551,
+        "stop_loss": 22.964,
+        "reasons": [],
+        "board": "主板",
+        "can_buy": true,
+        "restriction_reason": "",
+        "reason_fields": {
+          "rank": 21,
+          "prediction": 0.03821632075357917,
+          "target_weight": 0.1187,
+          "volatility": null,
+          "industry": null,
+          "expected_net_return": 0.0228,
+          "holding_days": 20
+        }
+      },
+      {
+        "symbol": "603931.SH",
+        "name": "格林达",
+        "action": "BUY",
+        "prediction": 0.037231381520705334,
+        "rank": 24,
+        "current_price": 30.4,
+        "entry_low": 29.488,
+        "entry_high": 30.856,
+        "recommended_entry_price": 30.172,
+        "current_weight": 0.0914,
+        "target_weight": 0.1187,
+        "delta_weight": 0.027300000000000005,
+        "target_value": 7834.2,
+        "estimated_shares": 200,
+        "estimated_trade_value": 6034.4,
+        "estimated_fee": null,
+        "target_price": 30.906,
+        "stop_loss": 27.556,
+        "reasons": [],
+        "board": "主板",
+        "can_buy": true,
+        "restriction_reason": "",
+        "reason_fields": {
+          "rank": 24,
+          "prediction": 0.037231381520705334,
+          "target_weight": 0.1187,
+          "volatility": null,
+          "industry": null,
+          "expected_net_return": 0.0211,
+          "holding_days": 20
+        }
+      }
+    ]
+  },
+  "timestamps": {
+    "started": "2026-10-09T22:00:38+08:00",
+    "ended": "2026-10-09T22:02:15+08:00",
+    "market_latest": "2026-10-09",
+    "signal": "2026-10-09"
+  }
+}

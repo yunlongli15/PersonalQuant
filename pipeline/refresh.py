@@ -211,6 +211,37 @@ def valuation_update(**kw) -> str:
     return f"{len(df)} rows @ {d}"
 
 
+def overlay_refresh(**kw) -> str:
+    """补当日（T）完整日线 —— 让排名也用得上今天的数据。
+
+    上游快照的最新数据是 **T-1**（含 T 的 release 次日 00:40 才发），所以
+    以前当天晚上只能拿 T-1 排名去配 T+1 的成交价，入场区间永远慢一天
+    （2026-09-22 用户反馈、2026-10-12 再次反馈）。这里用批量行情把当日
+    OHLCV 取回来，经校验后按 canonical 口径写进 overlay 层。
+
+    **不是"把今天的收盘价盖到旧排名上"**：写进去的 bar 会被
+    `daily_bars` 视图、特征 provider 和日历一起看到，所以
+    `signal_refresh` 算出来的确实是 T 日特征。
+
+    失败时**绝不静默退回 T-1**：本作业抛错（job store 记 FAILED），
+    signal_refresh 自己还有一道独立校验，二者都不允许把旧信号当新信号。
+    """
+    _maybe_offline()
+    from scripts.quant import update_daily_overlay  # type: ignore
+
+    with _own_argv():
+        rc = update_daily_overlay.main()
+    if rc not in (0, None):
+        raise RuntimeError(f"update_daily_overlay exited {rc}")
+
+    from personal_quant.strategy.qlib_provider import overlay_dates
+
+    dates = overlay_dates()
+    if not dates:
+        return "上游快照无更新，且当日行情不可用 —— 信号日仍是 T-1"
+    return f"overlay 已含 {len(dates)} 个 session，最新 {dates[-1].date()}"
+
+
 def factor_refresh(**kw) -> str:
     """Rebuild the DERIVED factor caches (calendar/labels/universes/
     financial snapshot) from canonical."""
@@ -304,6 +335,9 @@ REFRESH_JOBS: List[tuple] = [
     ("news_events_refresh", news_events_refresh),
     ("financial_update", financial_update),
     ("valuation_update", valuation_update),
+    # 当日 overlay 必须在 factor_refresh 之前：factor_refresh 会用
+    # trading_calendar 重建 derived 日历，overlay 刚登记的 T 日要一起带出去。
+    ("overlay_refresh", overlay_refresh),
     ("factor_refresh", factor_refresh),
     ("signal_refresh", signal_refresh),
     ("live_price_refresh", live_price_refresh),

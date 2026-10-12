@@ -238,11 +238,31 @@ def save_signals(df: pd.DataFrame, as_of: Optional[str] = None,
     # 版本化副本：钉版消费者（daily_exit_paper_v1）读它。
     # 没有这一份的话，生产策略一切换，正在跑的实验每天读到的信号就变了。
     df.to_parquet(signal_path(d, spec["name"]), index=False)
+    # 数据来源自述：这份信号到底是用"上游快照"算的，还是叠加了当日
+    # overlay 才算出来的。冻结的前瞻实验必须能看出链路换过没有
+    #（§七：不得在同一实验名下无痕切换数据源），所以写进信号自己的元数据。
+    import personal_quant.config as _cfg
+    from personal_quant.strategy.qlib_provider import overlay_dates
+
+    overlay = overlay_dates()
+    f = _cfg.PARQUET_DIR / "overlay" / "overlay_manifest.json"
+    overlay_sha = None
+    if f.exists():
+        try:
+            for entry in json.loads(f.read_text(encoding="utf-8")):
+                if entry.get("trade_date") == d:
+                    overlay_sha = entry.get("bars_sha256")
+        except Exception:                                       # noqa: BLE001
+            overlay_sha = None
+
     state = {
         "as_of": d,
         "computed_at": datetime.now().isoformat(timespec="seconds"),
         "n_symbols": int(len(df)),
         "model": str(spec["model"]),
+        "bar_source": "canonical+overlay" if overlay else "canonical",
+        "overlay_sessions": [str(x.date()) for x in overlay],
+        "overlay_bars_sha256": overlay_sha,
         "model_version": f"strategy_v2/{spec['name']}",
         "feature_version": spec["feature_version"],
         "strategy": spec["name"],
@@ -269,6 +289,49 @@ def signals_state() -> dict:
     return json.loads(SIGNALS_STATE.read_text(encoding="utf-8"))
 
 
+class StaleSignalError(RuntimeError):
+    """信号日没有被真正的行情支撑 —— 拒绝产出一份"看起来是今天"的排名。"""
+
+
+def latest_bar_date() -> Optional[str]:
+    """最新一根 bar 的日期（canonical + 当日 overlay，即模型真正看得到的）。"""
+    from personal_quant import db
+
+    d = db.connect().execute(
+        "SELECT MAX(trade_date) d FROM daily_bars").fetch_df()["d"].iloc[0]
+    return str(pd.Timestamp(d).date()) if d is not None else None
+
+
+def assert_signal_date_is_backed(signal_date: str,
+                                 explicit: bool) -> None:
+    """信号日必须真的有行情，且（默认路径下）就是最新的一天。
+
+    这是一道**独立于 overlay 作业的**校验，两道各自成立才行（§四）：
+    overlay 那边失败会抛错，但即使它被跳过、被 `--only` 排除，这里也
+    不会让一份 T-1 的排名挂着 T 的日期发布出去。
+
+    "最新的一天"这条只在**默认路径**下强制。显式传 `signal_date` 是
+    回填/复现历史用的，那时只要求那一天有行情。
+    """
+    from personal_quant import db
+
+    conn = db.connect()
+    n = conn.execute(
+        "SELECT COUNT(*) FROM daily_bars WHERE trade_date = ?",
+        [signal_date]).fetchone()[0]
+    if not n:
+        raise StaleSignalError(
+            f"{signal_date} 在 daily_bars 里一行行情都没有 —— 不能拿它当信号日"
+            f"（当日日线还没补齐？先跑 "
+            f"`python scripts/quant/update_daily_overlay.py`）")
+    latest = latest_bar_date()
+    if not explicit and latest != signal_date:
+        raise StaleSignalError(
+            f"信号日 {signal_date} 不是最新行情日 {latest} —— 拒绝发布旧排名"
+            f"（§四：当日数据没到位时，宁可让本次刷新失败，也不能把 T-1 "
+            f"的排名当成今天的信号）")
+
+
 def refresh_signals(signal_date: Optional[str] = None,
                     top_k: int = 20,
                     strategy: Optional[str] = None) -> dict:
@@ -278,6 +341,7 @@ def refresh_signals(signal_date: Optional[str] = None,
     **不改生产默认** —— 回退/对比实验（例如 `--strategy S3_v1`）不需要
     动代码，也不会让日常刷新跟着变。
     """
+    explicit = signal_date is not None
     if signal_date is None:
         from pipeline.freshness import last_trading_day
 
@@ -285,10 +349,12 @@ def refresh_signals(signal_date: Optional[str] = None,
         if ltd is None:
             raise RuntimeError("trading calendar is empty")
         signal_date = str(ltd.date())
+    assert_signal_date_is_backed(signal_date, explicit=explicit)
     df = compute_signals(signal_date, top_k=top_k, strategy=strategy)
     p = save_signals(df, signal_date, strategy=strategy)
     return {"as_of": signal_date, "n_symbols": len(df), "path": str(p),
-            "strategy": strategy_spec(strategy)["name"]}
+            "strategy": strategy_spec(strategy)["name"],
+            "latest_bar": latest_bar_date()}
 
 
 def save_portfolio_state(as_of: str, plan: dict) -> Path:

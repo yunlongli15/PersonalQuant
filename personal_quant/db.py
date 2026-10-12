@@ -189,17 +189,76 @@ def connect(read_only: bool = False) -> duckdb.DuckDBPyConnection:
 
 
 def _register_daily_bars_view(conn: duckdb.DuckDBPyConnection) -> None:
-    """daily_bars lives as parquet files (partitioned by year); expose a view."""
+    """daily_bars lives as parquet files (partitioned by year); expose a view.
+
+    The SAME-SESSION OVERLAY is unioned in here so that every reader of
+    `daily_bars` (features, labels, universe) sees it without knowing it
+    exists — the upstream snapshot parquet files stay byte-identical and the
+    overlay can be removed by deleting one directory (see
+    `scripts/quant/update_daily_overlay.py`). The overlay wins on a
+    (symbol, trade_date) collision, because the only collision possible is
+    the overlay re-stating a session the snapshot also carries.
+    """
     import glob
+    from pathlib import Path
 
     pattern = str(config.PARQUET_SUBDIRS["daily"] / "*.parquet").replace("\\", "/")
     files = sorted(glob.glob(pattern))
+    overlay = Path(config.PARQUET_DIR) / "overlay" / "daily_overlay.parquet"
+    has_overlay = overlay.exists()
+
     if files:
         src = f"read_parquet({[f.replace(chr(92), '/') for f in files]})"
-        conn.execute(f"""
-            CREATE OR REPLACE VIEW daily_bars AS
-            SELECT * FROM {src};
-        """)
+        if has_overlay:
+            # Materialise the overlay into a real TABLE: it is tiny (one
+            # session, ~5.6K rows) and DuckDB holds small tables natively.
+            conn.execute(f"""
+                CREATE OR REPLACE TABLE daily_overlay AS
+                SELECT * FROM read_parquet('{str(overlay).replace(chr(92), '/')}')
+            """)
+            # Is the overlay re-stating anything canonical already carries?
+            # In the normal state NO — the snapshot lags, so canonical has
+            # no rows at the overlay's sessions. Then a plain UNION ALL is
+            # both correct and ~9x faster than an anti-join, which has to be
+            # evaluated per row and turned a 0.04s backtest price lookup
+            # into 0.34s.
+            #
+            # Overlap only exists transiently after the snapshot catches up
+            # (the overlay job retires such sessions on its next run, see
+            # update_daily_overlay --reconcile-only). While it lasts, the
+            # anti-join is required for correctness, so pay it then.
+            clash = conn.execute(f"""
+                SELECT COUNT(*) FROM {src} c
+                WHERE c.trade_date IN (SELECT trade_date FROM daily_overlay)
+                  AND EXISTS (SELECT 1 FROM daily_overlay ov
+                              WHERE ov.symbol = c.symbol
+                                AND ov.trade_date = c.trade_date)
+            """).fetchone()[0]
+            if clash:
+                conn.execute(f"""
+                    CREATE OR REPLACE VIEW daily_bars AS
+                    WITH canonical AS (SELECT * FROM {src})
+                    SELECT canonical.* FROM canonical
+                    WHERE NOT EXISTS (
+                        SELECT 1 FROM daily_overlay ov
+                        WHERE ov.symbol = canonical.symbol
+                          AND ov.trade_date = canonical.trade_date)
+                    UNION ALL
+                    SELECT * FROM daily_overlay;
+                """)
+            else:
+                conn.execute(f"""
+                    CREATE OR REPLACE VIEW daily_bars AS
+                    SELECT * FROM {src}
+                    UNION ALL
+                    SELECT * FROM daily_overlay;
+                """)
+        else:
+            conn.execute("DROP TABLE IF EXISTS daily_overlay")
+            conn.execute(f"""
+                CREATE OR REPLACE VIEW daily_bars AS
+                SELECT * FROM {src};
+            """)
     else:
         conn.execute("""
             CREATE OR REPLACE VIEW daily_bars AS

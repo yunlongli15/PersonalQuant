@@ -349,9 +349,27 @@ def run(run_date=None, capital: Optional[float] = None, dry_run: bool = False,
 
     state["run_date"] = str(run_d.date())
     state["n_runs"] = int(state.get("n_runs") or 0) + 1
+    # §七：链路换数据源必须在实验里留痕，不能无痕切换。把信号自己声明的
+    # 来源抄进 state 与账本；换了来源时额外记一条 DATA_SOURCE_CHANGED，
+    # 这样"这份观测到底是哪条链路产出的"永远可以查。
+    prov = _signal_provenance()
+    prev_src = state.get("data_source")
+    state["data_source"] = prov
+    if prev_src and prev_src.get("bar_source") != prov.get("bar_source"):
+        events.append({
+            "type": "DATA_SOURCE_CHANGED", "run_date": str(run_d.date()),
+            "from": prev_src.get("bar_source"),
+            "to": prov.get("bar_source"),
+            "signal_as_of": prov.get("as_of"),
+            "overlay_sessions": prov.get("overlay_sessions"),
+            "overlay_bars_sha256": prov.get("overlay_bars_sha256"),
+            "note": "日常信号链路开始叠加当日 overlay；实验规则未变，"
+                    "变的是 T 日 bar 的来源",
+        })
     events.append({
         "type": "RUN_SUMMARY", "run_date": str(run_d.date()),
         "sessions": [str(s.date()) for s in sessions],
+        "data_source": prov,
         "cash": totals["cash"], "reserved_cash": totals["reserved_cash"],
         "position_value": totals["position_value"],
         "portfolio_value": totals["portfolio_value"],
@@ -370,6 +388,28 @@ def run(run_date=None, capital: Optional[float] = None, dry_run: bool = False,
                     reports, totals, state, dry_run)
     _write_daily(store, res, exp, s_cfg, dry_run)
     return res
+
+
+def _signal_provenance() -> dict:
+    """信号自己声明的数据来源（见 pipeline.signals.save_signals）。
+
+    读取失败时明确返回 unknown，而不是编一个默认来源 —— 账本里
+    "不知道"和"来自上游快照"是两件事。
+    """
+    try:
+        import json
+        from pathlib import Path
+
+        p = (Path(__file__).resolve().parents[1] / "data" / "quant"
+             / "signals_state.json")
+        if not p.exists():
+            return {"bar_source": "unknown", "reason": "signals_state 不存在"}
+        d = json.loads(p.read_text(encoding="utf-8"))
+        return {k: d.get(k) for k in
+                ("as_of", "bar_source", "overlay_sessions",
+                 "overlay_bars_sha256", "strategy", "computed_at")}
+    except Exception as e:                                     # noqa: BLE001
+        return {"bar_source": "unknown", "reason": f"{type(e).__name__}: {e}"}
 
 
 def _previous_session(cal: pd.DatetimeIndex, d) -> Optional[str]:

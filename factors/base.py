@@ -61,16 +61,27 @@ _data_cache: Dict[tuple, "FactorData"] = {}
 # ---------------------------------------------------------------------------
 
 def load_calendar() -> pd.DatetimeIndex:
-    """Official trading calendar (cached to parquet by factor_prepare)."""
+    """Official trading calendar (cached to parquet by factor_prepare).
+
+    当日 overlay 贡献的交易日并进来：`CALENDAR_CACHE` 是 `factor_prepare`
+    从 `trading_calendar` 重建的**缓存**，在 overlay 登记了新交易日、而
+    `factor_refresh` 还没跑的那段时间里它是滞后的。少了这一步，
+    `load_factor_data` 会把已经有 bar 的 T 日从窗口里裁掉（`cal` 是
+    `[lo, end]` 的过滤器），因子就又停在 T-1 了。
+    """
     if CALENDAR_CACHE.exists():
         days = pd.read_parquet(CALENDAR_CACHE)["trade_date"]
-        return pd.DatetimeIndex(pd.to_datetime(days))
-    from personal_quant import db
+        cal = pd.DatetimeIndex(pd.to_datetime(days))
+    else:
+        from personal_quant import db
 
-    days = db.connect().execute(
-        "SELECT trade_date FROM trading_calendar WHERE is_open ORDER BY trade_date"
-    ).fetch_df()
-    return pd.DatetimeIndex(days["trade_date"])
+        days = db.connect().execute(
+            "SELECT trade_date FROM trading_calendar WHERE is_open "
+            "ORDER BY trade_date").fetch_df()
+        cal = pd.DatetimeIndex(days["trade_date"])
+    from personal_quant.providers.qlib_baseline import overlay_dates
+
+    return cal.union(pd.DatetimeIndex(overlay_dates()))
 
 
 def cached_rebalance_dates(start, end, frequency="monthly",
@@ -189,8 +200,6 @@ def load_factor_data(
     120-trading-day lookback have warm-up data; rows before `start` are
     trimmed afterwards (NaN warm-up values are expected at the head).
     """
-    import pyarrow.parquet as pq
-
     start, end = pd.Timestamp(start), pd.Timestamp(end)
     key = (str(start.date()), str(end.date()), tuple(sorted(symbols)) if symbols else ())
     with _lock:
@@ -198,15 +207,14 @@ def load_factor_data(
             return _data_cache[key]
 
         lo = start - pd.Timedelta(days=370)
-        tbl = pq.read_table(
-            str(config.PARQUET_SUBDIRS["daily"]),
+        # Merged reader: canonical ∪ 当日 overlay. 少了 overlay 这一层，
+        # 因子就会停在 T-1，而信号已经走到 T —— 两边对不上。
+        from personal_quant.providers.qlib_baseline import read_daily_bars
+
+        bars = read_daily_bars(
+            lo, end,
             columns=["symbol", "trade_date", "open", "high", "low", "close",
-                     "volume", "amount", "vwap", "factor"],
-            filters=[("trade_date", ">=", lo.to_pydatetime()),
-                     ("trade_date", "<=", end.to_pydatetime())],
-        )
-        bars = tbl.to_pandas()
-        bars["trade_date"] = pd.to_datetime(bars["trade_date"])
+                     "volume", "amount", "vwap", "factor"])
         if symbols:
             bars = bars[bars["symbol"].isin(symbols)]
 

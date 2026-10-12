@@ -222,17 +222,16 @@ def quant_forecast_for(symbol: str) -> dict:
 
 
 def price_history(symbol: str, days: int = 250) -> List[tuple]:
-    """Raw closes for the chart (canonical, read-only)."""
+    """Raw closes for the chart (canonical ∪ 当日 overlay, read-only).
+
+    必须带上 overlay：交易计划与信号已经走到 T，图表停在 T-1 的话，
+    界面上就会出现"计划用的价格在图上找不到"的错位。
+    """
     try:
-        import pyarrow.parquet as pq
+        from personal_quant.providers.qlib_baseline import read_daily_bars
 
-        from personal_quant import config
-
-        tbl = pq.read_table(
-            str(config.PARQUET_SUBDIRS["daily"]),
-            columns=["symbol", "trade_date", "close"],
-            filters=[("symbol", "=", symbol)])
-        df = tbl.to_pandas().sort_values("trade_date").tail(days)
+        df = read_daily_bars(columns=["symbol", "trade_date", "close"])
+        df = df[df["symbol"] == symbol].sort_values("trade_date").tail(days)
         return [(str(pd.Timestamp(d).date()), float(c))
                 for d, c in zip(df["trade_date"], df["close"])
                 if pd.notna(c)]
