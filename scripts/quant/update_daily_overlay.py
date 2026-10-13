@@ -106,6 +106,8 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+from personal_quant.providers.qlib_baseline import load_overlay  # noqa: E402
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 OVERLAY_DIR = PROJECT_ROOT / "data" / "parquet" / "overlay"
 OVERLAY_BARS = OVERLAY_DIR / "daily_overlay.parquet"
@@ -681,6 +683,49 @@ def reconcile(retire: bool = True) -> list:
     return out
 
 
+def resolve_anchor_date(canonical_last: Optional[pd.Timestamp],
+                        overlay_last: Optional[pd.Timestamp],
+                        target: pd.Timestamp,
+                        calendar,
+                        force: bool = False) -> Optional[pd.Timestamp]:
+    """Which bar to bridge FROM — and refuse when that is not answerable.
+
+    The anchor must be the session **immediately before `target`**, and it
+    must be a bar we actually hold. Both halves matter:
+
+    * The feed's `prev` field is the PREVIOUS session's close, so the bridge
+      computes a one-session return. Anchoring anywhere else silently drops
+      (or double-counts) the sessions in between. The adjusted series is
+      then wrong while still looking continuous, because `factor` is
+      *defined* as whatever makes it continuous — the continuity check
+      cannot catch this.
+    * Weighing canonical alone is not enough: after a failed snapshot
+      download canonical stays at T-2 while the overlay already holds T-1.
+      That is exactly 2026-10-13's situation, and anchoring on canonical
+      would throw away the T-2 -> T-1 return.
+    """
+    have = [d for d in (canonical_last, overlay_last) if d is not None]
+    if not have:
+        return None
+    if max(have) >= target and not force:
+        return None                       # 这个 session 已经有了
+    earlier = [d for d in pd.DatetimeIndex(calendar) if d < target]
+    if not earlier:
+        raise OverlayRefused(
+            f"日历里没有 {target.date()} 之前的交易日，无法确定锚点")
+    prev_session = max(earlier)
+    older = [d for d in have if d < target]
+    anchor = max(older) if older else None
+    if anchor != prev_session:
+        raise OverlayRefused(
+            f"锚点停在 {anchor.date() if anchor is not None else '（无）'}，"
+            f"但 {target.date()} 的前一个交易日是 {prev_session.date()} —— "
+            f"中间缺了交易日，补不出来。一天的行情只能还原一天的收益；"
+            f"请先让上游快照补上缺失的日子"
+            f"（python scripts/quant/update_market_snapshot.py），再重跑本作业。")
+    return anchor
+
+
 def overlay_last_date() -> Optional[pd.Timestamp]:
     if not OVERLAY_BARS.exists():
         return None
@@ -727,32 +772,48 @@ def main() -> int:
     anchor = build_anchor(rebuild=args.rebuild_anchor)
     print(f"锚点: {len(anchor)} 个标的（U 缺失 {int(anchor['U'].isna().sum())}）")
 
+    # 锚点是「模型手里最新的一根 bar」，不是「canonical 里最新的一根」：
+    # 快照下载失败时 canonical 会停在 T-2，而 overlay 已经有 T-1 了
+    #（2026-10-13 实况）。锚在 canonical 上的话，桥就会拿「T-1→T 的当日
+    # 收益」去乘「T-2 的复权价」，中间那天的收益凭空消失，写出一根假 bar
+    # —— 而且复权连续性校验抓不到它，因为 factor 就是这么定义的。
+    have_last = max([d for d in (last, ol) if d is not None])
     bars = _read_canonical(cols=["symbol", "trade_date", "close", "factor"])
-    prev = bars[bars["trade_date"] == last].drop_duplicates("symbol")
-    if prev.empty:
-        raise OverlayRefused(f"canonical 在 {last} 没有横截面，无法建立锚点")
-    print(f"T-1 = {last.date()}，锚定 {len(prev)} 个标的")
+    ov_bars = load_overlay()
+    if not ov_bars.empty:
+        bars = pd.concat([bars, ov_bars[["symbol", "trade_date", "close",
+                                         "factor"]]], ignore_index=True)
+        bars = bars.drop_duplicates(subset=["symbol", "trade_date"],
+                                    keep="last")
+    universe = bars[bars["trade_date"] == have_last]["symbol"].drop_duplicates()
+    if universe.empty:
+        raise OverlayRefused(f"{have_last.date()} 没有横截面，无法建立锚点")
 
     from personal_quant.providers.batch_quote import BatchQuoteProvider
 
     provider = BatchQuoteProvider()
-    batch = provider.fetch_quotes(sorted(prev["symbol"]))
+    batch = provider.fetch_quotes(sorted(universe))
     target, newest_stamp = feed_session(batch)
     print(f"批量行情: {len(batch.quotes)} 只 / {batch.request_count} 次请求；"
           f"行情自称 session = {target.date()}（最新戳 {newest_stamp}）")
 
-    if target <= last:
-        print(f"\n行情源最新 session {target.date()} 不晚于 canonical "
-              f"{last.date()} —— 没有更新的成交日可补，overlay 不变。")
-        return 0
-
     ensure_session(target, newest_stamp)
+    anchor_date = resolve_anchor_date(last, ol, target, _known_sessions(),
+                                      force=args.force)
+    if anchor_date is None:
+        print(f"\n{target.date()} 已经在手里了（canonical 或 overlay）—— "
+              f"没有要补的成交日。")
+        return 0
     if args.date and pd.Timestamp(args.date) != target:
         raise OverlayRefused(
             f"--date 指定 {args.date}，但行情源返回的是 {target.date()} —— 拒绝")
-    if ol is not None and target <= ol and not args.force:
-        print(f"overlay 已有 {target.date()}（--force 可重建）")
-        return 0
+    # 锚点的横截面必须取在 anchor_date 那天 —— 不是 have_last。
+    # 两者只在 `--force` 重建已有 session 时才不同（那时 have_last 就是
+    # target 自己）。取错的话算出来的是"用 T 的复权价当 T-1"的假 bar。
+    prev = bars[bars["trade_date"] == anchor_date].drop_duplicates("symbol")
+    if prev.empty:
+        raise OverlayRefused(f"{anchor_date.date()} 没有横截面，无法建立锚点")
+    print(f"T-1 = {anchor_date.date()}，锚定 {len(prev)} 个标的")
 
     df, report = bridge(prev, batch.quotes, anchor)
     validation = validate(df, report, target, expected=len(prev))

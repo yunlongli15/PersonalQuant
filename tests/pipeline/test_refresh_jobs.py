@@ -83,6 +83,55 @@ def test_run_all_continue_on_error(jobstore):
     assert [r["status"] for r in results] == ["FAILED", "SUCCESS"]
 
 
+def test_degradable_failure_is_recorded_but_does_not_stop_the_chain(jobstore):
+    """2026-10-13 实况：快照下载被网络抖动打断（WinError 10060，三次全挂），
+    整条链当场停住 —— 连走**另一家主机**的 overlay_refresh 都没跑，
+    用户当晚一份建议都拿不到。
+
+    这类失败没有改动任何数据，不该有这么大的杀伤力。但它也**绝不能记成
+    成功**：状态是 FAILED，整条链的退出码仍然是 1。
+    """
+    calls = []
+
+    def snapshot():
+        calls.append("market")
+        raise refresh.DegradableJobError("快照下载失败（网络），本地数据未变")
+
+    def overlay():
+        calls.append("overlay")
+        return "补上了当日日线"
+
+    results = refresh.run_all(conn=jobstore,
+                              jobs={"market_update": snapshot,
+                                    "overlay_refresh": overlay})
+    assert calls == ["market", "overlay"], "可降级失败必须继续跑后面的作业"
+    assert [r["status"] for r in results] == ["FAILED", "SUCCESS"]
+    assert results[0]["job"] == "market_update"
+    # 失败必须留痕，不能因为"不中断"就变成没发生
+    assert jobs.last_run(jobstore, "market_update")["status"] == "FAILED"
+    assert "DegradableJobError" in jobs.last_run(
+        jobstore, "market_update")["error"]
+
+
+def test_a_hard_failure_still_stops_the_chain(jobstore):
+    """拿到文件之后才失败的（解压/导入坏档）必须照旧中断整条链 ——
+    那时本地状态可能已经半截，继续往下跑就是在污染信号。"""
+    calls = []
+
+    def ok():
+        calls.append("market")
+        return "done"
+
+    def bad():
+        calls.append("overlay")
+        raise RuntimeError("archive corrupt")
+
+    with pytest.raises(RuntimeError):
+        refresh.run_all(conn=jobstore, jobs={"market_update": ok,
+                                             "overlay_refresh": bad})
+    assert calls == ["market", "overlay"]
+
+
 def test_run_all_only_subset(jobstore):
     results = refresh.run_all(conn=jobstore, only=["c"],
                               jobs={"b": lambda: "no", "c": lambda: "yes"})

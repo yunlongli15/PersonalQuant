@@ -88,5 +88,47 @@
       "missing_U": 362
     },
     "feed_failures": []
+  },
+  {
+    "trade_date": "2026-10-13",
+    "built_at": "2026-10-13T19:07:28",
+    "provider": "tencent_batch_quote",
+    "requests": 12,
+    "fetched_at": "2026-10-13T19:07:28",
+    "quote_sha256": "20cf71bdde01c66bb3aaf39d094f595f875908fb07ff743b5d71f547890848e7",
+    "raw_snapshot": "C:\\Users\\Administrator\\Desktop\\PersonalQuant\\data\\raw\\batch_quote\\quotes_20261013_2.json",
+    "bars_sha256": "74806c90d2cff2c86360bf5fe5e4fe66895856b8b6ddc1d245239cdb2164db98",
+    "n_bars": 5563,
+    "coverage": 0.9995,
+    "report": {
+      "corporate_actions": 17,
+      "corporate_action_symbols": [
+        "000407.SZ",
+        "000830.SZ",
+        "001309.SZ",
+        "300470.SZ",
+        "300748.SZ",
+        "300952.SZ",
+        "301028.SZ",
+        "600125.SH",
+        "600609.SH",
+        "601019.SH",
+        "603120.SH",
+        "603678.SH",
+        "603708.SH",
+        "603919.SH",
+        "688161.SH",
+        "920112.BJ",
+        "920125.BJ"
+      ],
+      "suspended": 0,
+      "suspended_symbols": [],
+      "no_anchor": 0,
+      "no_anchor_symbols": [],
+      "missing_C": 0,
+      "missing_C_symbols": [],
+      "missing_U": 362
+    },
+    "feed_failures": []
   }
 ]

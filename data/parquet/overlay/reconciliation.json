@@ -1,0 +1,26 @@
+[
+  {
+    "trade_date": "2026-10-12",
+    "reconciled_at": "2026-10-13T18:52:25",
+    "overlay_rows": 5564,
+    "snapshot_rows": 5566,
+    "overlap": 5564,
+    "open_median_reldiff": 3e-08,
+    "open_p99_reldiff": 1.1e-07,
+    "high_median_reldiff": 3e-08,
+    "high_p99_reldiff": 1.1e-07,
+    "low_median_reldiff": 3e-08,
+    "low_p99_reldiff": 1.1e-07,
+    "close_median_reldiff": 3e-08,
+    "close_p99_reldiff": 1.1e-07,
+    "volume_median_ratio": 1.0,
+    "volume_p01_ratio": 0.999313,
+    "volume_p99_ratio": 1.000648,
+    "amount_median_ratio": 0.957421,
+    "amount_p01_ratio": 0.006221,
+    "amount_p99_ratio": 1.000281,
+    "factor_median_ratio": 1.0,
+    "factor_p01_ratio": 0.999384,
+    "factor_p99_ratio": 1.000621
+  }
+]

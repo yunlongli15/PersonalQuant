@@ -49,6 +49,34 @@ class OfflineMode(RuntimeError):
     """Raised when a network refresh is attempted with PQ_MODE=offline."""
 
 
+class DegradableJobError(RuntimeError):
+    """作业失败了，但**下游仍然是对的** —— 记 FAILED，然后继续跑。
+
+    只有"什么都没改"的失败才配用这个：最典型的是快照下载没拿到文件
+    （网络抖动，WinError 10060），此时 canonical 一个字节没动，谈不上
+    被污染。以前这种失败会直接打断整条链，代价很不对称 ——
+    2026-10-13 实况：GitHub 抖了 100 秒，于是连
+    `overlay_refresh`（走**另一家主机**，本来能把当天日线补齐）、
+    因子、信号、预测、交易计划全部没跑，用户当晚什么建议都拿不到。
+
+    这与"当日数据取不到就别发信号"并不矛盾：那一条由
+    `pipeline.signals.assert_signal_date_is_backed` 独立把关。真正取不到
+    当日行情时，信号刷新自己会失败。
+    """
+
+
+def _raise(e: BaseException):
+    """把已经捕获的异常重新包成作业函数，交给 job store 如实记 FAILED。
+
+    降级作业走的是"先捕获、再补记"的路径（异常不能直接往外抛，否则会
+    中断整条链），所以这里要把那次失败重新演一遍，让 job store 的
+    记录逻辑保持唯一一份。
+    """
+    def _fail():
+        raise e
+    return _fail
+
+
 def _is_offline() -> bool:
     return os.environ.get("PQ_MODE", "").lower() == "offline"
 
@@ -103,6 +131,11 @@ def market_update(**kw) -> str:
         proc.kill()
         raise RuntimeError("market snapshot update timed out (2h)")
     last = next((x for x in reversed(tail) if x.strip()), "")
+    if proc.returncode == 3:      # EXIT_SNAPSHOT_UNAVAILABLE
+        raise DegradableJobError(
+            "快照下载失败（网络），本地数据未变 —— 继续跑后面的作业；"
+            f"当日日线仍可由 overlay 补齐。\n"
+            f"{chr(10).join(list(tail)[-6:])[-600:]}")
     if proc.returncode != 0:
         raise RuntimeError(f"market snapshot update failed: "
                            f"{chr(10).join(list(tail)[-12:])[-1200:]}")
@@ -404,6 +437,18 @@ def run_all(only: Optional[List[str]] = None,
                             "detail": str(e), "error": None,
                             "duration_s": 0.0})
             print(f"[{i}/{n}] {name} -> 离线跳过", flush=True)
+        except DegradableJobError as e:
+            # 记 FAILED（绝不是 SUCCESS），但**不中断**：这类失败没有改动
+            # 任何数据，后面的作业该跑还得跑。整条链的退出码仍然是 1。
+            try:
+                jobstore.run_job(name, _raise(e), conn=conn)
+            except Exception:                              # noqa: BLE001
+                pass          # run_job 会 re-raise；这里只是补记一笔
+            results.append({"job": name, "status": "FAILED",
+                            "detail": None, "error": f"{type(e).__name__}: {e}",
+                            "duration_s": None})
+            print(f"[{i}/{n}] {name} -> FAILED（可降级，继续跑后续作业）\n"
+                  f"    {e}", flush=True)
         except Exception as e:                       # noqa: BLE001
             results.append({"job": name, "status": "FAILED",
                             "detail": None,

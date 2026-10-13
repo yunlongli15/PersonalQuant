@@ -1,8 +1,13 @@
 {
-  "as_of": "2026-10-12",
-  "computed_at": "2026-10-12T21:10:32",
-  "n_symbols": 2860,
+  "as_of": "2026-10-13",
+  "computed_at": "2026-10-13T19:24:43",
+  "n_symbols": 2853,
   "model": "experiments/clean/clean_A/model.txt",
+  "bar_source": "canonical+overlay",
+  "overlay_sessions": [
+    "2026-10-13"
+  ],
+  "overlay_bars_sha256": "74806c90d2cff2c86360bf5fe5e4fe66895856b8b6ddc1d245239cdb2164db98",
   "model_version": "strategy_v2/production_clean_v1",
   "feature_version": "alpha158",
   "strategy": "production_clean_v1",

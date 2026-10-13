@@ -33,6 +33,16 @@ STAGING = PROJECT_ROOT / "qlib_data_new"
 BACKUP = PROJECT_ROOT / "qlib_data_old"
 API = "https://api.github.com/repos/chenditc/investment_data/releases/latest"
 
+#: 快照**根本没下下来**时的退出码。与"下下来了但处理失败"必须分开：
+#: 前者本地数据一个字节都没动，下游照常可以跑（尤其是当日 overlay ——
+#: 它走的是另一家主机）；后者可能留下半截状态，必须中断整条链。
+#: pipeline/refresh.py 按这个码决定是"记 FAILED 后继续"还是"整个中断"。
+EXIT_SNAPSHOT_UNAVAILABLE = 3
+
+
+class SnapshotUnavailable(RuntimeError):
+    """下载多次重试后仍未拿到快照 —— 本地数据未被触碰。"""
+
 
 def latest_release(attempts: int = 3) -> dict:
     """最新 release。**带重试**。
@@ -157,10 +167,12 @@ def download(url: str, dest: Path, attempts: int = 3) -> Path:
                       f"{wait}s 后从断点重试 {attempt}/{attempts - 1}",
                       flush=True)
                 time.sleep(wait)
-    raise RuntimeError(
+    raise SnapshotUnavailable(
         f"快照下载连续 {attempts} 次失败（最后一次："
         f"{type(last_err).__name__}: {last_err}）。断点已保留在 "
-        f"{tmp}，重跑会从这里续传；确实要离线跑用 PQ_MODE=offline。")
+        f"{tmp}，重跑会从这里续传；确实要离线跑用 PQ_MODE=offline。\n"
+        f"注意：本次**没有拿到文件**，本地 canonical 数据一个字节都没变，"
+        f"当日日线仍可由 overlay 补齐。")
 
 
 def main() -> int:
@@ -244,4 +256,8 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except SnapshotUnavailable as e:
+        print(f"\n{e}", file=sys.stderr)
+        sys.exit(EXIT_SNAPSHOT_UNAVAILABLE)

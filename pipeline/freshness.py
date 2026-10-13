@@ -300,8 +300,25 @@ def data_status(now: Optional[str] = None,
     calendar_stale = cal_lag is not None and cal_lag > calendar_gap_days
     ltd = last_trading_day(ref)
 
+    market = _compare("Market Data", market_latest(), ltd,
+                      market_tolerance_days)
+    # 当日 overlay 能让 Market Data 显示为新鲜，即使上游快照**根本没下来**
+    # （2026-10-13：快照下载三次全挂，当天日线是 overlay 从另一家主机补的）。
+    # 只报 ✓ 会把"快照没更新"藏起来，所以把落差写进 detail ——
+    # 但**只报真的落队**：快照按设计本来就比 overlay 慢一个交易日，
+    # 那一个 session 的差是正常的，写出来只会天天吓人。
+    canon = _latest_parquet_date(PARQUET / "daily", "trade_date")
+    if market.latest and canon and pd.Timestamp(canon) < pd.Timestamp(
+            market.latest):
+        # 数 overlay 自己补了几个 session —— 不能用日历数：日历正是
+        # 落后时最不可信的那个（overlay 的日期可能还没进 derived 缓存）。
+        supplied = [d for d in _overlay_sessions() if pd.Timestamp(d) > pd.Timestamp(canon)]
+        if len(supplied) > 1:              # 正常情况恰好是 1（今天的）
+            market.detail = (f"canonical 停在 {canon}，当日 overlay 补了 "
+                             f"{len(supplied)} 个交易日（上游快照没跟上）")
+
     out = [
-        _compare("Market Data", market_latest(), ltd, market_tolerance_days),
+        market,
         _compare("Valuation", valuation_latest(), ltd, market_tolerance_days),
         _compare("Financial Reports", financial_latest(), ref,
                  financial_tolerance_days,

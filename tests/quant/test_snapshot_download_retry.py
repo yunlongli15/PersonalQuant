@@ -89,6 +89,23 @@ def test_retry_count_is_bounded(ums, monkeypatch):
     assert calls["n"] == 5
 
 
+def test_exhausted_retries_raise_snapshot_unavailable(ums, monkeypatch):
+    """重试用尽时必须抛 `SnapshotUnavailable`（而不是裸 RuntimeError）。
+
+    pipeline/refresh.py 靠**这个类型**区分两件事：
+      * 没拿到文件 -> 本地数据一个字节没变，记 FAILED 后继续跑后面的作业
+        （2026-10-13：网络抖了 100 秒，整条链停住，当天一份建议都没有）；
+      * 拿到了但解压/导入失败 -> 可能留下半截状态，必须中断。
+    改回裸 RuntimeError 会让前者重新变成"整条链停摆"。
+    """
+    _patch(monkeypatch, fail_times=99, sink={})
+    monkeypatch.setattr(ums.time, "sleep", lambda *_: None)
+    with pytest.raises(ums.SnapshotUnavailable):
+        ums.download("https://example.test/x.tar", ums.Path("nope.tar"))
+    assert issubclass(ums.SnapshotUnavailable, RuntimeError)
+    assert ums.EXIT_SNAPSHOT_UNAVAILABLE != 0
+
+
 def test_success_on_first_try_does_not_retry(ums, monkeypatch):
     calls = _patch(monkeypatch, fail_times=0, sink={})
     monkeypatch.setattr(ums.time, "sleep", lambda *_: None)

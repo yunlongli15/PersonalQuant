@@ -23,6 +23,42 @@ def test_market_stale_when_behind(fake_data_tree):
     assert f["Market Data"].is_stale
 
 
+def test_market_detail_names_the_snapshot_backlog(fake_data_tree):
+    """快照没跟上时，Market Data 可以因为 overlay 显示为新鲜，
+    但**必须**把"canonical 落后"写在 detail 里，不能只报 ✓。
+
+    只落后一个交易日是设计使然（快照明天才有今天的数据），不写。
+    """
+    import pandas as pd
+
+    from pipeline import freshness
+
+    root = freshness.PARQUET
+    ov = root / "overlay"
+    ov.mkdir(parents=True, exist_ok=True)
+
+    def write_overlay(dates):
+        # 作业每次都会同时写这两份（bars + 它贡献的交易日），fixture 照做
+        pd.DataFrame({"symbol": ["600519.SH"] * len(dates),
+                      "trade_date": pd.to_datetime(dates)}).to_parquet(
+            ov / "daily_overlay.parquet", index=False)
+        pd.DataFrame({"trade_date": pd.to_datetime(dates)}).to_parquet(
+            ov / "calendar_extra.parquet", index=False)
+
+    # 只多一个 session：不算落队，不写 detail
+    write_overlay(["2026-09-11"])
+    f = {x.domain: x for x in freshness.data_status(now="2026-09-11")}
+    assert f["Market Data"].latest == "2026-09-11"
+    assert not f["Market Data"].detail
+
+    # 多出好几个 session：快照确实没跟上，必须说明
+    write_overlay(["2026-09-11", "2026-09-14", "2026-09-15"])
+    f = {x.domain: x for x in freshness.data_status(now="2026-09-15")}
+    assert f["Market Data"].latest == "2026-09-15"
+    assert "canonical" in (f["Market Data"].detail or "")
+    write_overlay([])
+
+
 def test_missing_domain_is_reported_not_assumed(fake_data_tree, monkeypatch,
                                                 tmp_path):
     monkeypatch.setattr(freshness, "PARQUET", tmp_path / "nonexistent")

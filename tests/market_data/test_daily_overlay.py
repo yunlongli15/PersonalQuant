@@ -154,6 +154,58 @@ def test_volume_uses_the_exact_factor_coupled_scale(ov):
 
 
 # ---------------------------------------------------------------------------
+# anchor selection — which bar do we bridge FROM?
+# ---------------------------------------------------------------------------
+
+def test_anchor_is_the_session_right_before_the_new_one(ov):
+    cal = pd.bdate_range("2026-10-01", "2026-10-12")
+    assert ov.resolve_anchor_date(pd.Timestamp("2026-10-09"),
+                                  pd.Timestamp("2026-10-12"),
+                                  pd.Timestamp("2026-10-13"), cal) \
+        == pd.Timestamp("2026-10-12")
+
+
+def test_anchor_uses_the_overlay_when_canonical_is_behind(ov):
+    """2026-10-13 实况：快照下载失败，canonical 停在 10-09，而 overlay 里
+    已经有 10-12 了。
+
+    锚点取 canonical 的话，桥就会拿「10-12→10-13 的当日收益」去乘
+    「10-09 的复权价」—— 10-09→10-12 那两天的收益**凭空消失**，
+    写出来的是一根假 bar，而且校验还过得去（因为 factor 就是这么定义的）。
+    """
+    cal = pd.bdate_range("2026-10-01", "2026-10-12")
+    got = ov.resolve_anchor_date(pd.Timestamp("2026-10-09"),
+                                 pd.Timestamp("2026-10-12"),
+                                 pd.Timestamp("2026-10-13"), cal)
+    assert got == pd.Timestamp("2026-10-12"), "应锚在 overlay 的 10-12，而不是 canonical 的 10-09"
+
+
+def test_anchor_refuses_when_a_session_is_missing(ov):
+    """中间缺了交易日就补不出来：一天的行情只能还原一天的收益。"""
+    cal = pd.bdate_range("2026-10-01", "2026-10-12")
+    with pytest.raises(ov.OverlayRefused) as e:
+        ov.resolve_anchor_date(pd.Timestamp("2026-10-08"), None,
+                               pd.Timestamp("2026-10-13"), cal)
+    assert "缺" in str(e.value) or "落后" in str(e.value)
+
+
+def test_anchor_treats_an_already_present_session_as_done(ov):
+    cal = pd.bdate_range("2026-10-01", "2026-10-13")
+    assert ov.resolve_anchor_date(pd.Timestamp("2026-10-09"),
+                                  pd.Timestamp("2026-10-13"),
+                                  pd.Timestamp("2026-10-13"), cal) is None
+
+
+def test_anchor_on_force_rebuilds_from_the_previous_session(ov):
+    """--force 重建已有的 session 时，锚点回退到它的前一个交易日。"""
+    cal = pd.bdate_range("2026-10-01", "2026-10-13")
+    assert ov.resolve_anchor_date(pd.Timestamp("2026-10-12"),
+                                  pd.Timestamp("2026-10-13"),
+                                  pd.Timestamp("2026-10-13"), cal,
+                                  force=True) == pd.Timestamp("2026-10-12")
+
+
+# ---------------------------------------------------------------------------
 # validation gates — every one of these must BLOCK publication
 # ---------------------------------------------------------------------------
 
