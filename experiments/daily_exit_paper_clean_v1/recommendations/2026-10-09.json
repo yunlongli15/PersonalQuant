@@ -1,0 +1,654 @@
+{
+  "signal_date": "2026-10-09",
+  "entries": [
+    {
+      "order_id": "daily_exit_paper_clean_v1:2026-10-09:603800.SH:BUY",
+      "symbol": "603800.SH",
+      "name": "洪田股份",
+      "raw_rank": 2,
+      "close_at_signal": 48.349998474121094,
+      "entry_low": 46.899498519897456,
+      "planned_entry_price": 47.98737348556518,
+      "entry_high": 49.0752484512329,
+      "limit_price": 49.08,
+      "quantity": 100,
+      "estimated_value": 4908.0,
+      "estimated_fee": 7.503080000000001,
+      "reserved_cash": 4915.50308,
+      "target_price_at_signal": 49.919,
+      "stop_loss_at_signal": 43.299,
+      "expected_return": 0.0402578354832157,
+      "vol": 0.04884949058172306
+    },
+    {
+      "order_id": "daily_exit_paper_clean_v1:2026-10-09:001331.SZ:BUY",
+      "symbol": "001331.SZ",
+      "name": "胜通能源",
+      "raw_rank": 4,
+      "close_at_signal": 35.32999801635742,
+      "entry_low": 34.2700980758667,
+      "planned_entry_price": 35.06502303123474,
+      "entry_high": 35.859947986602776,
+      "limit_price": 35.86,
+      "quantity": 100,
+      "estimated_value": 3586.0,
+      "estimated_fee": 6.82886,
+      "reserved_cash": 3592.82886,
+      "target_price_at_signal": 36.477,
+      "stop_loss_at_signal": 31.604,
+      "expected_return": 0.0402578354832157,
+      "vol": 0.04934554425826245
+    },
+    {
+      "order_id": "daily_exit_paper_clean_v1:2026-10-09:301008.SZ:BUY",
+      "symbol": "301008.SZ",
+      "name": "宏昌科技",
+      "raw_rank": 7,
+      "close_at_signal": 45.119998931884766,
+      "entry_low": 43.766398963928225,
+      "planned_entry_price": 44.78159893989563,
+      "entry_high": 45.796798915863036,
+      "limit_price": 45.8,
+      "quantity": 100,
+      "estimated_value": 4580.0,
+      "estimated_fee": 7.3358,
+      "reserved_cash": 4587.3358,
+      "target_price_at_signal": 46.529,
+      "stop_loss_at_signal": 38.946,
+      "expected_return": 0.03902247967322157,
+      "vol": 0.06515783062858108
+    },
+    {
+      "order_id": "daily_exit_paper_clean_v1:2026-10-09:002943.SZ:BUY",
+      "symbol": "002943.SZ",
+      "name": "宇晶股份",
+      "raw_rank": 9,
+      "close_at_signal": 26.25,
+      "entry_low": 25.4625,
+      "planned_entry_price": 26.053124999999998,
+      "entry_high": 26.643749999999997,
+      "limit_price": 26.64,
+      "quantity": 200,
+      "estimated_value": 5328.0,
+      "estimated_fee": 7.717280000000001,
+      "reserved_cash": 5335.71728,
+      "target_price_at_signal": 27.005,
+      "stop_loss_at_signal": 23.609,
+      "expected_return": 0.036551768053233305,
+      "vol": 0.04690305920723914
+    },
+    {
+      "order_id": "daily_exit_paper_clean_v1:2026-10-09:301257.SZ:BUY",
+      "symbol": "301257.SZ",
+      "name": "普蕊斯",
+      "raw_rank": 14,
+      "close_at_signal": 40.30000305175781,
+      "entry_low": 39.091002960205074,
+      "planned_entry_price": 39.997753028869624,
+      "entry_high": 40.904503097534175,
+      "limit_price": 40.9,
+      "quantity": 100,
+      "estimated_value": 4090.0,
+      "estimated_fee": 7.0859,
+      "reserved_cash": 4097.0859,
+      "target_price_at_signal": 41.213,
+      "stop_loss_at_signal": 35.879,
+      "expected_return": 0.03037498900326266,
+      "vol": 0.051484098593613935
+    },
+    {
+      "order_id": "daily_exit_paper_clean_v1:2026-10-09:300671.SZ:BUY",
+      "symbol": "300671.SZ",
+      "name": "富满微",
+      "raw_rank": 19,
+      "close_at_signal": 48.70000076293945,
+      "entry_low": 47.23900074005127,
+      "planned_entry_price": 48.33475075721741,
+      "entry_high": 49.43050077438354,
+      "limit_price": 49.43,
+      "quantity": 100,
+      "estimated_value": 4943.0,
+      "estimated_fee": 7.52093,
+      "reserved_cash": 4950.52093,
+      "target_price_at_signal": 49.618,
+      "stop_loss_at_signal": 43.069,
+      "expected_return": 0.026559514015697793,
+      "vol": 0.054471462783612264
+    },
+    {
+      "order_id": "daily_exit_paper_clean_v1:2026-10-09:603005.SH:BUY",
+      "symbol": "603005.SH",
+      "name": "晶方科技",
+      "raw_rank": 21,
+      "close_at_signal": 25.100000381469727,
+      "entry_low": 24.347000370025633,
+      "planned_entry_price": 24.9117503786087,
+      "entry_high": 25.47650038719177,
+      "limit_price": 25.48,
+      "quantity": 200,
+      "estimated_value": 5096.0,
+      "estimated_fee": 7.59896,
+      "reserved_cash": 5103.59896,
+      "target_price_at_signal": 25.551,
+      "stop_loss_at_signal": 22.964,
+      "expected_return": 0.025663005103980056,
+      "vol": 0.03909999239620481
+    },
+    {
+      "order_id": "daily_exit_paper_clean_v1:2026-10-09:603931.SH:BUY",
+      "symbol": "603931.SH",
+      "name": "格林达",
+      "raw_rank": 24,
+      "close_at_signal": 30.400001525878906,
+      "entry_low": 29.48800148010254,
+      "planned_entry_price": 30.17200151443481,
+      "entry_high": 30.856001548767086,
+      "limit_price": 30.86,
+      "quantity": 100,
+      "estimated_value": 3086.0,
+      "estimated_fee": 6.57386,
+      "reserved_cash": 3092.57386,
+      "target_price_at_signal": 30.906,
+      "stop_loss_at_signal": 27.556,
+      "expected_return": 0.024318241736403456,
+      "vol": 0.0433568115894472
+    },
+    {
+      "order_id": "daily_exit_paper_clean_v1:2026-10-09:301188.SZ:BUY",
+      "symbol": "301188.SZ",
+      "name": "力诺药包",
+      "raw_rank": 25,
+      "close_at_signal": 29.599998474121094,
+      "entry_low": 28.71199851989746,
+      "planned_entry_price": 29.377998485565186,
+      "entry_high": 30.04399845123291,
+      "limit_price": 30.04,
+      "quantity": 100,
+      "estimated_value": 3004.0,
+      "estimated_fee": 6.532039999999999,
+      "reserved_cash": 3010.53204,
+      "target_price_at_signal": 30.079,
+      "stop_loss_at_signal": 26.265,
+      "expected_return": 0.02386998728054459,
+      "vol": 0.052989683968581704
+    },
+    {
+      "order_id": "daily_exit_paper_clean_v1:2026-10-09:300042.SZ:BUY",
+      "symbol": "300042.SZ",
+      "name": "朗科科技",
+      "raw_rank": 34,
+      "close_at_signal": 33.34000015258789,
+      "entry_low": 32.339800148010255,
+      "planned_entry_price": 33.08995015144348,
+      "entry_high": 33.84010015487671,
+      "limit_price": 33.84,
+      "quantity": 100,
+      "estimated_value": 3384.0000000000005,
+      "estimated_fee": 6.72584,
+      "reserved_cash": 3390.7258400000005,
+      "target_price_at_signal": 33.749,
+      "stop_loss_at_signal": 29.983,
+      "expected_return": 0.019917092930637335,
+      "vol": 0.04693988877620979
+    },
+    {
+      "order_id": "daily_exit_paper_clean_v1:2026-10-09:002484.SZ:BUY",
+      "symbol": "002484.SZ",
+      "name": "江海股份",
+      "raw_rank": 35,
+      "close_at_signal": 48.099998474121094,
+      "entry_low": 46.656998519897456,
+      "planned_entry_price": 47.739248485565184,
+      "entry_high": 48.821498451232905,
+      "limit_price": 48.82,
+      "quantity": 100,
+      "estimated_value": 4882.0,
+      "estimated_fee": 7.48982,
+      "reserved_cash": 4889.48982,
+      "target_price_at_signal": 48.669,
+      "stop_loss_at_signal": 42.406,
+      "expected_return": 0.019479012943881286,
+      "vol": 0.05585840673729848
+    },
+    {
+      "order_id": "daily_exit_paper_clean_v1:2026-10-09:603283.SH:BUY",
+      "symbol": "603283.SH",
+      "name": "赛腾股份",
+      "raw_rank": 36,
+      "close_at_signal": 37.67000198364258,
+      "entry_low": 36.5399019241333,
+      "planned_entry_price": 37.387476968765256,
+      "entry_high": 38.235052013397215,
+      "limit_price": 38.24,
+      "quantity": 100,
+      "estimated_value": 3824.0,
+      "estimated_fee": 6.95024,
+      "reserved_cash": 3830.95024,
+      "target_price_at_signal": 38.099,
+      "stop_loss_at_signal": 34.018,
+      "expected_return": 0.019040932957125237,
+      "vol": 0.045058302906892896
+    },
+    {
+      "order_id": "daily_exit_paper_clean_v1:2026-10-09:002965.SZ:BUY",
+      "symbol": "002965.SZ",
+      "name": "祥鑫科技",
+      "raw_rank": 37,
+      "close_at_signal": 26.439998626708984,
+      "entry_low": 25.646798667907714,
+      "planned_entry_price": 26.241698637008668,
+      "entry_high": 26.836598606109618,
+      "limit_price": 26.84,
+      "quantity": 200,
+      "estimated_value": 5368.0,
+      "estimated_fee": 7.73768,
+      "reserved_cash": 5375.73768,
+      "target_price_at_signal": 26.738,
+      "stop_loss_at_signal": 23.819,
+      "expected_return": 0.018925287073744194,
+      "vol": 0.04615404343503178
+    }
+  ],
+  "skipped": [
+    {
+      "symbol": "603986.SH",
+      "reason": "budget_below_one_lot",
+      "limit_price": 331.36,
+      "budget": 5429.96
+    },
+    {
+      "symbol": "603256.SH",
+      "reason": "budget_below_one_lot",
+      "limit_price": 119.26,
+      "budget": 5429.96
+    },
+    {
+      "symbol": "301611.SZ",
+      "reason": "budget_below_one_lot",
+      "limit_price": 78.21,
+      "budget": 5429.96
+    },
+    {
+      "symbol": "002409.SZ",
+      "reason": "budget_below_one_lot",
+      "limit_price": 113.75,
+      "budget": 5429.96
+    },
+    {
+      "symbol": "300223.SZ",
+      "reason": "budget_below_one_lot",
+      "limit_price": 119.3,
+      "budget": 5429.96
+    },
+    {
+      "symbol": "301308.SZ",
+      "reason": "budget_below_one_lot",
+      "limit_price": 288.26,
+      "budget": 5429.96
+    }
+  ],
+  "excluded_restricted": [
+    {
+      "symbol": "688584.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688578.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688371.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688548.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688783.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688249.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688347.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688372.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688068.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688362.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688691.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688221.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688233.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688126.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688382.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688757.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688172.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688729.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688702.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688268.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688257.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688308.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688234.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688409.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688270.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688062.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688220.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688802.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688343.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688521.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688401.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688383.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688141.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688266.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688525.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688717.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688629.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688795.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688582.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688981.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688003.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688416.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688258.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688689.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688605.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688598.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688323.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688127.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688603.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    },
+    {
+      "symbol": "688456.SH",
+      "board": "STAR",
+      "board_name": "科创板",
+      "capital_required": 500000.0,
+      "reason": "需50万元日均资产（当前 10.0万元）"
+    }
+  ],
+  "notes": [],
+  "per_slot_budget": 5429.962875801179,
+  "days_to_exec": 1,
+  "run_date": "2026-10-09",
+  "strategy_version": "daily_exit_paper_clean_v1",
+  "base_signal_strategy": "production_clean_v1",
+  "capital_initial": 100000.0,
+  "available_cash_at_decision": 74304.75514254245,
+  "n_open_positions": 7,
+  "n_slots": 13,
+  "decision_layer": "system_recommendation",
+  "created_at": "2026-10-09T13:59:28.314967+00:00"
+}
