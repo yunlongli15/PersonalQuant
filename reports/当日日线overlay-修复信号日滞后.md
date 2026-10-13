@@ -409,6 +409,38 @@ canonical 停在 10-09、overlay 已经有 10-12，而桥要算的是
 
 ---
 
+## 六之三、冻结实验的数据源切换记录（§七）
+
+`daily_exit_paper_clean_v1` 的观测从 **2026-10-13** 起由
+`canonical+overlay` 产出。这一笔**补记在这里**，因为当时引擎还没有
+"首次记录来源"的事件类型（第一笔没有可比较的前值），账本里不会有一条
+独立的 `DATA_SOURCE_CHANGED`。
+
+`experiments/daily_exit_paper_clean_v1/state.json` 与 10-13 那笔
+`RUN_SUMMARY` 里都写着：
+
+```json
+"data_source": {
+  "as_of": "2026-10-13",
+  "bar_source": "canonical+overlay",
+  "overlay_sessions": ["2026-10-13"],
+  "overlay_bars_sha256": "74806c90d2cff2c86360bf5fe5e4fe66895856b8b6ddc1d245239cdb2164db98",
+  "strategy": "production_clean_v1"
+}
+```
+
+**实验规则一条都没改**：出场规则、仓位、成本、股票池、time_stop 全部照旧。
+变的只是 T 日 bar 从哪来 —— 以前是"上游快照里没有 T，所以 T 日没有数据"，
+现在是"由当日 overlay 补上"。模型、特征集、信号口径不变。
+
+已补上 `DATA_SOURCE_FIRST_RECORDED` 事件类型：对**在"记录来源"之前就
+已经在跑**的实验，第一笔记下来时写一条事件，明确说明"此前的观测没有
+来源记录"，而不是沉默地开始记录。它**不会**谎称"来源变了"—— 之前是
+什么没人知道。对 10-13 之后的任何一次真实切换，`DATA_SOURCE_CHANGED`
+都会照常落账本。
+
+---
+
 ## 七、未解决 / 已知限制
 
 1. **362 只标的当日 volume/amount 为 NaN**（2026-10-12 的实况，绝大多数是

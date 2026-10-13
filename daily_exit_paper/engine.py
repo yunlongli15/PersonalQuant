@@ -348,13 +348,31 @@ def run(run_date=None, capital: Optional[float] = None, dry_run: bool = False,
     totals = L.reconcile(state, events, prices)
 
     state["run_date"] = str(run_d.date())
-    state["n_runs"] = int(state.get("n_runs") or 0) + 1
+    # 自增**之前**的次数：下面用它区分"老实验第一次有来源记录"和
+    # "新实验的第一笔"。自增之后再读，1 > 0 恒真，两者就分不开了。
+    n_runs_before = int(state.get("n_runs") or 0)
+    state["n_runs"] = n_runs_before + 1
     # §七：链路换数据源必须在实验里留痕，不能无痕切换。把信号自己声明的
     # 来源抄进 state 与账本；换了来源时额外记一条 DATA_SOURCE_CHANGED，
     # 这样"这份观测到底是哪条链路产出的"永远可以查。
     prov = _signal_provenance()
     prev_src = state.get("data_source")
     state["data_source"] = prov
+    if prev_src is None and n_runs_before > 0:
+        # 这个实验在"记录数据来源"这件事之前就已经在跑了。第一次记下来时
+        # 不能声称"来源变了" —— 之前是什么没人知道 —— 但**必须**把
+        # "从这一笔起才有来源记录"写清楚，否则读者会以为前面那些观测
+        # 和现在同源。
+        events.append({
+            "type": "DATA_SOURCE_FIRST_RECORDED",
+            "run_date": str(run_d.date()),
+            "bar_source": prov.get("bar_source"),
+            "signal_as_of": prov.get("as_of"),
+            "overlay_sessions": prov.get("overlay_sessions"),
+            "overlay_bars_sha256": prov.get("overlay_bars_sha256"),
+            "note": "本实验此前的观测没有记录数据来源；从本笔起有。"
+                    "在此之前 T 日 bar 一律来自上游快照。",
+        })
     if prev_src and prev_src.get("bar_source") != prov.get("bar_source"):
         events.append({
             "type": "DATA_SOURCE_CHANGED", "run_date": str(run_d.date()),
@@ -390,6 +408,13 @@ def run(run_date=None, capital: Optional[float] = None, dry_run: bool = False,
     return res
 
 
+#: 信号自己声明的数据来源（pipeline.signals.save_signals 写）。
+#: 模块级常量而不是就地拼路径：测试要能把它指到临时文件上去，
+#: 否则这类测试会去读真实仓库的状态，跟着线上数据一起红/绿。
+SIGNALS_STATE = (Path(__file__).resolve().parents[1] / "data" / "quant"
+                 / "signals_state.json")
+
+
 def _signal_provenance() -> dict:
     """信号自己声明的数据来源（见 pipeline.signals.save_signals）。
 
@@ -398,10 +423,8 @@ def _signal_provenance() -> dict:
     """
     try:
         import json
-        from pathlib import Path
 
-        p = (Path(__file__).resolve().parents[1] / "data" / "quant"
-             / "signals_state.json")
+        p = SIGNALS_STATE
         if not p.exists():
             return {"bar_source": "unknown", "reason": "signals_state 不存在"}
         d = json.loads(p.read_text(encoding="utf-8"))

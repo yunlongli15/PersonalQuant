@@ -26,18 +26,18 @@
       "production_model": "769f67656a713fef42747070266209e6037ba92595a6fde6601b2a5f2ed737f2"
     }
   },
-  "run_id": "2026-10-09_220038",
-  "date": "2026-10-09",
+  "run_id": "2026-10-13_193308",
+  "date": "2026-10-13",
   "status": "WARNING",
-  "start_time": "2026-10-09T22:00:38+08:00",
-  "end_time": "2026-10-09T22:02:15+08:00",
-  "duration_s": 97.16,
-  "git_commit": "da37b1b6f18783ef59457542b90acae88157ddb9",
+  "start_time": "2026-10-13T19:33:08+08:00",
+  "end_time": "2026-10-13T19:33:51+08:00",
+  "duration_s": 42.37,
+  "git_commit": "7c43eb07b02979b837df4d1bd9395b02e16f3b7a",
   "strategy_version": "strategy_v2",
   "model_version": "s3",
   "feature_version": "alpha158+factor_pack_v1",
   "news_version": "factor_pack_news_v1",
-  "data_snapshot_id": "2026-10-09",
+  "data_snapshot_id": "2026-10-13",
   "is_rebalance": false,
   "forward_observation": true,
   "paper_root": "C:\\Users\\Administrator\\Desktop\\PersonalQuant\\forward_holdout",
@@ -49,15 +49,15 @@
       "status": "OK",
       "detail": "Python 3.12.10；冻结状态 一致；DuckDB 可独占打开",
       "error": "",
-      "duration_s": 1.26,
+      "duration_s": 1.21,
       "depends_on": []
     },
     {
       "name": "source_health",
       "status": "OK",
-      "detail": "全部新鲜；行情最新 2026-10-09",
+      "detail": "全部新鲜；行情最新 2026-10-13",
       "error": "",
-      "duration_s": 0.44,
+      "duration_s": 0.53,
       "depends_on": [
         "environment"
       ]
@@ -65,9 +65,9 @@
     {
       "name": "market_data",
       "status": "OK",
-      "detail": "行情最新 2026-10-09；上游最新数据日 2026-10-09 —— 已是最新，没有更新的数据可下载",
+      "detail": "行情最新 2026-10-13；上游最新数据日 2026-10-12 —— 已是最新，没有更新的数据可下载",
       "error": "",
-      "duration_s": 1.55,
+      "duration_s": 6.66,
       "depends_on": [
         "source_health"
       ]
@@ -75,9 +75,9 @@
     {
       "name": "news",
       "status": "OK",
-      "detail": "新闻最新 2026-10-08；覆盖 4968 只",
+      "detail": "新闻最新 2026-10-13；覆盖 5030 只",
       "error": "",
-      "duration_s": 65.74,
+      "duration_s": 2.94,
       "depends_on": [
         "environment"
       ]
@@ -87,7 +87,7 @@
       "status": "SKIPPED",
       "detail": "按需加载：当前最新 2026-04-30；S3 特征集不含财务因子，未触发抓取（需要时加 --with-financial）",
       "error": "",
-      "duration_s": 0.01,
+      "duration_s": 0.0,
       "depends_on": [
         "environment"
       ]
@@ -95,7 +95,7 @@
     {
       "name": "data_quality",
       "status": "OK",
-      "detail": "价格 5564 只全部正常",
+      "detail": "价格 5563 只全部正常",
       "error": "",
       "duration_s": 0.18,
       "depends_on": [
@@ -105,9 +105,9 @@
     {
       "name": "paper_prediction",
       "status": "OK",
-      "detail": "预测 2965 只；订单 0；成交 0；监控日；写入 forward_holdout（正式前瞻）",
+      "detail": "预测 2853 只；订单 0；成交 0；监控日；写入 forward_holdout（正式前瞻）",
       "error": "",
-      "duration_s": 27.44,
+      "duration_s": 30.27,
       "depends_on": [
         "data_quality"
       ]
@@ -115,9 +115,9 @@
     {
       "name": "personal_snapshot",
       "status": "OK",
-      "detail": "个人账户 1 只，市值 10,170",
+      "detail": "个人账户 1 只，市值 9,639",
       "error": "",
-      "duration_s": 0.04,
+      "duration_s": 0.03,
       "depends_on": [
         "environment"
       ]
@@ -135,9 +135,9 @@
     {
       "name": "risk",
       "status": "OK",
-      "detail": "HHI 1.0000；有效持仓 1.0；最大单只 100.00%；现金 92.37%",
+      "detail": "HHI 1.0000；有效持仓 1.0；最大单只 100.00%；现金 92.89%",
       "error": "",
-      "duration_s": 0.05,
+      "duration_s": 0.04,
       "depends_on": [
         "performance"
       ]
@@ -165,9 +165,9 @@
     {
       "name": "report",
       "status": "OK",
-      "detail": "C:\\Users\\Administrator\\Desktop\\PersonalQuant\\reports\\daily\\2026-10-09.md",
+      "detail": "C:\\Users\\Administrator\\Desktop\\PersonalQuant\\reports\\daily\\2026-10-13.md",
       "error": "",
-      "duration_s": 0.42,
+      "duration_s": 0.45,
       "depends_on": [
         "alerts"
       ]
@@ -175,7 +175,7 @@
     {
       "name": "manifest",
       "status": "OK",
-      "detail": "C:\\Users\\Administrator\\Desktop\\PersonalQuant\\data\\quant\\daily_runs\\2026-10-09.json",
+      "detail": "C:\\Users\\Administrator\\Desktop\\PersonalQuant\\data\\quant\\daily_runs\\2026-10-13.json",
       "error": "",
       "duration_s": 0.02,
       "depends_on": [
@@ -188,7 +188,7 @@
     "alerts: 2 条告警：['DATA_WARNING']"
   ],
   "errors": [],
-  "input_fingerprint": "441ad08c170961ca",
+  "input_fingerprint": "8c341b1f4b5f1313",
   "daily_summary": {
     "status": "WARNING",
     "n_alerts": 2
