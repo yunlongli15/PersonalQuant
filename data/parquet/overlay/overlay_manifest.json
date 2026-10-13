@@ -91,13 +91,13 @@
   },
   {
     "trade_date": "2026-10-13",
-    "built_at": "2026-10-13T19:07:28",
+    "built_at": "2026-10-14T07:06:31",
     "provider": "tencent_batch_quote",
     "requests": 12,
-    "fetched_at": "2026-10-13T19:07:28",
-    "quote_sha256": "20cf71bdde01c66bb3aaf39d094f595f875908fb07ff743b5d71f547890848e7",
-    "raw_snapshot": "C:\\Users\\Administrator\\Desktop\\PersonalQuant\\data\\raw\\batch_quote\\quotes_20261013_2.json",
-    "bars_sha256": "74806c90d2cff2c86360bf5fe5e4fe66895856b8b6ddc1d245239cdb2164db98",
+    "fetched_at": "2026-10-14T07:06:31",
+    "quote_sha256": "8413b66cca667441235afca732ac385b6b062d28e6c70259efba5851c6bb9c91",
+    "raw_snapshot": "C:\\Users\\Administrator\\Desktop\\PersonalQuant\\data\\raw\\batch_quote\\quotes_20261013_4.json",
+    "bars_sha256": "8df43b038d9e2142b7915cbbd796e10edc0aa8c0894375d1d4a41347e4da4bb9",
     "n_bars": 5563,
     "coverage": 0.9995,
     "report": {

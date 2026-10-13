@@ -251,7 +251,16 @@ def recover_C_from_snapshots(anchor: pd.DataFrame,
             rows = pd.DataFrame(snap.get("quotes") or [])
         except Exception:                                       # noqa: BLE001
             continue
-        if rows.empty or "volume_lots" not in rows.columns:
+        # 2026-10-14 之前落盘的原始快照用的是 volume_lots（手），之后是
+        # volume_shares（股）。两种都要能读 —— 这些快照是 C 的唯一独立
+        # 证据，读不了就意味着"自愈"要等到下一个交易日。
+        if rows.empty:
+            continue
+        if "volume_shares" in rows.columns:
+            shares_of = lambda v: float(v)          # noqa: E731
+        elif "volume_lots" in rows.columns:
+            shares_of = lambda v: float(v) * 100.0  # noqa: E731
+        else:
             continue
         rows = rows[rows["symbol"].isin(need - set(out))]
         if rows.empty:
@@ -264,12 +273,12 @@ def recover_C_from_snapshots(anchor: pd.DataFrame,
             key = (r["symbol"], session)
             if key not in cidx.index:
                 continue                     # that session is not in canonical
-            lots = float(r["volume_lots"])
-            if lots <= 0:
+            shares = shares_of(r.get("volume_shares", r.get("volume_lots")))
+            if not (shares > 0):
                 continue
             row = cidx.loc[key]
             out[r["symbol"]] = (float(row["volume"]) * float(row["factor"])
-                                / (lots * 100.0))
+                                / shares)
     if not out:
         return pd.DataFrame(columns=["symbol", "C_snapshot"])
     return pd.DataFrame({"symbol": list(out), "C_snapshot": list(out.values())})
@@ -390,20 +399,20 @@ def bridge(prev: pd.DataFrame, quotes: pd.DataFrame,
     df["live_open"] = q.loc[common, "open"]
     df["live_high"] = q.loc[common, "high"]
     df["live_low"] = q.loc[common, "low"]
-    df["lots"] = q.loc[common, "volume_lots"]
-    df["amount_wan"] = q.loc[common, "amount_wan"]
+    df["shares"] = q.loc[common, "volume_shares"]
+    df["amount_yuan"] = q.loc[common, "amount_yuan"]
     df["name"] = q.loc[common, "name"]
     df["prev_close"] = base.loc[common, "close"]
     df["prev_factor"] = base.loc[common, "factor"]
 
     # suspension / no-trade: the exchange feed reports prices as 0. These are
     # NOT zero-price bars, they are absent bars — omit, never fabricate.
-    # `amount_wan > 0` belongs here too: shares cannot trade for zero turnover,
+    # `amount_yuan > 0` belongs here too: shares cannot trade for zero turnover,
     # so a row with volume but no amount is a broken source row, and letting
     # it through would write vwap = 0.
     traded = ((df["live_close"] > 0) & (df["live_open"] > 0)
               & (df["live_high"] > 0) & (df["live_low"] > 0)
-              & (df["lots"] > 0) & (df["amount_wan"] > 0)
+              & (df["shares"] > 0) & (df["amount_yuan"] > 0)
               & (df["prev_close"] > 0) & (df["prev_factor"] > 0))
     suspended = sorted(df.index[~traded])
     df = df[traded].copy()
@@ -428,12 +437,12 @@ def bridge(prev: pd.DataFrame, quotes: pd.DataFrame,
     df["high"] = df["live_high"]
     df["low"] = df["live_low"]
     df["close"] = df["live_close"]
-    df["vwap"] = df["amount_wan"] * 1e4 / (df["lots"] * 100.0)
+    df["vwap"] = df["amount_yuan"] / df["shares"]
 
     # --- volume & amount bridge
     c = anchor["C"].reindex(df.index)
     u = anchor["U"].reindex(df.index)
-    df["volume"] = c * (df["lots"] * 100.0) / df["factor"]
+    df["volume"] = c * df["shares"] / df["factor"]
     df["amount"] = u * df["volume"] * df["vwap"]   # vwap is raw here, and
     # canonical_amount is in canonical units, consistent with volume above.
 

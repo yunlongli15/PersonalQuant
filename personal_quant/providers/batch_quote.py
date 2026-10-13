@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Whole-market **batch** quote provider (same-session OHLCV).
+"""Whole-market **batch** quote provider, two sources (Tencent + Sina).
 
 Why this exists (2026-10-12)
 ----------------------------
@@ -16,47 +16,67 @@ the whole cross-section, and fetching ~5,500 names one by one at the
 project's politeness delay takes 1.5-2.5 hours (measured: 0.48 s/symbol
 even with a 0.12 s sleep).
 
-This provider fetches the whole market in **one pass of ~7 requests**.
+Why two sources (2026-10-13)
+----------------------------
+A single source is a single point of failure for the whole evening's
+ranking, and the failure mode is not hypothetical: on 2026-10-13 GitHub was
+unreachable for 100 seconds and the snapshot download died. The overlay is
+what kept that evening usable -- so the overlay itself should not hinge on
+one host.
 
-Measured 2026-10-12 21:xx CST, after the close:
+Measured 2026-10-13 (after the close, full market):
 
-    source                 batch size   full market   note
-    ---------------------- -----------  ------------  ---------------------
-    qt.gtimg.cn            900/request  6.9 s         <- used here
-    hq.sinajs.cn           800/request  2.5 s         cross-check only
-    push2.eastmoney.com    n/a          FAILED        WAF: connection dropped
-                                                      with no response, even
-                                                      at pz=5 (it had worked
-                                                      3 minutes earlier)
-    push2his (per stock)   n/a          FAILED        WAF
-    web.ifzq... /fqkline   per stock    ~45 min       also rate-limits after
-                                                      ~200 requests
+    source            batch cap   full market   note
+    ----------------- ----------- ------------- ---------------------------
+    qt.gtimg.cn       900/req     ~15 s (12)    primary
+    hq.sinajs.cn      800/req     ~6 s (7)      fallback; 1500 codes -> HTTP
+                                                431 (URL too long)
+    push2.eastmoney   n/a         FAILED        WAF: dropped with no response
+    fqkline (per stk) n/a         >45 min       rate-limits after ~200 req
 
-So: EastMoney is the *documented* preferred source in the STEP 2 notes but
-is not dependable, and per-stock kline is excluded by construction. Tencent
-`qt.gtimg.cn` is already an approved source in this project (it backs the
-valuation snapshot and the daily-history fallback), so the batch layer
-reuses it rather than introducing a new vendor.
+Both Chinese sources are already used elsewhere in this project (Tencent
+backs the valuation snapshot and the daily-history fallback; Sina backs the
+calendar cross-check), so neither is a new vendor relationship.
+
+**The two sources agree**, which is what makes a per-chunk fallback safe
+rather than merely convenient. Checked on 300 main-board names, same
+session, both decoded independently:
+
+    field        agreement
+    -----------  ---------------------------------------------------------
+    close        100.0% bit-identical
+    open/high/   >=99.7% bit-identical, max relative difference 7e-07
+      low/prev
+    amount       median relative difference 1.8e-05
+    volume       ratio 1.0000 at every percentile; the only 100x outlier
+                 was 000300.SH -- the CSI 300 INDEX, which this project
+                 already excludes as an index pseudo-symbol
 
 Field semantics (VERIFIED against canonical, not assumed)
 ---------------------------------------------------------
-* `close`, `open`, `high`, `low` are RAW prices in CNY, 0.01 tick — the
-  exchange's own values. Verified on 2026-10-09 for a 229-symbol sample:
-  Tencent kline vs canonical agreed to a median relative difference of
-  3e-8 and a **maximum of 0.0**.
+* RAW prices in CNY. Tencent quote vs canonical agreed on a 229-symbol
+  sample to a median relative difference of 3e-8 with a **maximum of 0.0**.
 * `prev` is the previous close, EXCEPT on an ex-rights/ex-dividend day,
-  where it is the exchange's **除权除息参考价** (reference price). Verified
-  on 2026-10-12: 5,549 of 5,564 symbols had `prev` equal to canonical's raw
-  T-1 close (99.7% within 0.1%), and the 15 that did not were exactly the
-  day's corporate actions — their names carried the `XD`/`DR` prefix and
-  e.g. 688110.SH had canonical T-1 close 104.38 vs `prev` 69.65
-  (ratio 1.4986 = a 10送5 split).
-  Consequence: `close/prev - 1` is the **true total return**, already
-  adjusted for the action. That is what the overlay bridges on.
-* `volume` is in 手 (lots of 100 shares) — cross-checked against the kline
-  endpoint, which returns the same number.
-* `amount` (index 37) is in 万元; index 57 carries the same figure with two
-  more digits.
+  where BOTH sources publish the exchange's **除权除息参考价**. Verified
+  for both: on 2026-10-13, the four non-action names matched canonical's
+  T-1 close to 0.000000, and all eight action names differed by clean
+  round dividend amounts (11.360-11.260=0.10, 27.790-27.290=0.50, ...).
+  The names also carry the `XD`/`DR` prefix.
+  Consequence: `close/prev - 1` is the **true total return** on both
+  sources, so the bridge is source-agnostic.
+* Units differ between the sources and are NORMALISED HERE to real units:
+  volume -> **shares**, amount -> **yuan**. Sina reports 股 / 元
+  throughout; Tencent reports 万元 for amount and **手 for volume on every
+  board EXCEPT 688/689, where it reports 股** (see `_volume_unit`).
+  Normalising at the edge (rather than carrying a `lots`/`wan` convention
+  inward) removes a conversion from every consumer and avoids the rounding
+  that shares->lots->shares would introduce.
+* KNOWN, BOUNDED INCONSISTENCY: the index pseudo-symbols (000300.SH,
+  000852.SH, 000905.SH, 000906.SH …) report volume in units that differ
+  between the two sources by exactly 100x. An index has no share count, so
+  there is no "correct" unit to normalise to; these symbols are excluded
+  from the factor universe by `config index_exclude` and never reach the
+  model. They are the only remaining cross-source outlier (4 of 5,563).
 
 Nothing here writes to the canonical layer; the caller decides what to do
 with the numbers.
@@ -70,7 +90,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Iterable, List, Optional, Sequence
+from typing import Callable, Dict, Iterable, List, Optional, Sequence, Tuple
 
 import pandas as pd
 import requests
@@ -81,38 +101,157 @@ from ..symbols import normalize_symbol
 
 RAW_DIR = config.RAW_DIR / "batch_quote"
 
-QUOTE_URL = "https://qt.gtimg.cn/q="
-HEADERS = {
+TENCENT_URL = "https://qt.gtimg.cn/q="
+TENCENT_HEADERS = {
     "User-Agent": config.USER_AGENT,
     "Referer": "https://gu.qq.com/",
 }
-
 #: Tencent serves GBK. Requests guesses ISO-8859-1 for text/* without a
 #: charset, which turns every stock name into mojibake — decode explicitly.
-ENCODING = "gbk"
+TENCENT_ENCODING = "gbk"
 
-#: codes per request. 900 answered in 0.4 s during probing; 500 leaves
-#: margin and keeps the URL well inside any proxy/GET length limit.
-CHUNK = 500
-
-#: index -> output column, per the verified layout above
-_FIELDS = {
-    1: "name",
-    2: "code",
-    3: "close",
-    4: "prev_close",
-    5: "open",
-    6: "volume_lots",
-    30: "quote_time",
-    31: "change",
-    32: "pct_chg",
-    33: "high",
-    34: "low",
-    37: "amount_wan",
-    38: "turnover",
-    49: "volume_ratio",
+SINA_URL = "https://hq.sinajs.cn/list="
+SINA_HEADERS = {
+    "User-Agent": config.USER_AGENT,
+    "Referer": "https://finance.sina.com.cn/",
 }
+SINA_ENCODING = "gbk"
 
+#: Output columns. **Real units**: shares and yuan, not 手 / 万元.
+COLUMNS = ["symbol", "name", "close", "prev_close", "open", "high", "low",
+           "volume_shares", "amount_yuan", "quote_time", "source"]
+
+#: Per-source chunk size. Tencent answered 900 codes in 0.4 s; Sina returns
+#: HTTP 431 (request header fields too large — it is a GET) at 1500 and is
+#: fine at 800. Both values leave margin under the observed limit.
+TENCENT_CHUNK = 500
+SINA_CHUNK = 800
+
+
+def _chunks(seq: Sequence[str], n: int) -> Iterable[Sequence[str]]:
+    for i in range(0, len(seq), n):
+        yield seq[i:i + n]
+
+
+def _code(symbol: str) -> str:
+    """`600519.SH` -> `sh600519`."""
+    digits, market = normalize_symbol(symbol).split(".")
+    return f"{market.lower()}{digits}"
+
+
+def _symbol_of(code: str) -> Optional[str]:
+    """`sh600519` -> `600519.SH`, or None when the code is not A-share-ish."""
+    if len(code) < 8 or code[:2].upper() not in ("SH", "SZ", "BJ"):
+        return None
+    digits = code[2:]
+    if len(digits) != 6 or not digits.isdigit():
+        return None
+    return f"{digits}.{code[:2].upper()}"
+
+
+def _stamp(date_str: str, time_str: str) -> Optional[str]:
+    """`2026-10-13` + `15:34:59` -> `20261013153459` (unified with Tencent)."""
+    d = str(date_str).replace("-", "")
+    t = str(time_str).replace(":", "")
+    if len(d) != 8 or not d.isdigit():
+        return None
+    if len(t) == 6 and t.isdigit():
+        return d + t
+    return d + "000000"
+
+
+# ---------------------------------------------------------------------------
+# parsers — one per source
+# ---------------------------------------------------------------------------
+
+def _parse_tencent(text: str) -> Tuple[List[dict], List[str]]:
+    """`v_sh600519="1~名称~600519~..."` records."""
+    rows, bad = [], []
+    for line in text.strip().splitlines():
+        if '="' not in line or not line.startswith("v_"):
+            continue
+        head, body = line.split('="', 1)
+        p = body.rstrip('";').split("~")
+        # 6=成交量(手) 30=时间戳 37=成交额(万元)
+        if len(p) <= 37:
+            bad.append(head[len("v_"):].strip())
+            continue
+        symbol = _symbol_of(head[len("v_"):].strip())
+        if symbol is None:
+            bad.append(head[len("v_"):].strip())
+            continue
+        rows.append({
+            "symbol": symbol, "name": p[1],
+            "close": _num(p[3]), "prev_close": _num(p[4]),
+            "open": _num(p[5]), "high": _num(p[33]), "low": _num(p[34]),
+            "volume_shares": _num(p[6]) * _volume_unit(symbol),
+            "amount_yuan": _num(p[37]) * 1e4,
+            "quote_time": p[30],
+            "source": "tencent_batch_quote",
+        })
+    return rows, bad
+
+
+def _parse_sina(text: str) -> Tuple[List[dict], List[str]]:
+    """`var hq_str_sh600519="名称,今开,昨收,现价,最高,最低,..."` records.
+
+    Index layout: 0=name 1=open 2=prev_close 3=close 4=high 5=low
+    8=volume(股) 9=amount(元) 30=date 31=time.
+    BSE lines carry 39 fields instead of 34 — only the tail differs, and we
+    never read past index 31, so one parser covers all three exchanges.
+    """
+    rows, bad = [], []
+    for line in text.strip().splitlines():
+        if '="' not in line or "hq_str_" not in line:
+            continue
+        code = line.split("hq_str_")[1].split("=")[0].strip()
+        f = line.split('="', 1)[1].rstrip('";').split(",")
+        symbol = _symbol_of(code)
+        # A halted/unknown code comes back as an empty payload: skip it
+        # rather than inventing a zero bar.
+        if symbol is None or len(f) < 32 or not f[0]:
+            bad.append(code)
+            continue
+        rows.append({
+            "symbol": symbol, "name": f[0],
+            "open": _num(f[1]), "prev_close": _num(f[2]), "close": _num(f[3]),
+            "high": _num(f[4]), "low": _num(f[5]),
+            "volume_shares": _num(f[8]),
+            "amount_yuan": _num(f[9]),
+            "quote_time": _stamp(f[30], f[31]),
+            "source": "sina_hq",
+        })
+    return rows, bad
+
+
+def _volume_unit(symbol: str) -> float:
+    """腾讯的成交量字段是多少股？**按板块不同。**
+
+    科创板（688/689）报的是**股**，其余板块（沪深主板/创业板/北交所）
+    报的是**手**。这个差异是被第二个源逼出来的（2026-10-14）：
+
+        688001.SH  close 55.30  腾讯 f6 = 12,123,933  新浪 = 12,123,933
+                   成交额两边都是 6.494e8 元（比值 1.000000）
+                   成交额 ÷ 收盘价 ≈ 1.17e7 股 —— 与新新浪一致，
+                   而 `f6 × 100` 会得到 1.21e9 股（差 100 倍）
+
+    统一乘 100 会让 621 只科创板标的的 volume 大 100 倍，直接污染
+    VMA / VSTD / VSUM 这些绝对量特征。注意：**成交额两个源都是万元/元，
+    没有这个问题** —— 差异只在成交量字段。
+    """
+    return 1.0 if symbol[:3] in ("688", "689") else 100.0
+
+
+def _num(v) -> float:
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return float("nan")
+
+
+# ---------------------------------------------------------------------------
+# the batch itself
+# ---------------------------------------------------------------------------
 
 @dataclass
 class QuoteBatch:
@@ -123,6 +262,10 @@ class QuoteBatch:
     request_count: int
     failures: List[str] = field(default_factory=list)
     sha256: str = ""
+    #: which source each row came from, and how many rows per source
+    sources: Dict[str, int] = field(default_factory=dict)
+    #: source -> why it was abandoned (None when the primary worked)
+    fallback_reason: Optional[str] = None
 
     @property
     def trade_date(self) -> Optional[str]:
@@ -134,65 +277,47 @@ class QuoteBatch:
         """
         if self.quotes.empty:
             return None
-        t = self.quotes["quote_time"].dropna()
+        t = self.quotes["quote_time"].dropna().astype(str)
         if t.empty:
             return None
-        return str(t.mode().iloc[0])[:8]
+        return str(t.str[:8].mode().iloc[0])
 
 
-def _chunks(seq: Sequence[str], n: int) -> Iterable[Sequence[str]]:
-    for i in range(0, len(seq), n):
-        yield seq[i:i + n]
+@dataclass
+class _Source:
+    name: str
+    url: str
+    headers: dict
+    encoding: str
+    chunk: int
+    parse: Callable[[str], Tuple[List[dict], List[str]]]
 
 
-def _to_tencent(symbol: str) -> str:
-    digits, market = normalize_symbol(symbol).split(".")
-    return f"{market.lower()}{digits}"
-
-
-def _parse_line(line: str) -> Optional[dict]:
-    """One `v_sh600519="..."` record -> dict, or None if unusable."""
-    if '="' not in line or not line.startswith("v_"):
-        return None
-    head, body = line.split('="', 1)
-    parts = body.rstrip('";').split("~")
-    if len(parts) <= max(_FIELDS):
-        return None                       # short/garbage row: skip, never guess
-    tx = head[len("v_"):].strip()
-    digits, market = tx[2:], tx[:2].upper()
-    if len(digits) != 6 or market not in ("SH", "SZ", "BJ"):
-        return None
-    row = {"symbol": f"{digits}.{market}", "tencent_code": tx}
-    for idx, col in _FIELDS.items():
-        row[col] = parts[idx]
-    return row
-
-
-def _numeric(df: pd.DataFrame, cols: Sequence[str]) -> pd.DataFrame:
-    for c in cols:
-        df[c] = pd.to_numeric(df[c], errors="coerce")
-    return df
+_SOURCES: Tuple[_Source, ...] = (
+    _Source("tencent_batch_quote", TENCENT_URL, TENCENT_HEADERS,
+            TENCENT_ENCODING, TENCENT_CHUNK, _parse_tencent),
+    _Source("sina_hq", SINA_URL, SINA_HEADERS,
+            SINA_ENCODING, SINA_CHUNK, _parse_sina),
+)
 
 
 class BatchQuoteProvider:
-    """Whole-market same-session quotes via Tencent's batch endpoint."""
+    """Whole-market same-session quotes, Tencent first, Sina as fallback.
 
-    name = "tencent_batch_quote"
+    The fallback is **per chunk**, so one host wobbling does not discard the
+    chunks the other host already delivered. Mixing is safe because the two
+    agree field-for-field (see the module docstring); each row still carries
+    the source it actually came from.
+    """
 
-    def __init__(self, chunk: int = CHUNK, attempts: int = 3):
-        self.chunk = chunk
+    name = "batch_quote"
+
+    def __init__(self, attempts: int = 3):
         self.attempts = attempts
-        #: filled by fetch_quotes(); surfaced in the manifest so a silently
-        #: partial run can never look like a complete one
         self.failures: List[str] = []
 
     # ------------------------------------------------------------------
     def fetch_quotes(self, symbols: Sequence[str]) -> QuoteBatch:
-        """Fetch quotes for `symbols` (canonical spelling).
-
-        Raises FetchError when an entire chunk is unreachable after retries —
-        a partial cross-section must never be mistaken for the market.
-        """
         config.require_online("fetch_quotes")
         symbols = list(dict.fromkeys(symbols))
         if not symbols:
@@ -201,58 +326,90 @@ class BatchQuoteProvider:
         self.failures = []
         rows: List[dict] = []
         requests_made = 0
-        chunks = list(_chunks(symbols, self.chunk))
-        for i, chunk in enumerate(chunks, 1):
-            rows.extend(self._fetch_chunk(chunk))
-            requests_made += 1
-            if i < len(chunks):
-                # polite, deterministic spacing between requests
-                time.sleep(config.MIN_DELAY_SECONDS * 0.3)
+        reasons: List[str] = []
+
+        for source in _SOURCES:
+            todo = [s for s in symbols
+                    if s not in {r["symbol"] for r in rows}]
+            if not todo:
+                break
+            if rows:
+                reasons.append(f"{source.name}: 补 {len(todo)} 只")
+            chunks = list(_chunks(todo, source.chunk))
+            for i, chunk in enumerate(chunks, 1):
+                try:
+                    got, bad = self._fetch_chunk(source, chunk)
+                except FetchError as e:
+                    reasons.append(f"{source.name} 不可用（{e}）")
+                    break            # 整个源不可用，交给下一个源
+                rows.extend(got)
+                requests_made += 1
+                self.failures.extend(bad[:50])
+                if i < len(chunks):
+                    time.sleep(config.MIN_DELAY_SECONDS * 0.3)
 
         df = pd.DataFrame(rows).drop_duplicates(subset=["symbol"])
         if df.empty:
             raise FetchError(
-                f"batch quote returned no usable rows for {len(symbols)} "
-                f"symbols ({len(chunks)} requests)")
-        df = _numeric(df, ["close", "prev_close", "open", "high", "low",
-                           "volume_lots", "amount_wan", "change", "pct_chg",
-                           "turnover", "volume_ratio"])
+                f"批量行情两个源都没返回可用数据（{len(symbols)} 个标的）—— "
+                f"{'；'.join(reasons)}")
+        df = df[[c for c in COLUMNS if c in df.columns]]
         df["exchange"] = df["symbol"].str.split(".").str[1]
-        df["source"] = self.name
 
-        missing = sorted(set(symbols) - set(df["symbol"]))
-        self.failures.extend(missing[:200])
-        return QuoteBatch(quotes=df, fetched_at=datetime.now(),
-                          request_count=requests_made,
-                          failures=list(self.failures),
-                          sha256=_content_hash(df))
+        # Drop rows from a DIFFERENT session. Sina keeps serving the last
+        # tick a delisted name ever printed: 000004.SZ 国华退 came back
+        # stamped 20260713 with open=high=low=close=0.510 and a real
+        # volume — it would sail straight through the "is this suspended?"
+        # check (all four prices are non-zero) and be written as today's
+        # bar at July's price. Tencent's equivalent row is stamped today
+        # with all-zero OHLC, which is why the suspension check alone was
+        # enough until the second source existed.
+        stamps = df["quote_time"].astype(str).str[:8]
+        session = stamps.mode().iloc[0] if not stamps.empty else None
+        if session:
+            stale = stamps != session
+            if stale.any():
+                self.failures.extend(
+                    [f"{s}(session {t})" for s, t in
+                     zip(df.loc[stale, "symbol"], stamps[stale])][:50])
+                df = df[~stale]
+            if df.empty:
+                raise FetchError(
+                    f"所有行情都属于别的 session（众数 {session}），"
+                    f"没有本 session 的数据")
+
+        sources = df["source"].value_counts().to_dict()
+        self.failures.extend(
+            sorted(set(symbols) - set(df["symbol"]))[:200])
+        return QuoteBatch(
+            quotes=df, fetched_at=datetime.now(),
+            request_count=requests_made, failures=list(self.failures),
+            sha256=_content_hash(df), sources=sources,
+            fallback_reason="；".join(reasons) or None)
 
     # ------------------------------------------------------------------
-    def _fetch_chunk(self, chunk: Sequence[str]) -> List[dict]:
-        url = QUOTE_URL + ",".join(_to_tencent(s) for s in chunk)
+    def _fetch_chunk(self, source: _Source,
+                     chunk: Sequence[str]) -> Tuple[List[dict], List[str]]:
+        url = source.url + ",".join(_code(s) for s in chunk)
         last: Optional[Exception] = None
         for attempt in range(1, self.attempts + 1):
             try:
-                resp = requests.get(url, headers=HEADERS,
+                resp = requests.get(url, headers=source.headers,
                                     timeout=config.HTTP_TIMEOUT)
                 if resp.status_code != 200:
-                    raise FetchError(f"batch quote HTTP {resp.status_code}")
-                resp.encoding = ENCODING
-                out = []
-                for line in resp.text.strip().splitlines():
-                    row = _parse_line(line)
-                    if row is not None:
-                        out.append(row)
-                if not out:
-                    raise FetchError("batch quote returned no parsable rows")
-                return out
+                    raise FetchError(f"HTTP {resp.status_code}")
+                resp.encoding = source.encoding
+                rows, bad = source.parse(resp.text)
+                if not rows:
+                    raise FetchError("返回里没有可解析的记录")
+                return rows, bad
             except Exception as e:                              # noqa: BLE001
                 last = e
                 if attempt < self.attempts:
                     time.sleep(config.BACKOFF_FACTOR ** attempt)
         raise FetchError(
-            f"batch quote chunk of {len(chunk)} symbols failed after "
-            f"{self.attempts} attempts: {type(last).__name__}: {last}")
+            f"{len(chunk)} 只的批次连续 {self.attempts} 次失败："
+            f"{type(last).__name__}: {last}")
 
     # ------------------------------------------------------------------
     def save_raw(self, batch: QuoteBatch, trade_date: str) -> Path:
@@ -270,6 +427,8 @@ class BatchQuoteProvider:
             "trade_date": trade_date,
             "fetched_at": batch.fetched_at.isoformat(timespec="seconds"),
             "request_count": batch.request_count,
+            "sources": batch.sources,
+            "fallback_reason": batch.fallback_reason,
             "failures": batch.failures,
             "sha256": batch.sha256,
             "quotes": json.loads(
@@ -293,7 +452,7 @@ class BatchQuoteProvider:
 def _content_hash(df: pd.DataFrame) -> str:
     """Stable digest of the parsed content (order-independent)."""
     cols = ["symbol", "close", "prev_close", "open", "high", "low",
-            "volume_lots", "amount_wan"]
+            "volume_shares", "amount_yuan"]
     sub = df[sorted(cols)].sort_values("symbol")
     return hashlib.sha256(
         sub.to_csv(index=False).encode("utf-8")).hexdigest()

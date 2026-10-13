@@ -48,13 +48,14 @@ def prev_frame(close=100.0, factor=0.25, symbols=("600519.SH",),
 
 
 def quotes_frame(symbol="600519.SH", close=110.0, prev_close=100.0,
-                 open_=105.0, high=112.0, low=104.0, lots=2000.0,
-                 amount_wan=2200.0, quote_time="20261012151000",
+                 open_=105.0, high=112.0, low=104.0, shares=200_000.0,
+                 amount_yuan=22_000_000.0, quote_time="20261012151000",
                  name="测试"):
+    """Provider 的输出契约是**真实单位**：股 / 元（两边源各自换算过）。"""
     return pd.DataFrame({
         "symbol": [symbol], "name": [name], "close": [close],
         "prev_close": [prev_close], "open": [open_], "high": [high],
-        "low": [low], "volume_lots": [lots], "amount_wan": [amount_wan],
+        "low": [low], "volume_shares": [shares], "amount_yuan": [amount_yuan],
         "quote_time": [quote_time],
     })
 
@@ -76,7 +77,7 @@ def test_bridge_keeps_raw_prices_and_only_derives_factor(ov):
     assert row["high"] == 112.0
     assert row["low"] == 104.0
     assert row["close"] == 110.0
-    assert row["vwap"] == pytest.approx(2200.0 * 1e4 / (2000.0 * 100.0))
+    assert row["vwap"] == pytest.approx(22_000_000.0 / 200_000.0)
 
 
 def test_adjusted_series_is_continuous_across_the_gap(ov):
@@ -114,7 +115,7 @@ def test_suspended_names_are_omitted_not_zero_filled(ov):
     zeros would be a fabricated -100% day."""
     q = pd.concat([quotes_frame(symbol="600519.SH"),
                    quotes_frame(symbol="000001.SZ", open_=0.0, high=0.0,
-                                low=0.0, lots=0.0, close=11.0,
+                                low=0.0, shares=0.0, close=11.0,
                                 prev_close=11.0)],
                   ignore_index=True)
     prev = prev_frame(symbols=("600519.SH", "000001.SZ"))
@@ -147,10 +148,10 @@ def test_name_without_anchor_keeps_price_but_nulls_volume(ov):
 def test_volume_uses_the_exact_factor_coupled_scale(ov):
     """canonical_volume = C * real_shares / factor. Getting this wrong is
     the whole reason the market_scale table could not be used directly."""
-    df, _ = ov.bridge(prev_frame(), quotes_frame(lots=2000.0),
+    df, _ = ov.bridge(prev_frame(), quotes_frame(shares=200_000.0),
                       anchor_frame(C=0.01, U=0.01))
     row = df.iloc[0]
-    assert row["volume"] == pytest.approx(0.01 * 2000.0 * 100.0 / row["factor"])
+    assert row["volume"] == pytest.approx(0.01 * 200_000.0 / row["factor"])
 
 
 # ---------------------------------------------------------------------------
